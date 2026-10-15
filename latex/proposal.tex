@@ -1,0 +1,186 @@
+% =====================================================================
+%  CMPT 981 Project - Proposal
+%
+%  Template for all project write-ups. Copy this file for the milestone
+%  and final report (e.g. milestone.tex, final_report.tex) and adjust
+%  the sections. References are shared across all documents in
+%  references.bib (same folder).
+%
+%  Build:  pdflatex proposal && bibtex proposal && pdflatex proposal && pdflatex proposal
+%     or:  latexmk -pdf proposal.tex
+%  (Overleaf handles this automatically.)
+% =====================================================================
+
+\documentclass[11pt]{article}
+
+% --- Page layout & fonts ----------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Math ---------------------------------------------------------------
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% --- Figures & tables ---------------------------------------------------
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{xcolor}
+
+% --- Algorithms ---------------------------------------------------------
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% --- References & links (hyperref/cleveref load last) -------------------
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% --- Theorem environments -----------------------------------------------
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+% --- Handy macros -------------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+% Inline TODO notes; comment out the first line and uncomment the
+% second to hide them all before submitting.
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+% \newcommand{\todo}[1]{}
+
+% --- Title --------------------------------------------------------------
+\title{Project Title Goes Here\\[0.3em]
+  \large CMPT 981 Project Proposal}
+\author{
+  Author One \quad Author Two \quad Author Three\\
+  Simon Fraser University\\
+  \texttt{\{author1, author2, author3\}@sfu.ca}
+}
+\date{\today}
+
+% =====================================================================
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  One paragraph summarizing the problem, why it matters, the proposed
+  approach, and how it will be evaluated. \todo{write abstract}
+\end{abstract}
+
+% ---------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+Motivate the problem and state the main question the project answers.
+Cite related work like this~\cite{boyd2004convex} or with author names:
+\citet{kingma2015adam} proposed Adam. Refer to other sections with
+\cref{sec:method}.
+
+% ---------------------------------------------------------------------
+\section{Problem Formulation}
+\label{sec:problem}
+
+Define the problem formally. For example, given data
+$\{(\bm{x}_i, y_i)\}_{i=1}^n$ with $\bm{x}_i \in \R^d$, we solve
+\begin{equation}
+  \label{eq:objective}
+  \min_{\bm{w} \in \R^d} \; f(\bm{w})
+  \coloneqq \frac{1}{n} \sum_{i=1}^{n} \ell\bigl(\bm{w}^\top \bm{x}_i, y_i\bigr)
+  + \frac{\lambda}{2} \norm{\bm{w}}_2^2 .
+\end{equation}
+\Cref{eq:objective} is referenced automatically.
+
+\begin{definition}[Smoothness]
+  A differentiable function $f$ is $L$-smooth if
+  $\norm{\nabla f(\bm{u}) - \nabla f(\bm{v})}_2 \le L \norm{\bm{u} - \bm{v}}_2$
+  for all $\bm{u}, \bm{v}$.
+\end{definition}
+
+% ---------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related}
+
+Summarize prior work and how this project differs. \todo{add references}
+
+% ---------------------------------------------------------------------
+\section{Proposed Method}
+\label{sec:method}
+
+Describe the approach. Pseudocode is shown in \cref{alg:gd}.
+
+\begin{algorithm}[t]
+  \caption{Gradient descent (example)}
+  \label{alg:gd}
+  \begin{algorithmic}[1]
+    \Require initial point $\bm{w}_0$, step size $\eta$, iterations $T$
+    \For{$t = 0, \dots, T-1$}
+      \State $\bm{w}_{t+1} \gets \bm{w}_t - \eta \nabla f(\bm{w}_t)$
+    \EndFor
+    \State \Return $\bm{w}_T$
+  \end{algorithmic}
+\end{algorithm}
+
+% ---------------------------------------------------------------------
+\section{Experimental Plan}
+\label{sec:experiments}
+
+Datasets, baselines, metrics, and expected results. Example table
+(\cref{tab:results}) and figure (\cref{fig:example}):
+
+\begin{table}[t]
+  \centering
+  \caption{Example results table.}
+  \label{tab:results}
+  \begin{tabular}{lcc}
+    \toprule
+    Method        & Accuracy (\%) & Time (s) \\
+    \midrule
+    Baseline      & 85.0          & 12.3     \\
+    Ours          & \textbf{88.5} & 10.1     \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  % Replace the box with: \includegraphics[width=0.6\linewidth]{figures/loss.pdf}
+  \fbox{\parbox[c][4cm][c]{0.6\linewidth}{\centering Figure placeholder}}
+  \caption{Example figure.}
+  \label{fig:example}
+\end{figure}
+
+% ---------------------------------------------------------------------
+\section{Timeline}
+\label{sec:timeline}
+
+\begin{itemize}
+  \item \textbf{Week 1--2:} Literature review and problem setup.
+  \item \textbf{Week 3--4:} Implement baselines. \emph{(Milestone)}
+  \item \textbf{Week 5--7:} Implement and evaluate proposed method.
+  \item \textbf{Week 8:} Write final report.
+\end{itemize}
+
+% ---------------------------------------------------------------------
+\section{Team Contributions}
+\label{sec:contributions}
+
+\begin{itemize}
+  \item \textbf{Author One:} \todo{responsibilities}
+  \item \textbf{Author Two:} \todo{responsibilities}
+  \item \textbf{Author Three:} \todo{responsibilities}
+\end{itemize}
+
+% ---------------------------------------------------------------------
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
