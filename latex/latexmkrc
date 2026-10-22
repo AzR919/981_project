@@ -1,0 +1,5 @@
+# latexmk settings for this folder (picked up automatically by `latexmk`).
+# Build files (.aux, .log, ...) stay here; the finished PDF goes to ../docs/.
+$pdf_mode = 1;           # build with pdflatex
+$aux_dir  = '.';
+$out_dir  = '../docs';
