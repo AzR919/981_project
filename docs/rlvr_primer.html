@@ -246,6 +246,23 @@ $$A_i = \frac{r_i - \operatorname{mean}(r_1, \dots, r_G)}{\operatorname{std}(r_1
   Proposition&nbsp;1 in the proposal.</p>
 </div>
 
+<h3>What each variant actually optimizes</h3>
+<p>Davis &amp; Recht (<a href="https://arxiv.org/abs/2510.13651">arXiv:2510.13651</a>) show that, with binary
+rewards, these algorithms are all gradient ascent on some increasing function $F(p)$ of the success rate.
+They differ only in which $F$, so on prompt $x$ the update is roughly $F'(p)\,\nabla p$.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Algorithm</th><th>Objective $F(p)$</th><th>Weight $F'(p)$ on a prompt</th></tr></thead>
+  <tbody>
+    <tr><td>Mean-only / RLOO</td><td>$p$</td><td>$1$: every prompt counts equally</td></tr>
+    <tr><td>GRPO (large $G$)</td><td>$2\arcsin\sqrt{p}$</td><td>$1/\sqrt{p(1-p)}$: boosts very hard and very easy prompts</td></tr>
+    <tr><td>Rejection sampling</td><td>$\log p$</td><td>$1/p$: boosts hard prompts most</td></tr>
+  </tbody>
+</table>
+</div>
+<p>This one table explains a lot of what follows: why GRPO amplifies success more than mean-only (b), and
+why std-normalization behaves like a per-prompt step size (c).</p>
+
 <!-- ============================================================ -->
 <h2 id="playground"><span class="num">5</span>The playground</h2>
 
@@ -285,6 +302,18 @@ Suk &amp; Duan show $\nabla J = p(1-p)\,(g^+ - g^-)$, where $g^{\pm}$ is the ave
 and incorrect answers. Learning is slow at <em>both</em> ends, $p \approx 0$ and $p \approx 1$.
 Bigger $G$ helps exactly when $p$ is small; the open question is when that is worth the compute.</p>
 
+<p>Two things make this harder in practice.</p>
+<ul>
+  <li><strong>Prompts differ.</strong> $p^G + (1-p)^G$ is convex in $p$, so when success rates vary across
+    prompts, the batch has <em>more</em> dead groups than plugging in the average $p$ predicts (Nie et al.,
+    <a href="https://arxiv.org/abs/2605.07689">arXiv:2605.07689</a>). Always compute the formula per prompt.</li>
+  <li><strong>The literature disagrees on $G$.</strong> &ldquo;It Takes Two&rdquo;
+    (<a href="https://arxiv.org/abs/2510.00977">arXiv:2510.00977</a>) keeps 97.6% of $G = 16$'s performance
+    with $G = 2$, while BroRL (<a href="https://arxiv.org/abs/2510.01180">arXiv:2510.01180</a>) revives stalled
+    training with hundreds of rollouts per prompt. Both can be right: $G = 2$ is fine when $p$ is moderate,
+    and large $G$ is essential when $p$ is tiny. E1 tests exactly where the switch happens.</li>
+</ul>
+
 <div class="try">
   <span class="label">Try it</span>
   <pre><code>python main.py -K 1000 -G 2  -n 1000 --print-every 250
@@ -323,6 +352,11 @@ and performance can fall instead of rise. Because the gradient magnitude scales 
 length $T$, the safe step size scales roughly as $1/T$. That is why averaging over tokens stabilizes
 training. The project tests whether a sharp threshold actually shows up with noisy gradients and a
 neural network.</p>
+<p>Two recent results matter here. Std-normalization multiplies each prompt's update by $1/\sqrt{p(1-p)}$,
+so it acts like an adaptive, per-prompt step size (Ge et al., <a href="https://arxiv.org/abs/2601.23135">arXiv:2601.23135</a>):
+the threshold should differ between GRPO and mean-only. And no length weighting is both unbiased and
+length-invariant (Ding et al., <a href="https://arxiv.org/abs/2607.23364">arXiv:2607.23364</a>): summing
+and averaging are the two ends of an unavoidable tradeoff, not a right and a wrong answer.</p>
 
 <div class="try">
   <span class="label">Try it</span>
@@ -342,6 +376,13 @@ pass@$k$ instead has gradient</p>
 $$\nabla\, \text{pass@}k = k\,(1-p)^{k-1}\, \nabla p.$$
 <p>The weight $k(1-p)^{k-1}$ is large on prompts the model rarely solves and near zero on prompts it
 already solves, so effort spreads out and the policy stays diverse, at some cost to pass@1.</p>
+<p>Why does diversity collapse in the first place? Cui et al. (<a href="https://arxiv.org/abs/2505.22617">arXiv:2505.22617</a>)
+show that the change in entropy is driven by the covariance between a token's log-probability and its
+advantage. Under ordinary training that covariance is mostly positive: already-likely answers get
+rewarded, so they become more likely still. Yuan et al. (<a href="https://arxiv.org/abs/2606.15455">arXiv:2606.15455</a>)
+call this <em>overtraining</em>: once a problem has been solved once, further updates mostly sharpen the
+answer the model already prefers. A trained model therefore often beats its base model at pass@1 but
+loses to it at pass@256 (Yue et al., <a href="https://arxiv.org/abs/2504.13837">arXiv:2504.13837</a>).</p>
 
 <div class="try">
   <span class="label">Try it</span>
@@ -384,6 +425,32 @@ at a time and see where reality departs from theory.</p>
   <li>Read Mroueh (<a href="https://arxiv.org/abs/2503.06639">arXiv:2503.06639</a>) &sect;2&ndash;3, with Table&nbsp;1 of the proposal beside it.</li>
   <li>Read Thrampoulidis et al. (<a href="https://arxiv.org/abs/2510.23049">arXiv:2510.23049</a>) &sect;3 last.</li>
 </ol>
+
+<h3>Recent work worth knowing</h3>
+<p>These 2025&ndash;2026 papers are now cited in the proposal. Skim the abstracts; read in full only the
+ones attached to the experiment you own.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Paper</th><th>One-line takeaway</th><th>For</th></tr></thead>
+  <tbody>
+    <tr><td><a href="https://arxiv.org/abs/2510.13651">Davis &amp; Recht</a></td><td>GRPO is ascent on $\arcsin\sqrt{p}$</td><td>E2</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2603.01162">Zhou et al. (U-statistic)</a></td><td>Gradient variance and a group-size law</td><td>E1</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2605.07689">Nie et al. (Gradient Starvation)</a></td><td>More dead groups than the average $p$ predicts; $A = 2r - 1$ fix</td><td>E1, E5</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2510.01180">BroRL</a> / <a href="https://arxiv.org/abs/2510.00977">It Takes Two</a></td><td>Huge $G$ vs. $G = 2$</td><td>E1</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2601.23135">Ge et al.</a></td><td>Std-normalization as an adaptive step size</td><td>E1, E3</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2607.23364">Ding et al. (length)</a></td><td>No length weighting is unbiased and length-invariant</td><td>E3</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2601.04411">Rad et al. (Rate or Fate)</a></td><td>GRPO as a flow on a bandit; phase transition under noisy verifiers</td><td>E2</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2610.12161">Ding (KL misfires)</a></td><td>Ways the KL term misbehaves</td><td>E2</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2602.06717">F-GRPO</a></td><td>Mixed groups can still miss rare correct answers</td><td>E1, E4</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2505.22617">Cui et al. (entropy)</a></td><td>Why entropy collapses</td><td>E4</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2606.15455">Yuan et al. (overtraining)</a></td><td>Train only on unsolved prompts to keep pass@$k$</td><td>E4, E5</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2504.13837">Yue et al.</a></td><td>Base model wins at large $k$</td><td>E4, E6</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2609.09075">ThinkPrior</a> / <a href="https://arxiv.org/abs/2609.38018">ARCUS</a></td><td>Pick prompts by predicted learnability</td><td>E5</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2506.10947">Spurious Rewards</a></td><td>Random rewards can help too: run a control</td><td>E6</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2509.25300">Tan et al. (scaling)</a></td><td>Reference curves down to 0.5B</td><td>E6</td></tr>
+  </tbody>
+</table>
+</div>
 
 <footer>
   Written for the CMPT 981 project team (Faris, Singh, Doan, Rehman). The proposal is in

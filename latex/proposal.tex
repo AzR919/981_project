@@ -160,6 +160,15 @@ the paper reports divergent iterates at $\beta = 5$ with $\pref = 0.001$.
 We test whether SGD training reaches the predicted $p^\ast$ across KL
 strengths, extend the prediction to finite $G$, and ask whether SGD
 inherits the iteration's instability (\cref{sec:finiteG}).
+\citet{davis2025objective} give a complementary view: with binary rewards,
+several RL algorithms are stochastic gradient ascent on a monotone
+transform of the success probability, and for GRPO the transform is
+$\arcsin\sqrt{p}$. \citet{rad2026rateorfate} analyse GRPO on a bandit as a
+replicator-style flow and show a phase transition under verifier noise;
+theirs is the closest analysis in style to ours, but it has no KL penalty.
+\citet{ding2026klmisfires} list ways the KL term misbehaves in group
+policy optimization, including KL updates on groups whose rewards are all
+equal.
 
 \paragraph{Gradient gap and step-size thresholds~\citep{suk2025gradientgap}.}
 The paper defines the gradient gap, the difference between the expected
@@ -172,7 +181,13 @@ $1/|y|$ normalization provides exactly this scaling and Dr.~GRPO's does not.
 Its experiments use a single step size. We test whether a sharp transition
 appears in a stochastic, learned-policy setting, and how it moves with
 response length when responses of different lengths share one learning
-rate.
+rate. Two recent results sharpen this question. \citet{ge2026normalization}
+show that std-normalization acts as an adaptive step size matched to local
+curvature, with a speed-up that depends on how much the per-prompt reward
+variance differs across prompts. \citet{ding2026lengthimpossibility} prove
+that with outcome rewards no length weighting is both unbiased and
+length-invariant; GRPO and Dr.~GRPO are the two ends of the family
+$f_\alpha(L) = L^{\alpha - 1}$, $\alpha \in [0, 1]$.
 
 \paragraph{Group size and informative prompts.}
 A group with all-equal rewards has zero advantage. DAPO's dynamic
@@ -184,10 +199,29 @@ closed-form group-size law in $G\,p(1-p)$, and check it on a Bernoulli toy
 model at $G=8$ and by subsampling logged rollouts.
 \citet{ghosh2026predictable} model the mean reward trajectory as a damped
 oscillator and predict that it is nearly independent of $G$ to leading
-order. We do not claim the informative-group fraction (Eq.~\eqref{eq:informative})
-or the $p(1-p)$ scaling as new. Our contribution is a controlled
-\emph{training} grid over $G$, $p_0$, KL strength and step size, with every
-quantity measured exactly, compared against these closed forms.
+order. \citet{zhou2026ustat} show that the GRPO gradient is a U-statistic,
+derive its mean squared error, and propose a scaling law for the group
+size. \citet{nie2026starvation} prove that when the success rate varies
+across prompts, the fraction of all-equal groups exceeds the prediction
+from the average success rate, and that a fixed-reference advantage
+$A = 2r - 1$ outperforms Dr.~GRPO at $G = 4$ on GSM8K. Empirical results
+pull in two directions: \citet{hu2025brorl} revive stalled training by
+scaling to hundreds of rollouts per prompt, while \citet{wu2025ittakestwo}
+retain 97.6\% of the performance of $G = 16$ with $G = 2$.
+\citet{plyusov2026fgrpo} show that a group can have mixed rewards yet miss
+rare correct solutions, with a non-monotonic dependence on $G$. Prompt
+selection methods choose prompts by predicted learnability: ThinkPrior
+starts from an offline difficulty prior~\citep{sha2026thinkprior}, and
+ARCUS tracks difficulty in Fisher--Rao coordinates of the pass
+rate~\citep{okonkwo2026arcus}.
+
+We do not claim the informative-group fraction (Eq.~\eqref{eq:informative})
+or the $p(1-p)$ scaling as new. The closest prior work to ours is
+\citet{bay2026grpostd}, \citet{zhou2026ustat}, \citet{nie2026starvation}
+and \citet{plyusov2026fgrpo}, each of which varies $G$ in theory or in a
+toy model. Our contribution is a controlled \emph{training} grid over $G$,
+$p_0$, KL strength and step size, with every quantity measured exactly,
+compared against these closed forms.
 
 \paragraph{Pass@$K$ advantage shaping.}
 \citet{walder2025passk} and \citet{chen2025passk} train directly for
@@ -196,6 +230,17 @@ heuristics, such as hard-example upweighting, implicitly maximize surrogate
 rewards such as pass@$K$, and derive an unbiased leave-one-out pass@$K$
 advantage. We test whether optimizing pass@$K$ preserves response diversity
 and at what cost to pass@1.
+
+\paragraph{Entropy and diversity collapse.}
+\citet{yue2025doesrl} show that RLVR-trained models beat their base model
+at small $k$ but lose to it at large $k$. \citet{cui2025entropy} trace the
+fall in entropy to the covariance between a token's log-probability and its
+advantage, and fit an empirical law $R = -a e^{H} + b$ between performance
+and entropy. \citet{yuan2026overtraining} attribute diversity collapse to
+overtraining prompts that are already solved, and find that updating only
+on prompts with zero observed successes raises pass@256 above the base
+model. \citet{shao2025spurious} find that even random rewards improve some
+models, which argues for a random-reward control in LLM experiments.
 
 % ---------------------------------------------------------------------
 \section{Problem Formulation}
@@ -216,7 +261,11 @@ the initial success rate without changing the task, we also warm-start the
 policy with a short supervised phase that stops at a target $p_0$. This
 plays the role of a base model. For the step-size experiment we also use a
 \emph{mixed-length} variant in which each prompt has its own length
-$L(x) \in \{2, \dots, 8\}$.
+$L(x) \in \{2, \dots, 8\}$. For the diversity experiment we use a
+\emph{multi-solution} variant in which $m$ of the $K$ tokens are correct at
+each position, so a prompt has $m^L$ correct responses and diversity among
+correct answers can be measured; the base model starts with unequal
+probabilities on them, so that some correct responses are rare.
 
 \paragraph{Policy.}
 $\pi_\theta(y \mid x) = \prod_{t=1}^{L} \pi_\theta(y_t \mid x, t)$, where
@@ -313,6 +362,17 @@ A Monte Carlo check over $G \in \{2, 4, 16\}$ and
 $p \in \{0.05, 0.3, 0.7\}$ agrees with Eq.~\eqref{eq:omegaG} and the
 closed forms to within $0.01$.
 
+The proposition also connects to the view of \citet{davis2025objective}.
+For the same policy class, maximizing $F(p) - \beta\,\KL(\pi \,\|\, \piref)$
+for a monotone $F$ gives the stationarity condition
+$\logit p = \logit \pref + F'(p)/\beta$. Our fixed points are therefore
+those of an effective objective $F_G$ with $F_G' = \Omega_G$: $F_G(p) =
+\frac{G-1}{G}\,p$ for \texttt{mean-only}, $F_G(p) = p$ for \texttt{rloo},
+and, for \texttt{grpo} as $G \to \infty$ with $\epsilon = 0$,
+$F_\infty(p) = 2\arcsin\sqrt{p}$, whose derivative is
+$1/\sqrt{p(1-p)}$. This matches Davis and Recht's transform. At the success
+rates in \cref{tab:omega}, finite $G$ replaces it with a flatter one.
+
 \paragraph{Same fixed points, different stability.}
 Let $z = \logit p$. For the tabular policy with $L = 1$, the wrong
 answers start with equal logits and stay equal, so the expected-gradient
@@ -364,8 +424,14 @@ E2.
 
 \paragraph{Metrics.}
 Exact pass@1 and pass@$k$ on held-out prompts; the measured fraction of
-informative groups (compared with Eq.~\eqref{eq:informative}); diversity,
-measured as policy entropy and the number of distinct responses per group;
+informative groups, compared with the batch average
+$\E_x[\phi(p(x), G)]$ of Eq.~\eqref{eq:informative} and with
+$\phi(\E_x[p(x)], G)$, which overestimates it when $p(x)$ varies across
+prompts~\citep{nie2026starvation}; diversity, measured as policy entropy,
+the number of distinct responses per group, and (in the multi-solution
+variant) the mass on the rarest correct responses; the
+log-probability--advantage covariance that drives entropy
+change~\citep{cui2025entropy};
 exact KL to $\piref$; gradient norm; and steps to reach a target success
 rate. We report a run as \emph{stalled} if it never improves on $p_0$, and
 as \emph{collapsed} if its final success falls below $p_0$. All results are
@@ -389,10 +455,19 @@ by one of the theory papers, and confirm the main trends on a small LLM.
     constant). Hypotheses: the measured informative-group fraction follows
     Eq.~\eqref{eq:informative} (a harness check); a larger $G$ helps mostly
     when $p_0$ is small; at a fixed sample budget, the advantage of larger
-    $G$ shrinks; entropy and distinct responses fall as success rises. We
-    also test the prediction of \citet{ghosh2026predictable} that the mean
-    trajectory is nearly invariant to $G$, and compare our measured
-    learning speeds with the group-size law of \citet{bay2026grpostd}.
+    $G$ shrinks; entropy and distinct responses fall as success rises. At
+    a fixed sample budget we expect $G = 2$ to match large $G$ when $p_0$
+    is moderate~\citep{wu2025ittakestwo} but to fall behind when $p_0$ is
+    small, where very large groups are needed~\citep{hu2025brorl}; locating
+    the crossover in $p_0$ reconciles the two results. We also test the
+    prediction of \citet{ghosh2026predictable} that the mean trajectory is
+    nearly invariant to $G$, and compare our measured learning speeds and
+    gradient variances with the group-size laws of \citet{bay2026grpostd}
+    and \citet{zhou2026ustat}. Finally, we repeat the grid with prompts
+    whose $p_0$ is spread out rather than equal, where
+    \citet{ge2026normalization} predict that std-normalization helps most
+    and \citet{nie2026starvation} predict more all-equal groups than the
+    average $p_0$ suggests.
 
   \item[E2] \textbf{Success amplification~\citep{mroueh2025rlvr}.} With
     $L = 1$, use $K = 8$ ($\pref = 1/8$) and $K = 1000$
@@ -413,21 +488,37 @@ by one of the theory papers, and confirm the main trends on a small LLM.
     moves SGD toward the map's behaviour, which links E2 to E3. The gap
     between the tabular policy and the MLP measures the effect of function
     approximation. We repeat (ii) with $L = 2$ to measure the
-    factorization gap.
+    factorization gap. Because we compute the KL exactly, we can also
+    measure how much of each update comes from the KL term on groups with
+    all-equal rewards, one of the failure modes listed by
+    \citet{ding2026klmisfires}.
 
   \item[E3] \textbf{Step-size threshold~\citep{suk2025gradientgap}.} Start
     every run from the same $p_0$ and sweep the SGD learning rate over a
-    log grid. \emph{Fixed length:} for $L \in \{1, 2, 4, 8\}$ with summed
+    log grid. Without a KL penalty, the \texttt{grpo}, \texttt{mean-only}
+    and \texttt{rloo} advantages sum to zero within a group, so one step can
+    only raise the logits of the correct tokens and lower those of sampled
+    wrong ones. On the single-solution task, a policy with separate logits
+    for each prompt and position therefore cannot lose success at any
+    learning rate, and any threshold
+    must come from parameters shared across prompts and positions. E3
+    therefore uses the MLP, with the tabular policy as a control that
+    should show no threshold. \emph{Fixed length:} for $L \in \{1, 2, 4, 8\}$ with summed
     log-probabilities, we record the largest learning rate $\bar\eta(L)$
     that still improves on $p_0$. With a fixed $L$, averaging the
     log-probabilities over tokens only rescales the learning rate by
     $1/L$, so this arm tests the predicted $\bar\eta \propto 1/L$ scaling
     rather than comparing normalizations. \emph{Mixed length:} prompts
     with $L(x) \in \{2, \dots, 8\}$ share one learning rate, and we
-    compare summed log-probabilities (REINFORCE) with per-response
-    $1/|y|$ averaging (GRPO). Dr.~GRPO's constant $1/L_{\max}$ normalizer
-    equals the summed loss with the learning rate divided by $L_{\max}$,
-    so the learning-rate sweep covers it. Hypotheses: there is a narrow
+    sweep the length weighting $f_\alpha(L) = L^{\alpha-1}$ of
+    \citet{ding2026lengthimpossibility} over $\alpha \in \{0, 0.5, 1\}$,
+    from per-response $1/|y|$ averaging (GRPO, $\alpha = 0$) to summed
+    log-probabilities ($\alpha = 1$). Dr.~GRPO's constant $1/L_{\max}$
+    normalizer equals the summed loss with the learning rate divided by
+    $L_{\max}$, so the learning-rate sweep covers it. We run the sweep for
+    both \texttt{grpo} and \texttt{mean-only}, since
+    \citet{ge2026normalization} predict that std-normalization changes the
+    effective step size. Hypotheses: there is a narrow
     learning-rate range where success first rises and then stalls or
     collapses; $\bar\eta$ shrinks roughly as $1/L$ and as $p_0$ grows
     (through $1-J$); in the mixed-length task, the summed loss has its
@@ -442,14 +533,29 @@ by one of the theory papers, and confirm the main trends on a small LLM.
 \paragraph{Extensions (if time permits).}
 \begin{description}[leftmargin=2.2em, labelindent=0em]
   \item[E4] \textbf{Diversity under pass@$k$
-    shaping~\citep{thrampoulidis2026passk}.} Compare \texttt{grpo} with
-    pass@$k$ advantages ($k = 4, 8$, with $G = 16 \ge k$). We expect higher
-    entropy and pass@16 at some cost to pass@1.
+    shaping~\citep{thrampoulidis2026passk}.} On the multi-solution task,
+    compare \texttt{grpo} with pass@$k$ advantages ($k = 4, 8$, with
+    $G = 16 \ge k$), the focal-style weighting of
+    F-GRPO~\citep{plyusov2026fgrpo}, and updating only on prompts with no
+    observed success~\citep{yuan2026overtraining}. We expect higher entropy
+    and pass@16 at some cost to pass@1, and test three further predictions:
+    a non-monotonic effect of $G$ on the mass of rare correct
+    responses~\citep{plyusov2026fgrpo}; the entropy--performance law of
+    \citet{cui2025entropy}, whose driving covariance we can compute
+    exactly; and the crossover of \citet{yue2025doesrl}, where the trained
+    policy overtakes the base model at small $k$ and falls behind it at
+    large $k$.
   \item[E5] \textbf{Escaping very sparse rewards.} At $L = 6$,
     $p_0 = 4^{-6} \approx 2.4 \times 10^{-4}$ (where
     Eq.~\eqref{eq:informative} predicts almost no signal), compare a very
-    large $G$, mixing in easier prompts, a curriculum over $L$, and
-    sampling prompts in proportion to $p(1-p)$~\citep{foster2025learnability}.
+    large $G$~\citep{hu2025brorl}, mixing in easier prompts, a curriculum
+    over $L$, sampling prompts in proportion to
+    $p(1-p)$~\citep{foster2025learnability} or to
+    $\phi(p, G)$~\citep[cf.][]{sha2026thinkprior,okonkwo2026arcus}, and the
+    fixed-reference advantage $A = 2r - 1$, which still learns from
+    all-wrong groups~\citep{nie2026starvation}. In our task the exact $p$
+    lets us run the prompt-selection arms with the true difficulty, an
+    upper bound on what an estimated difficulty can achieve.
   \item[E6] \textbf{Small-LLM check.} We first reproduce the experiment of
     \citet[App.~A]{mroueh2025rlvr}, which uses only public components:
     Qwen2.5-0.5B-Instruct~\citep{qwen2025qwen25} on
@@ -463,7 +569,11 @@ by one of the theory papers, and confirm the main trends on a small LLM.
     $p \approx \{0.05, 0.2, 0.5, 0.8\}$, and run
     $G \in \{2, 4, 8, 16\}$ within each bucket (2 seeds, about 200 steps),
     logging the informative-group fraction against
-    Eq.~\eqref{eq:informative}. \texttt{mean-only} is TRL's
+    Eq.~\eqref{eq:informative}. We add a random-reward control
+    run~\citep{shao2025spurious} and plot pass@$k$ of the base and trained
+    models up to $k = 256$ to check for the crossover of
+    \citet{yue2025doesrl}; \citet{tan2025scaling} report reference curves
+    for Qwen2.5-0.5B. \texttt{mean-only} is TRL's
     \texttt{scale\_rewards=False}; for E4 we use verl's built-in pass@$k$
     advantage or a small subclass of the TRL trainer. If GSM8K has too few
     prompts in the hard buckets, we use MATH~\citep{hendrycks2021math}
@@ -584,7 +694,8 @@ $s < -1$, the map oscillates but the flow is still stable.
     Prompt features & $x \sim \mathcal{N}(0, I_{16})$; 512 train / 256 held-out test prompts \\
     Task & $K = 4$ (E1, E3--E5), $K \in \{8, 1000\}$ (E2); $L \in \{1, \dots, 8\}$; Gaussian $W_t$ \\
     Mixed-length task (E3) & $L(x)$ uniform on $\{2, \dots, 8\}$, fixed per prompt \\
-    Policy & MLP (2 hidden layers, width 128) on $(x, \text{one-hot } t)$; zero-init head, so $\piref$ is uniform. E2 also uses a tabular softmax per prompt \\
+    Multi-solution task (E4) & $m$ of $K$ tokens correct per position; unequal initial probabilities on correct tokens \\
+    Policy & MLP (2 hidden layers, width 128) on $(x, \text{one-hot } t)$; zero-init head, so $\piref$ is uniform. E2 and E3 also use a tabular softmax per prompt \\
     Optimizer & Adam (E1, E4, E5); plain SGD for E2 and the learning-rate sweep (E3) \\
     Batch & $B = 32$ prompts $\times$ $G$ samples; fixed-compute runs use $B \times G = 256$ \\
     Advantage std & $\sqrt{\bar r(1-\bar r) + \epsilon}$, $\epsilon = 10^{-5}$, no Bessel correction \\
