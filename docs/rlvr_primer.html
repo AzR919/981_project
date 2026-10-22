@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RLVR Primer</title>
+<meta name="description" content="Background for the CMPT 981 project 'When Does GRPO Learn?': policy gradients, RLVR, GRPO and its variants, and the theory the project tests.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --text: #1d1d1b;
+    --muted: #5d5c57;
+    --border: #e3e0d8;
+    --accent: #2f5d8a;
+    --accent-soft: #e8eff6;
+    --code-bg: #f3f1ec;
+    --note-bg: #fdf6e3;
+    --note-border: #e6cf8f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161616;
+      --surface: #1e1e1e;
+      --text: #e8e6e1;
+      --muted: #a3a19b;
+      --border: #34332f;
+      --accent: #8bb4dc;
+      --accent-soft: #1f2a35;
+      --code-bg: #232321;
+      --note-bg: #2a2518;
+      --note-border: #6b5a2a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #161616;
+    --surface: #1e1e1e;
+    --text: #e8e6e1;
+    --muted: #a3a19b;
+    --border: #34332f;
+    --accent: #8bb4dc;
+    --accent-soft: #1f2a35;
+    --code-bg: #232321;
+    --note-bg: #2a2518;
+    --note-border: #6b5a2a;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.65 Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px 96px; }
+  header { margin-bottom: 40px; }
+  .kicker {
+    font: 600 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--accent);
+  }
+  h1 { font-size: 2.3rem; line-height: 1.15; margin: 8px 0 12px; }
+  h2 {
+    font-size: 1.45rem; margin: 56px 0 12px; padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  h2 .num { color: var(--accent); margin-right: 8px; }
+  h3 { font-size: 1.12rem; margin: 32px 0 8px; }
+  p, li { color: var(--text); }
+  .lede { color: var(--muted); font-size: 1.08rem; }
+  a { color: var(--accent); }
+  nav.toc {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 20px; font: 15px/1.7 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  nav.toc ol { margin: 4px 0 0; padding-left: 20px; }
+  code, pre {
+    font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace;
+    font-size: .86em;
+  }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; font-size: 1em; }
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table {
+    border-collapse: collapse; width: 100%;
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .note, .try {
+    border-radius: 8px; padding: 12px 16px; margin: 20px 0;
+  }
+  .note { background: var(--note-bg); border: 1px solid var(--note-border); }
+  .try { background: var(--accent-soft); border: 1px solid var(--border); }
+  .note > :first-child, .try > :first-child { margin-top: 0; }
+  .note > :last-child, .try > :last-child { margin-bottom: 0; }
+  .label {
+    font: 700 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--accent);
+    display: block; margin-bottom: 6px;
+  }
+  .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .92rem; }
+  @media (max-width: 520px) {
+    body { font-size: 16px; }
+    h1 { font-size: 1.8rem; }
+    main { padding-top: 32px; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="kicker">CMPT 981 &middot; Project background</div>
+  <h1>RLVR Primer</h1>
+  <p class="lede">The background you need for <em>When Does GRPO Learn?</em>: from the
+  policy-gradient trick to GRPO, and from GRPO to the three theory papers the
+  project tests. Each level builds on the one before it. The &ldquo;Try it&rdquo; boxes
+  use <code>main.py</code> from the repo, a small GRPO playground.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <strong>Contents</strong>
+  <ol start="0">
+    <li><a href="#prereqs">Prerequisites</a></li>
+    <li><a href="#rl">RL as an optimization problem</a></li>
+    <li><a href="#llm">An LLM is just a policy</a></li>
+    <li><a href="#rlvr">Verifiable rewards</a></li>
+    <li><a href="#grpo">From PPO to GRPO</a></li>
+    <li><a href="#playground">The playground</a></li>
+    <li><a href="#phenomena">Four phenomena the project tests</a></li>
+    <li><a href="#project">How this becomes the project</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="prereqs"><span class="num">0</span>Prerequisites</h2>
+
+<p>You need four tools, nothing more.</p>
+<ul>
+  <li><strong>Bernoulli and binomial distributions.</strong> A prompt the model solves with
+    probability $p$ is a coin flip. Sampling $G$ answers gives $\text{Binomial}(G,p)$ correct ones.</li>
+  <li><strong>Gradients and SGD.</strong> $\theta \leftarrow \theta + \eta \cdot \widehat{\nabla J}$,
+    where $\widehat{\nabla J}$ is a noisy estimate of the gradient.</li>
+  <li><strong>Softmax.</strong> $\pi(k) = e^{\ell_k} / \sum_j e^{\ell_j}$. The one derivative to know:
+    $$\frac{\partial \log \pi(k)}{\partial \boldsymbol{\ell}} = \mathbf{e}_k - \boldsymbol{\pi}.$$
+    In words: raise logit $k$, and lower every logit in proportion to its probability.</li>
+  <li><strong>KL divergence.</strong> $\mathrm{KL}(\pi \,\|\, \pi_{\text{ref}}) = \sum_y \pi(y) \log \frac{\pi(y)}{\pi_{\text{ref}}(y)}$
+    measures how far the trained policy has drifted from where it started.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="rl"><span class="num">1</span>RL as an optimization problem</h2>
+
+<p>A <strong>policy</strong> $\pi_\theta(y \mid x)$ is a distribution over responses $y$ given a
+prompt $x$. A <strong>reward</strong> $r(x,y)$ scores each response. We maximize the expected reward:</p>
+$$J(\theta) = \mathbb{E}_{x}\, \mathbb{E}_{y \sim \pi_\theta(\cdot \mid x)} \big[ r(x,y) \big].$$
+
+<p>The obstacle: you cannot backpropagate through sampling. $r$ is just a number,
+not a differentiable function of $\theta$. The <strong>log-derivative trick</strong> gets around this:</p>
+$$\nabla J = \sum_y r(y)\, \nabla \pi(y) = \sum_y \pi(y)\, r(y)\, \nabla \log \pi(y)
+  = \mathbb{E}_{y \sim \pi}\big[\, r(y)\, \nabla \log \pi(y) \,\big].$$
+<p>So: sample $y$, look at its reward, and push $\log \pi(y)$ up in proportion to $r$. That is
+<strong>REINFORCE</strong>. It is unbiased but very noisy.</p>
+
+<h3>Baselines and advantages</h3>
+<p>For any $b$ that does not depend on $y$,
+$\mathbb{E}[\, b\, \nabla \log \pi(y)\,] = b \sum_y \nabla \pi(y) = b\, \nabla 1 = 0$.
+So we can subtract a <strong>baseline</strong> without adding bias, and use the
+<strong>advantage</strong> $A = r - b$ instead of $r$. With $b \approx$ the average reward, the variance
+drops dramatically. The intuition is to raise the probability of better-than-average samples and
+lower that of worse-than-average ones.</p>
+
+<div class="note">
+  <p><strong>The single most important fact for this project:</strong> if every sample in a batch
+  gets the same reward, then $A = 0$ for all of them and you learn nothing.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="llm"><span class="num">2</span>An LLM is just a policy</h2>
+
+<p>A response is a sequence of tokens $y = (y_1, \dots, y_T)$, so</p>
+$$\log \pi(y \mid x) = \sum_{t=1}^{T} \log \pi(y_t \mid x, y_{&lt;t}).$$
+<p>Two consequences matter here.</p>
+<ul>
+  <li><strong>No per-token credit.</strong> The reward arrives only at the end, so every token in a
+    response gets the same advantage.</li>
+  <li><strong>Length scales the gradient.</strong> The score $\nabla \log \pi(y)$ is a sum of $T$ terms, so its
+    size grows with the length $T$. Implementations must choose between <em>summing</em> over tokens
+    and <em>averaging</em> ($\tfrac{1}{T}\sum_t$). This is the root of the step-size story in
+    <a href="#phenomena">Section 6</a>.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="rlvr"><span class="num">3</span>Verifiable rewards (RLVR)</h2>
+
+<p>Instead of a learned reward model, a program checks the answer: the final number matches, or the
+unit tests pass. DeepSeek-R1 adds a small format reward (reasoning inside
+<code>&lt;think&gt;</code> tags), but the core signal is binary: $r \in \{0, 1\}$.</p>
+<ul>
+  <li><strong>Upside:</strong> the reward cannot be &ldquo;hacked&rdquo; the way a neural reward model can.</li>
+  <li><strong>Downside:</strong> the reward is <strong>sparse</strong>. On a given prompt, only the success
+    rate $p$ matters, and if $p \approx 0$ there is nothing to learn from.</li>
+</ul>
+<p>Two metrics follow:</p>
+$$\text{pass@1} = p, \qquad \text{pass@}k = 1 - (1-p)^k \;\;\text{(at least one of } k \text{ answers is right).}$$
+
+<!-- ============================================================ -->
+<h2 id="grpo"><span class="num">4</span>From PPO to GRPO</h2>
+
+<p><strong>PPO</strong> learns the baseline with a second neural network (a critic), which is expensive
+for LLMs. <strong>GRPO</strong> instead samples $G$ answers to the same prompt and uses the group itself
+as the baseline:</p>
+$$A_i = \frac{r_i - \operatorname{mean}(r_1, \dots, r_G)}{\operatorname{std}(r_1, \dots, r_G)}.$$
+<ul>
+  <li><strong>Ratio clipping</strong> only matters when you take several gradient steps on the same batch.
+    With fully on-policy training (one step per batch) the probability ratio is 1 and clipping does
+    nothing, which is why the project ignores it.</li>
+  <li><strong>A KL penalty</strong> $\beta\, \mathrm{KL}(\pi \,\|\, \pi_{\text{ref}})$ keeps the model near its
+    starting point.</li>
+</ul>
+
+<p>The variants the project compares differ only in the advantage:</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Variant</th><th>Advantage $A_i$</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>GRPO</td><td>$(r_i - \bar r) / \text{std}$</td><td>Dividing by the std rescales each prompt by $1/\sqrt{p(1-p)}$</td></tr>
+    <tr><td>Mean-only (Dr. GRPO)</td><td>$r_i - \bar r$</td><td>No std; Dr. GRPO also drops the per-length averaging</td></tr>
+    <tr><td>RLOO</td><td>$r_i - $ mean of the other $G-1$</td><td>Baseline independent of sample $i$, so exactly unbiased</td></tr>
+    <tr><td>Pass@$k$</td><td>GRPO advantage &times; leave-one-out weights</td><td>Optimizes pass@$k$ instead of pass@1</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note">
+  <p><strong>A subtle point.</strong> $\bar r$ includes $r_i$ itself, so mean-only quietly shrinks the
+  update by a factor $(G-1)/G$. RLOO avoids that. This is exactly the finite-$G$ effect captured by
+  Proposition&nbsp;1 in the proposal.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="playground"><span class="num">5</span>The playground</h2>
+
+<p><code>main.py</code> runs GRPO on the smallest possible RLVR problem: one question, $K$
+possible answers, one of them correct. The policy is a softmax over $K$ logits that starts uniform,
+so $p_0 = 1/K$, and the success probability is known exactly at every step. The core loop is:</p>
+
+<pre><code>pi = softmax(logits)
+y = rng.choice(K, size=G, p=pi)          # sample a group of G answers
+r = (y == correct).astype(float)         # the verifier
+A = advantages(r, kind)                  # grpo / mean / rloo / passk
+grad = mean_i A_i * (onehot(y_i) - pi)   # A * d log pi(y_i) / d logits
+logits += lr * grad                      # one SGD step</code></pre>
+
+<p>Run it from a terminal in the repo root, with the project's Python environment active:</p>
+<pre><code>python main.py                           # GRPO, K=8, G=8
+python main.py --help                    # every option
+python main.py -K 1000 -G 16             # sparse reward: p0 = 0.001
+python main.py --advantage mean          # Dr. GRPO
+python main.py --beta 2 -n 6000 --lr 0.2 # KL penalty; prints predicted p*
+python main.py --advantage passk -k 8 -G 16</code></pre>
+
+<p>Each progress line shows the exact success probability, the running fraction of steps whose group
+was <em>informative</em> (not all-equal), and the policy entropy. When $\beta &gt; 0$ it also prints the
+fixed point predicted by Proposition&nbsp;1. The numbers quoted below come from the default seed;
+other seeds differ somewhat.</p>
+
+<!-- ============================================================ -->
+<h2 id="phenomena"><span class="num">6</span>Four phenomena the project tests</h2>
+
+<h3>(a) Most groups can be useless &mdash; E1</h3>
+<p>A group gives zero gradient when all its answers agree, which happens with probability
+$p^G + (1-p)^G$. The fraction of informative groups is</p>
+$$\phi(p, G) = 1 - p^G - (1-p)^G \;\approx\; G\,p \quad \text{for small } p.$$
+<p>At $p = 0.01$ and $G = 8$, only about 8% of groups carry any signal. Even with exact gradients,
+Suk &amp; Duan show $\nabla J = p(1-p)\,(g^+ - g^-)$, where $g^{\pm}$ is the average score of correct
+and incorrect answers. Learning is slow at <em>both</em> ends, $p \approx 0$ and $p \approx 1$.
+Bigger $G$ helps exactly when $p$ is small; the open question is when that is worth the compute.</p>
+
+<div class="try">
+  <span class="label">Try it</span>
+  <pre><code>python main.py -K 1000 -G 2  -n 1000 --print-every 250
+python main.py -K 1000 -G 16 -n 1000 --print-every 250
+python main.py -K 1000 -G 64 -n 1000 --print-every 250</code></pre>
+  <p>Starting from $p_0 = 0.001$: after 1000 steps, $G = 2$ has only reached $p \approx 0.003$.
+  $G = 16$ sits near $p_0$ for a few hundred steps and then shoots to $p \approx 0.99$ by step 500.
+  $G = 64$ reaches $0.82$ by step 250. The slow start is the regime where almost every group is
+  all-wrong.</p>
+</div>
+
+<h3>(b) Success amplification &mdash; E2 (Mroueh)</h3>
+<p>Combine the std-normalized advantage with a KL penalty and ask where training settles. The answer is
+a fixed point $p^\ast$ that is always above the starting success rate $p_{\text{ref}}$: GRPO
+<em>amplifies</em> success. In logit form, for a group of size $G$,</p>
+$$\operatorname{logit} p^\ast = \operatorname{logit} p_{\text{ref}} + \frac{\Omega_G(p^\ast)}{\beta},$$
+<p>where $\Omega_G = (G-1)/G$ for mean-only, $\Omega_G = 1$ for RLOO, and for GRPO
+$\Omega_G(p)$ is roughly $1/\sqrt{p(1-p)}$ when $G$ is large. GRPO's weight is at least about 2,
+so it amplifies more than mean-only. The proposal's Proposition&nbsp;1 gives the exact finite-$G$
+version, and shows that SGD and Mroueh's idealized iteration share these fixed points but can behave
+differently when rewards are sparse.</p>
+
+<div class="try">
+  <span class="label">Try it</span>
+  <pre><code>python main.py --advantage mean --beta 2 --lr 0.2 -n 6000 --print-every 3000
+python main.py --advantage rloo --beta 2 --lr 0.2 -n 6000 --print-every 3000
+python main.py --advantage grpo --beta 2 --lr 0.2 -n 6000 --print-every 3000</code></pre>
+  <p>With $K = 8$, $G = 8$ and $\beta = 2$ the predicted fixed points are 0.181, 0.191 and 0.279, and the
+  runs end at 0.189, 0.199 and 0.29. The ordering and the size of each value match the prediction.
+  Each reading is a single noisy snapshot; a smaller <code>--lr</code> reduces the jitter.</p>
+</div>
+
+<h3>(c) Step-size thresholds &mdash; E3 (Suk &amp; Duan)</h3>
+<p>The theory says that with exact gradients there is a step size above which training can overshoot
+and performance can fall instead of rise. Because the gradient magnitude scales with the response
+length $T$, the safe step size scales roughly as $1/T$. That is why averaging over tokens stabilizes
+training. The project tests whether a sharp threshold actually shows up with noisy gradients and a
+neural network.</p>
+
+<div class="try">
+  <span class="label">Try it</span>
+  <pre><code>python main.py --lr 5
+python main.py --lr 500</code></pre>
+  <p>Nothing breaks: both reach $p \approx 1$. This is not a bug. With GRPO, mean-only or RLOO the
+  advantages in a group sum to zero, so a step can only raise the correct answer's logit and lower the
+  wrong ones'. For a softmax with its own logits (one question, one token, no KL penalty), $p$ can
+  never decrease, whatever the step size. Overshooting needs <em>shared parameters</em>: a network where pushing up one
+  answer also moves others, as with the MLP over prompts and positions in the project's main task. That
+  is why E3 uses the MLP.</p>
+</div>
+
+<h3>(d) Diversity vs. pass@1 &mdash; E4 (Thrampoulidis et al.)</h3>
+<p>Maximizing pass@1 rewards putting all probability on one answer, which kills diversity. Optimizing
+pass@$k$ instead has gradient</p>
+$$\nabla\, \text{pass@}k = k\,(1-p)^{k-1}\, \nabla p.$$
+<p>The weight $k(1-p)^{k-1}$ is large on prompts the model rarely solves and near zero on prompts it
+already solves, so effort spreads out and the policy stays diverse, at some cost to pass@1.</p>
+
+<div class="try">
+  <span class="label">Try it</span>
+  <pre><code>python main.py -G 16
+python main.py -G 16 --advantage passk -k 8</code></pre>
+  <p>After 300 steps, GRPO reaches $p = 0.999$ with entropy $0.01$: the policy has collapsed onto one
+  answer. Pass@8 shaping stops at $p \approx 0.55$ with entropy $1.56$. That is enough for pass@8 to be
+  near 1, so it stops pushing. On a single question this is all you can see; the project measures it
+  across many prompts, where diversity matters more.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="project"><span class="num">7</span>How this becomes the project</h2>
+
+<p>The theory assumes exact gradients, infinite groups and simple policies. Real training uses noisy
+samples, small $G$ and neural networks. The project's synthetic task extends the playground:
+prompts become feature vectors, the softmax becomes a small MLP, and each answer has $L$ tokens,
+with a reward of 1 only if all of them are correct. Because $p$ is still exact, you can turn one knob
+at a time and see where reality departs from theory.</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Knob</th><th>What it controls</th><th>Experiment</th></tr></thead>
+  <tbody>
+    <tr><td>Answer length $L$, vocabulary $K$</td><td>Sparsity: $p_0 = K^{-L}$</td><td>E1, E5</td></tr>
+    <tr><td>Group size $G$</td><td>Informative groups, finite-$G$ effects</td><td>E1, E2</td></tr>
+    <tr><td>KL strength $\beta$</td><td>Where training settles ($p^\ast$)</td><td>E2</td></tr>
+    <tr><td>Learning rate, length aggregation</td><td>Stability</td><td>E3</td></tr>
+    <tr><td>Advantage type</td><td>Which objective you are really optimizing</td><td>E2, E4</td></tr>
+  </tbody>
+</table>
+</div>
+<p>E6 then checks whether the same curves appear on a real 0.5B-parameter LLM (Qwen2.5-0.5B-Instruct on GSM8K).</p>
+
+<h3>Suggested order</h3>
+<ol>
+  <li>Run the playground commands above and change one flag at a time.</li>
+  <li>Read DeepSeek-R1 (<a href="https://arxiv.org/abs/2501.12948">arXiv:2501.12948</a>) &sect;2.1&ndash;2.2 for the real setup.</li>
+  <li>Read Suk &amp; Duan (<a href="https://arxiv.org/abs/2510.08539">arXiv:2510.08539</a>) &sect;6.1, which is close to the toy task.</li>
+  <li>Read Mroueh (<a href="https://arxiv.org/abs/2503.06639">arXiv:2503.06639</a>) &sect;2&ndash;3, with Table&nbsp;1 of the proposal beside it.</li>
+  <li>Read Thrampoulidis et al. (<a href="https://arxiv.org/abs/2510.23049">arXiv:2510.23049</a>) &sect;3 last.</li>
+</ol>
+
+<footer>
+  Written for the CMPT 981 project team (Faris, Singh, Doan, Rehman). The proposal is in
+  <code>latex/proposal.tex</code>; the playground is <code>main.py</code>.
+</footer>
+
+</main>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.renderMathInElement) {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
+</script>
+</body>
+</html>
