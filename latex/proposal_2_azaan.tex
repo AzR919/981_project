@@ -205,8 +205,8 @@ success probability above that of the reference model. In this project, we will 
 whether SGD training reaches the predicted $p^\ast$ for different values of $\beta$
 (the strength of the KL penalty) and for finite $G$. We will also compare this
 reverse-KL penalty, $\KL(\pi_\theta \,\|\, \piref)$, with the forward-KL penalty
-$\KL(\piref \,\|\, \pi_\theta)$, which will cover the difference between mode-seeking
-and mass-covering policies.
+$\KL(\piref \,\|\, \pi_\theta)$, which lets us distinguish mode-seeking (reverse) and
+mass-covering (forward) regularization.
 
 \paragraph{Gradient gap and step-size thresholds~\citep{suk2025gradientgap}.}
 The paper defines the gradient gap, the difference between the expected
@@ -271,19 +271,21 @@ a gradient step to increase
   J(\theta) = \E\,[r] - \beta\, \KL(\pi_\theta \,\|\, \piref).
 \end{equation}
 
-We define the search space of the following variables: the initial success
+Our search space consists of the following variables: the initial success
 rate $p_0$; the group size $G$; the reward sparsity, set by the answer length
-$L$ and vocabulary size $K$; the KL strength $\beta$; the step size $\eta$;
-and the advantage type (GRPO, mean-only, RLOO, or pass@$k$).
+$L$ and vocabulary size $K$ (a uniform policy succeeds with probability
+$K^{-L}$, so we set $p_0$ separately with a short supervised warm-start);
+the KL strength $\beta$; the step size $\eta$; and the advantage type (GRPO,
+mean-only, RLOO, or pass@$k$).
 
-We use three policies of increasing realism. \emph{Bandit:} $L = 1$, that
-returns a softmax over the $K$ options for each prompt, so the theory's
+We use three policies of increasing realism. \emph{Bandit:} $L = 1$, with a
+separate softmax over the $K$ options for each prompt, so the theory's
 assumptions hold except for finite $G$ and stochastic gradients.
 \emph{Synthetic task:} $L \ge 1$, and the policy is a product of $L$
 softmaxes computed by one network shared across prompts.
-\emph{Small LLM:} Small LLM on GSM8K~\citep{cobbe2021gsm8k}, a
-real-world example in which $p(x)$ is unknown and must be estimated by
-sampling.
+\emph{Small LLM:} a small pretrained LLM trained on
+GSM8K~\citep{cobbe2021gsm8k}, a real-world example in which $p(x)$ is
+unknown and must be estimated by sampling.
 
 % ---------------------------------------------------------------------
 \section{Plan}
@@ -308,8 +310,9 @@ We define the following core experiments, in order:
   \item[E2] \textbf{Success amplification~\citep{mroueh2025rlvr}.} In the
     simpler bandit setting ($L = 1$), we will test the success amplification
     property of GRPO by comparing the fixed points measured at finite group
-    size with the infinite-group fixed points of \citet{mroueh2025rlvr}, for
-    both the reverse- and the forward-KL penalty.
+    size with the infinite-group fixed points of \citet{mroueh2025rlvr}. We
+    then repeat the measurement with the forward-KL penalty, for which the
+    paper gives no prediction.
 
   \item[E3] \textbf{Step-size threshold~\citep{suk2025gradientgap}.} We will
     test the step-size threshold on the synthetic task. We will sweep the
@@ -318,13 +321,14 @@ We define the following core experiments, in order:
     threshold shrinks roughly as $1/L$ and as $p_0$ grows.
 
   \item[E4] \textbf{Pass@$k$ and response
-    diversity~\citep{thrampoulidis2026passk}.} On the multi-solution task, we
-    will compare pass@$k$ advantages with GRPO in terms of pass@1, pass@$k$,
-    and response diversity.
+    diversity~\citep{thrampoulidis2026passk}.} On a variant of the synthetic
+    task with several correct tokens per position, we will compare pass@$k$
+    advantages with GRPO in terms of pass@1, pass@$k$, and response
+    diversity.
 
   \item[E5] \textbf{Escaping very sparse rewards.} When rewards are sparse and
     almost no group has mixed rewards, training stalls. We will test what helps
-    the model escape this deadlock.
+    the model escape this plateau.
 
   \item[E6] \textbf{Small-LLM check.} We will train a small LLM to check
     whether the theoretical predictions and the insights from the previous
