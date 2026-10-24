@@ -237,8 +237,8 @@ outperforms Dr.~GRPO at $G = 4$ on GSM8K. \citet{plyusov2026fgrpo} show that
 a group can have mixed rewards yet miss rare correct solutions, with a
 non-monotonic dependence on $G$.
 
-We do not claim the informative-group fraction (Eq.~\eqref{eq:informative})
-or the $p(1-p)$ scaling as new. The closest prior work to ours is
+We do not claim the informative-group fraction $1 - p^G - (1-p)^G$ or the
+$p(1-p)$ scaling as new. The closest prior work to ours is
 \citet{bay2026grpostd}, \citet{nie2026starvation} and
 \citet{plyusov2026fgrpo}, each of which varies $G$ in theory or in a toy
 model. Our contribution is a controlled \emph{training} grid over $G$,
@@ -262,184 +262,77 @@ sharpens what the base model can already do.
 \label{sec:problem}
 
 We start with a prompt $x$ and a policy $\pi_\theta(y \mid x)$ that generates
-a response $y$. A verifier returns a reward $r(x, y) \in \{0, 1\}$, where
-the policy has a chance of success $p(x)$ for each prompt. We sample a group
-of $G$ responses per prompt, compute advantages $A_i$ within the group,
-and take a gradient step on $$J(θ) = E[r] − β·KL(πθ ‖ πref)$$.
+a response $y$. A verifier returns a reward $r(x, y) \in \{0, 1\}$, and the
+policy succeeds on prompt $x$ with probability $p(x)$. We sample a group of
+$G$ responses per prompt, compute advantages $A_i$ within the group, and take
+a gradient step to increase
+\begin{equation}
+  \label{eq:objective}
+  J(\theta) = \E\,[r] - \beta\, \KL(\pi_\theta \,\|\, \piref).
+\end{equation}
 
-We define the following variables:
-Initial success rate: p₀, Group size:G, Reward sparsity	set by answer
-length L and vocabulary K: p₀ = K^(−L), KL strength	β, Step size	η, Advantage
-type:	GRPO, mean-only, RLOO, pass@k.
+We define the search space of the following variables: the initial success
+rate $p_0$; the group size $G$; the reward sparsity, set by the answer length
+$L$ and vocabulary size $K$; the KL strength $\beta$; the step size $\eta$;
+and the advantage type (GRPO, mean-only, RLOO, or pass@$k$).
 
-Our policy also covers few variants. Bandit policy: L = 1, so the policy is
-a single softmax over K options. Synthetic task: L>1, so the policy is a
-product of L softmaxes. Small LLM, so the policy is a real world example.
+We use three policies of increasing realism. \emph{Bandit:} $L = 1$, that
+returns a softmax over the $K$ options for each prompt, so the theory's
+assumptions hold except for finite $G$ and stochastic gradients.
+\emph{Synthetic task:} $L \ge 1$, and the policy is a product of $L$
+softmaxes computed by one network shared across prompts.
+\emph{Small LLM:} Small LLM on GSM8K~\citep{cobbe2021gsm8k}, a
+real-world example in which $p(x)$ is unknown and must be estimated by
+sampling.
 
 % ---------------------------------------------------------------------
 \section{Plan}
 \label{sec:experiments}
 
-Our main goal is to test the limits of theoretical predictions mentioned in
-related work. Those works assume simplified conditions, we see where they
-break when those conditions are not fullfilled.
+Our main goal is to test the limits of the theoretical predictions mentioned
+in the related work. Those works assume simplified conditions; we will test
+where the predictions break when those conditions are not fulfilled.
 
-We will run a grid of experiments over the parameters mentioned in the
-Problem Formulation section. Ideally we will be able to cover the entire grid,
-but we prioritize finding the limits of the theoretical methods first, and
-then properly cover the strcture of underlying functions around those limits.
+We will run a grid of experiments over the variables defined in
+\cref{sec:problem}. Ideally we will cover the entire grid, but we prioritize
+finding where the theoretical predictions break, and then sample the grid
+more densely around those limits.
 
-We defin following core experiments in order:
+We define the following core experiments, in order:
 \begin{description}[leftmargin=2.2em, labelindent=0em]
   \item[E1] \textbf{Initial success rate $\times$ group size.} Our first test
-    is to check the affects of initial success rate and group size on the
+    checks the effects of the initial success rate and the group size on the
     learning speed. We will also compare our measured learning speeds with
     the group-size law of \citet{bay2026grpostd}.
 
-  \item[E2] \textbf{Success amplification~\citep{mroueh2025rlvr}.} With a
-    simpler setting of $L = 1$, we will test the success amplification property
-    of GRPO. We will compare the measured fixed points with finite group size
-    compared to the infinite group size fixed points of \citet{mroueh2025rlvr}.
+  \item[E2] \textbf{Success amplification~\citep{mroueh2025rlvr}.} In the
+    simpler bandit setting ($L = 1$), we will test the success amplification
+    property of GRPO by comparing the fixed points measured at finite group
+    size with the infinite-group fixed points of \citet{mroueh2025rlvr}, for
+    both the reverse- and the forward-KL penalty.
 
-  \item[E3] \textbf{Step-size threshold~\citep{suk2025gradientgap}.} We will test
-    the step-size threshold property of GRPO. We will sweep the learning rate
-    over a log grid and check for a narrow learning-rate range where success
-    first rises and then stalls or collapses. We will also check if the
+  \item[E3] \textbf{Step-size threshold~\citep{suk2025gradientgap}.} We will
+    test the step-size threshold on the synthetic task. We will sweep the
+    learning rate over a log grid and look for a narrow range where success
+    first rises and then stalls or collapses. We will also check whether the
     threshold shrinks roughly as $1/L$ and as $p_0$ grows.
 
-  \item[E4] \textbf{Pass@$k$ reward diversity~\citep{thrampoulidis2026passk}.}
-    On the multi-solution tasks, we will compare the advantage of pass@$k$.
+  \item[E4] \textbf{Pass@$k$ and response
+    diversity~\citep{thrampoulidis2026passk}.} On the multi-solution task, we
+    will compare pass@$k$ advantages with GRPO in terms of pass@1, pass@$k$,
+    and response diversity.
 
-  \item[E5] \textbf{Escaping very sparse rewards.} On the boundaries of sparse rewards,
-    we will test what helps the model escape the collapse.
+  \item[E5] \textbf{Escaping very sparse rewards.} When rewards are sparse and
+    almost no group has mixed rewards, training stalls. We will test what helps
+    the model escape this deadlock.
 
-  \item[E6] \textbf{Small-LLM check.} We will run a small LLM to check the
-    theoretical predictions and new insights from the previous experiments.
+  \item[E6] \textbf{Small-LLM check.} We will train a small LLM to check
+    whether the theoretical predictions and the insights from the previous
+    experiments carry over to a real model.
 \end{description}
-
-\paragraph{Current status.}
-We have derived \cref{prop:finiteG} and computed the predicted fixed
-points and their stability (\cref{tab:omega}, Eq.~\eqref{eq:flow}). The
-training harness (task, policy, advantage estimators, and exact metrics)
-is not yet implemented; it is the first milestone.
-
-\paragraph{Timeline and roles.}
-Weeks 1--2: build the harness and unit-test the exact metrics against
-Eq.~\eqref{eq:informative} and the closed-form fixed points; complete E1. Weeks 3--4
-(milestone): complete E2 and E3, and set up the E6 pilot run. Weeks 5--6:
-extensions E4--E6, ablations, and the final report. Each member owns one
-experiment end-to-end (implementation, runs, figures, and the related
-section of the report), and all four share the code and the literature
-review.
-
-\paragraph{What we expect to learn.}
-The theory is derived for exact gradients and simple policies. Where our
-curves deviate from it, we will identify the cause: finite $G$ (which
-\cref{prop:finiteG} quantifies for E2), stochastic batches, function
-approximation shared across prompts, or the factorized multi-token policy.
-These deviations are the most useful output of the project.
 
 % ---------------------------------------------------------------------
 \bibliographystyle{plainnat}
 \bibliography{ref}
-
-
-% ---------------------------------------------------------------------
-\appendix
-
-\section{Proof of \texorpdfstring{\cref{prop:finiteG}}{the Proposition}}
-\label{app:proof}
-
-Fix a prompt and write $\pi = \pi_\theta(\cdot \mid x)$ and
-$p = \sum_{y : r(y) = 1} \pi(y)$. The advantages are computed from
-sampled rewards and are not differentiated, so the expected update
-direction of the reward term is
-$g = \E\bigl[\tfrac{1}{G}\sum_{i=1}^{G} A_i \nabla_\theta \log \pi(y_i)\bigr]$.
-The group is exchangeable, so $g = \E[A_1 \nabla_\theta \log \pi(y_1)]$.
-Conditional on $y_1$, the other responses are independent of $y_1$, so
-$\E[A_1 \mid y_1]$ depends on $y_1$ only through $r(y_1)$, and equals
-$w(1) = a^+_G(p)$ or $w(0) = -a^-_G(p)$. Hence
-\[
-  g = \sum_y \pi(y)\, w(r(y))\, \nabla_\theta \log \pi(y)
-    = \nabla_\theta \sum_y \pi_\theta(y)\, w(r(y)) \Big|_{w \text{ fixed}} .
-\]
-Adding the exact KL penalty, a stationary point is a stationary point of
-$F(\pi) = \sum_y \pi(y) w(r(y)) - \beta\, \KL(\pi \,\|\, \piref)$ at fixed
-$w$. When the policy class contains every distribution with full support
-(a softmax over all responses), $\nabla_\theta F = 0$ if and only if
-$w(r(y)) - \beta\bigl(\log\tfrac{\pi(y)}{\piref(y)} + 1\bigr)$ is constant
-in $y$, i.e.\ $\pi(y) \propto \piref(y) \exp(w(r(y))/\beta)$. Summing
-over correct and incorrect responses,
-\[
-  \frac{p}{1-p} = \frac{\pref}{1-\pref}
-    \exp\!\Bigl(\frac{a^+_G(p) + a^-_G(p)}{\beta}\Bigr),
-\]
-which is Eq.~\eqref{eq:fixedpoint}, with $p$ evaluated at the stationary
-point itself.
-
-For \texttt{mean-only}, $A_1 = r_1 - \frac{1}{G}\sum_i r_i$, so
-$a^+_G = 1 - \frac{1 + (G-1)p}{G} = \frac{G-1}{G}(1-p)$ and
-$a^-_G = \frac{G-1}{G}p$, giving $\Omega_G = (G-1)/G$. For \texttt{rloo},
-$A_1 = r_1 - \frac{1}{G-1}\sum_{i \ge 2} r_i$, so $a^+_G = 1-p$,
-$a^-_G = p$ and $\Omega_G = 1$. For \texttt{grpo} with $G = 2$, the only
-informative group has rewards $\{0, 1\}$ and advantages
-$\pm \tfrac{1}{2}/\sqrt{\tfrac14 + \epsilon} \approx \pm 1$, so
-$a^+_2 \approx 1-p$, $a^-_2 \approx p$ and $\Omega_2 \approx 1$. As
-$G \to \infty$, $j/G \to p$ in probability, so
-$a^+_G \to (1-p)/\sqrt{p(1-p)+\epsilon}$ and
-$a^-_G \to p/\sqrt{p(1-p)+\epsilon}$ by bounded convergence, and
-$\Omega_G \to (p(1-p)+\epsilon)^{-1/2}$, the weight in the recurrence of
-\citet{mroueh2025rlvr}. If the implementation uses the Bessel-corrected
-standard deviation, replace $\frac{c}{G}(1-\frac{c}{G})$ in
-Eq.~\eqref{eq:omegaG} by $\frac{c(G-c)}{G(G-1)}$. \hfill$\square$
-
-\paragraph{Derivation of Eq.~\eqref{eq:flow}.}
-Take $L = 1$, $K$ answers with one correct answer $c$, and logits
-$\ell_k$, so $\pi_k \propto e^{\ell_k}$. Write
-$g_k = w(r_k) - \beta(\log\frac{\pi_k}{\pi_{\mathrm{ref},k}} + 1)$ and
-$\bar g = \sum_k \pi_k g_k$. The expected-gradient flow on $F$ is
-$\dot\ell_k = \pi_k (g_k - \bar g)$. With a zero-initialized head, the
-$K-1$ wrong answers start with equal logits and receive equal updates,
-so they stay equal, each with probability
-$\pi_w = (1-p)/(K-1)$. Let $\Delta = g_c - g_w$. Then
-$\dot\ell_c = p(1-p)\Delta$ and $\dot\ell_w = -p\,\pi_w \Delta$. Using
-$\pi_{\mathrm{ref},w} = (1-\pref)/(K-1)$,
-$\Delta = a^+_G + a^-_G - \beta(z - \logit \pref)$, where
-$z = \logit p = \ell_c - \ell_w - \log(K-1)$. Hence
-$\dot z = \dot\ell_c - \dot\ell_w = \kappa\,\Delta$ with
-$\kappa = p(1-p) + p\,\pi_w > 0$, which is Eq.~\eqref{eq:flow}. A fixed
-point is stable when $\partial\Delta/\partial z < 0$, i.e.\ when
-$\Omega_G'(p^\ast)\,p^\ast(1-p^\ast) < \beta$. Mroueh's map
-$z_n = \logit\pref + \Omega(\sigma(z_{n-1}))/\beta$ has slope
-$s = \Omega'(p^\ast)\,p^\ast(1-p^\ast)/\beta$ at a fixed point and is
-stable when $|s| < 1$. The two conditions agree when $s > 0$; when
-$s < -1$, the map oscillates but the flow is still stable.
-
-\section{Experimental Details}
-\label{app:details}
-
-\begin{table}[h]
-  \centering
-  \begin{tabular}{lp{0.66\linewidth}}
-    \toprule
-    Component & Setting \\
-    \midrule
-    Prompt features & $x \sim \mathcal{N}(0, I_{16})$; 512 train / 256 held-out test prompts \\
-    Task & $K = 4$ (E1, E3--E5), $K \in \{8, 1000\}$ (E2); $L \in \{1, \dots, 8\}$; Gaussian $W_t$ \\
-    Mixed-length task (E3) & $L(x)$ uniform on $\{2, \dots, 8\}$, fixed per prompt \\
-    Multi-solution task (E4) & $m$ of $K$ tokens correct per position; unequal initial probabilities on correct tokens \\
-    Policy & MLP (2 hidden layers, width 128) on $(x, \text{one-hot } t)$; zero-init head, so $\piref$ is uniform. E2 and E3 also use a tabular softmax per prompt \\
-    Optimizer & Adam (E1, E4, E5); plain SGD for E2 and the learning-rate sweep (E3) \\
-    Batch & $B = 32$ prompts $\times$ $G$ samples; fixed-compute runs use $B \times G = 256$ \\
-    Advantage std & $\sqrt{\bar r(1-\bar r) + \epsilon}$, $\epsilon = 10^{-5}$, no Bessel correction \\
-    Seeds & 3 per configuration \\
-    Compute & CPU only; each run takes seconds to minutes \\
-    \midrule
-    LLM (E6) & Qwen2.5-0.5B-Instruct; GSM8K (MATH levels 1--5 as fallback) \\
-    LLM training & TRL GRPOTrainer + vLLM; $G \le 16$, lr $5 \times 10^{-6}$, $\beta = 0.1$, 200-token context, temperature 0.1 \\
-    LLM compute & H100 MIG slices (40\,GB) on DRAC Fir; $\approx$3 GPU-days budget \\
-    \bottomrule
-  \end{tabular}
-\end{table}
 
 \end{document}
