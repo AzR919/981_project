@@ -182,27 +182,31 @@ are chosen when training LLMs with verifiable rewards.
 \label{sec:related}
 
 \paragraph{GRPO and RLVR.}
-GRPO~\citep{shao2024deepseekmath} drops Proximal Policy Optimization's value network.
-For each prompt it samples a group of $G$ answers and uses the group-normalized reward
-$(r_i - \bar r)/\mathrm{std}(r)$ as the advantage. DeepSeek-R1~\citep{guo2025deepseekr1}
-scaled this up with rule-based verifiers, $G=16$, and a small KL coefficient to avoid
-deviation from the base model. Newer study, Dr.~GRPO~\citep{liu2025drgrpo} argued
-that the std-normalization and the per-response length normalization introduce biases,
-and RLOO~\citep{ahmadian2024rloo} uses a leave-one-out baseline instead to reduce bias
-per prompt. We use all three as advantage variants in our experiments to see how they
-affect the learning dynamics.
+GRPO~\citep{shao2024deepseekmath} drops the value network of Proximal Policy
+Optimization (PPO). For each prompt, it samples a group of $G$ answers and uses the
+group-normalized reward $(r_i - \bar r)/\mathrm{std}(r)$ as the advantage.
+DeepSeek-R1~\citep{guo2025deepseekr1} scaled this up with rule-based verifiers,
+$G=16$, and a small KL coefficient that keeps the policy close to a reference model.
+A later study, Dr.~GRPO~\citep{liu2025drgrpo}, argued that the std-normalization and
+the per-response length normalization introduce biases. RLOO~\citep{ahmadian2024rloo}
+instead uses a leave-one-out baseline, the mean reward of the other $G-1$ answers,
+which reduces variance without biasing the gradient. We use all three as advantage
+variants in our experiments to see how they affect the learning dynamics.
 
 \paragraph{Success amplification~\citep{mroueh2025rlvr}.}
-In 2025, Mroueh formalized the RLVR problem and analyzed GRPO's success amplification
-property. They formalized that for binary rewards with a reverse-KL penalty and no clipping,
-GRPO's objective can be seen as a contrastive loss between correct and incorrect
-samples taken from the previous policy. Solvin the KL-regularized problem exactly at
-each iteration show that the success probability follows a recurrence $p_n = h(p_{n-1})$,
-where h is a monotone function. Every fixed point of this recurrence satisfies
-$p^\ast > \pref$, that means GRPO improves success probability. In this project,
-we will test whether SGD training reaches the predicted $p^\ast$ with different
-$\beta$ values (the strength of KL penalty), and finite $G$ values.
-
+In 2025, Mroueh analyzed GRPO in the RLVR setting and identified its success
+amplification property. The paper shows that, for binary rewards with a reverse-KL
+penalty and no clipping, GRPO's objective can be seen as a contrastive loss between
+correct and incorrect samples taken from the previous policy. Solving the
+KL-regularized problem exactly at each iteration shows that the success probability
+follows a recurrence $p_n = h(p_{n-1})$ for an explicit function $h$. Every fixed point
+of this recurrence satisfies $p^\ast > \pref$, which means that GRPO increases the
+success probability above that of the reference model. In this project, we will test
+whether SGD training reaches the predicted $p^\ast$ for different values of $\beta$
+(the strength of the KL penalty) and for finite $G$. We will also compare this
+reverse-KL penalty, $\KL(\pi_\theta \,\|\, \piref)$, with the forward-KL penalty
+$\KL(\piref \,\|\, \pi_\theta)$, which will cover the difference between mode-seeking
+and mass-covering policies.
 
 \paragraph{Gradient gap and step-size thresholds~\citep{suk2025gradientgap}.}
 The paper defines the gradient gap, the difference between the expected
