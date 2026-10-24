@@ -1,50 +1,63 @@
 % =====================================================================
-%  CMPT 981 Project - Proposal
+%  CMPT 981 Project - Proposal (NeurIPS 2022 format)
 %
-%  Template for all project write-ups. Copy this file for the milestone
-%  and final report (e.g. milestone.tex, final_report.tex) and adjust
-%  the sections. References are shared across all documents in
-%  references.bib (same folder).
-%
-%  Build (from this folder):  latexmk proposal.tex
-%  latexmkrc puts the PDF in ../docs/proposal.pdf and keeps build files
-%  here. (Overleaf handles this automatically.)
+%  Build (from this folder):  latexmk proposal_2_azaan.tex
+%  latexmkrc puts the PDF in ../docs/ and keeps build files here.
+%  References live in ref.bib.
 % =====================================================================
 
-\documentclass[11pt]{article}
+\documentclass{article}
 
-% --- Page layout & fonts ----------------------------------------------
-\usepackage[margin=1in]{geometry}
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{lmodern}
-\usepackage{microtype}
 
-% --- Math ---------------------------------------------------------------
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2022
+
+
+% ready for submission
+%\usepackage{neurips_2022}
+
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+%     \usepackage[preprint]{neurips_2022}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+     \usepackage[final]{neurips_2022}
+
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{neurips_2022}
+
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+% --- Added for this proposal ------------------------------------------
 \usepackage{amsmath, amssymb, amsthm}
 \usepackage{mathtools}
 \usepackage{bm}
-
-% --- Figures & tables ---------------------------------------------------
 \usepackage{graphicx}
-\usepackage{booktabs}
 \usepackage{subcaption}
-\usepackage{xcolor}
 \usepackage{enumitem}
+\usepackage[capitalize,noabbrev]{cleveref} % must load after hyperref
 
-% --- References & links (hyperref/cleveref load last) -------------------
-\usepackage[square,authoryear]{natbib}
-\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
-\usepackage[capitalize,noabbrev]{cleveref}
-
-% --- Theorem environments -----------------------------------------------
+% Theorem environments
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{lemma}[theorem]{Lemma}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 
-% --- Handy macros -------------------------------------------------------
+% Handy macros
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\1}{\mathbf{1}}
@@ -61,20 +74,32 @@
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 % \newcommand{\todo}[1]{}
 
-% --- Title --------------------------------------------------------------
-\title{When Does GRPO Learn? A Small-Scale Empirical Study of Success Rate,
-  Group Size, and Reward Sparsity in RLVR\\[0.3em]
-  \large CMPT 981 Project Proposal}
-\author{
-  Salman Faris \quad Ankush Singh \quad Simon Doan \quad Azaan Rehman\\
-  Simon Fraser University\\
-  \texttt{\{sfa149, asa715, vtd, ara199\}@sfu.ca}
-}
-\date{\today}
 
-% =====================================================================
+\title{GRPO unraveled: A Small-Scale Empirical Study of RLVR\\
+  CMPT 981 Project Proposal}
+
+
+\author{%
+  Ankush Singh\\
+  Simon Fraser University\\
+  \texttt{asa715@sfu.ca} \\
+  \And
+  Simon Doan\\
+  Simon Fraser University\\
+  \texttt{vtd@sfu.ca} \\
+  \And
+  Azaan Rehman\\
+  Simon Fraser University\\
+  \texttt{ara199@sfu.ca} \\
+}
+
+
 \begin{document}
+
+
 \maketitle
+
+
 
 \begin{abstract}
   Reinforcement learning with verifiable rewards (RLVR), and in particular
@@ -157,15 +182,15 @@ are chosen when training LLMs with verifiable rewards.
 \label{sec:related}
 
 \paragraph{GRPO and RLVR.}
-GRPO~\citep{shao2024deepseekmath} drops PPO's value network. For each prompt
-it samples a group of $G$ answers and uses the group-normalized reward
-$(r_i - \bar r)/\mathrm{std}(r)$ as the advantage.
-DeepSeek-R1~\citep{guo2025deepseekr1} scaled this up with rule-based
-verifiers (an accuracy reward plus a format reward), $G=16$, and a small KL
-coefficient. Dr.~GRPO~\citep{liu2025drgrpo} argues that the std-normalization
-and the per-response length normalization introduce biases, and
-RLOO~\citep{ahmadian2024rloo} uses a leave-one-out baseline instead. We use
-all three as advantage variants.
+GRPO~\citep{shao2024deepseekmath} drops Proximal Policy Optimization's value network.
+For each prompt it samples a group of $G$ answers and uses the group-normalized reward
+$(r_i - \bar r)/\mathrm{std}(r)$ as the advantage. DeepSeek-R1~\citep{guo2025deepseekr1}
+scaled this up with rule-based verifiers, $G=16$, and a small KL coefficient to avoid
+deviation from the base model. Newer study, Dr.~GRPO~\citep{liu2025drgrpo} argued
+that the std-normalization and the per-response length normalization introduce biases,
+and RLOO~\citep{ahmadian2024rloo} uses a leave-one-out baseline instead to reduce bias
+per prompt. We use all three as advantage variants in our experiments to see how they
+affect the learning dynamics.
 
 \paragraph{Success amplification~\citep{mroueh2025rlvr}.}
 For binary rewards with a reverse-KL penalty and no clipping, the paper
@@ -183,12 +208,7 @@ inherits the iteration's instability (\cref{sec:finiteG}).
 \citet{davis2025objective} give a complementary view: with binary rewards,
 several RL algorithms are stochastic gradient ascent on a monotone
 transform of the success probability, and for GRPO the transform is
-$\arcsin\sqrt{p}$. \citet{rad2026rateorfate} analyse GRPO on a bandit as a
-replicator-style flow and show a phase transition under verifier noise;
-theirs is the closest analysis in style to ours, but it has no KL penalty.
-\citet{ding2026klmisfires} list ways the KL term misbehaves in group
-policy optimization, including KL updates on groups whose rewards are all
-equal.
+$\arcsin\sqrt{p}$.
 
 \paragraph{Gradient gap and step-size thresholds~\citep{suk2025gradientgap}.}
 The paper defines the gradient gap, the difference between the expected
@@ -201,51 +221,34 @@ $1/|y|$ normalization provides exactly this scaling and Dr.~GRPO's does not.
 Its experiments use a single step size. We test whether a sharp transition
 appears in a stochastic, learned-policy setting, and how it moves with
 response length when responses of different lengths share one learning
-rate. Two recent results sharpen this question. \citet{ge2026normalization}
-show that std-normalization acts as an adaptive step size matched to local
+rate. \citet{ge2026normalization} sharpen this question: they show that
+std-normalization acts as an adaptive step size matched to local
 curvature, with a speed-up that depends on how much the per-prompt reward
-variance differs across prompts. \citet{ding2026lengthimpossibility} prove
-that with outcome rewards no length weighting is both unbiased and
-length-invariant; GRPO and Dr.~GRPO are the two ends of the family
-$f_\alpha(L) = L^{\alpha - 1}$, $\alpha \in [0, 1]$.
+variance differs across prompts.
 
 \paragraph{Group size and informative prompts.}
-A group with all-equal rewards has zero advantage. DAPO's dynamic
-sampling~\citep{yu2025dapo} and selective rollouts~\citep{zheng2025greso}
-discard such groups, and \citet{foster2025learnability} sample prompts in
-proportion to $p(1-p)$. \citet{bay2026grpostd} show that GRPO, Dr.~GRPO and
-DAPO differ only in how they use the group standard deviation, derive a
+A group with all-equal rewards has zero advantage, and a common practice is
+to filter out such groups. \citet{bay2026grpostd} show that GRPO, Dr.~GRPO
+and DAPO differ only in how they use the group standard deviation, derive a
 closed-form group-size law in $G\,p(1-p)$, and check it on a Bernoulli toy
 model at $G=8$ and by subsampling logged rollouts.
-\citet{ghosh2026predictable} model the mean reward trajectory as a damped
-oscillator and predict that it is nearly independent of $G$ to leading
-order. \citet{zhou2026ustat} show that the GRPO gradient is a U-statistic,
-derive its mean squared error, and propose a scaling law for the group
-size. \citet{nie2026starvation} prove that when the success rate varies
-across prompts, the fraction of all-equal groups exceeds the prediction
-from the average success rate, and that a fixed-reference advantage
-$A = 2r - 1$ outperforms Dr.~GRPO at $G = 4$ on GSM8K. Empirical results
-pull in two directions: \citet{hu2025brorl} revive stalled training by
-scaling to hundreds of rollouts per prompt, while \citet{wu2025ittakestwo}
-retain 97.6\% of the performance of $G = 16$ with $G = 2$.
-\citet{plyusov2026fgrpo} show that a group can have mixed rewards yet miss
-rare correct solutions, with a non-monotonic dependence on $G$. Prompt
-selection methods choose prompts by predicted learnability: ThinkPrior
-starts from an offline difficulty prior~\citep{sha2026thinkprior}, and
-ARCUS tracks difficulty in Fisher--Rao coordinates of the pass
-rate~\citep{okonkwo2026arcus}.
+\citet{nie2026starvation} prove that when the success rate varies across
+prompts, the fraction of all-equal groups exceeds the prediction from the
+average success rate, and that a fixed-reference advantage $A = 2r - 1$
+outperforms Dr.~GRPO at $G = 4$ on GSM8K. \citet{plyusov2026fgrpo} show that
+a group can have mixed rewards yet miss rare correct solutions, with a
+non-monotonic dependence on $G$.
 
 We do not claim the informative-group fraction (Eq.~\eqref{eq:informative})
 or the $p(1-p)$ scaling as new. The closest prior work to ours is
-\citet{bay2026grpostd}, \citet{zhou2026ustat}, \citet{nie2026starvation}
-and \citet{plyusov2026fgrpo}, each of which varies $G$ in theory or in a
-toy model. Our contribution is a controlled \emph{training} grid over $G$,
+\citet{bay2026grpostd}, \citet{nie2026starvation} and
+\citet{plyusov2026fgrpo}, each of which varies $G$ in theory or in a toy
+model. Our contribution is a controlled \emph{training} grid over $G$,
 $p_0$, KL strength and step size, with every quantity measured exactly,
 compared against these closed forms.
 
 \paragraph{Pass@$K$ advantage shaping.}
-\citet{walder2025passk} and \citet{chen2025passk} train directly for
-pass@$K$. \citet{thrampoulidis2026passk} show that advantage-shaping
+\citet{thrampoulidis2026passk} show that advantage-shaping
 heuristics, such as hard-example upweighting, implicitly maximize surrogate
 rewards such as pass@$K$, and derive an unbiased leave-one-out pass@$K$
 advantage. We test whether optimizing pass@$K$ preserves response diversity
@@ -253,14 +256,8 @@ and at what cost to pass@1.
 
 \paragraph{Entropy and diversity collapse.}
 \citet{yue2025doesrl} show that RLVR-trained models beat their base model
-at small $k$ but lose to it at large $k$. \citet{cui2025entropy} trace the
-fall in entropy to the covariance between a token's log-probability and its
-advantage, and fit an empirical law $R = -a e^{H} + b$ between performance
-and entropy. \citet{yuan2026overtraining} attribute diversity collapse to
-overtraining prompts that are already solved, and find that updating only
-on prompts with zero observed successes raises pass@256 above the base
-model. \citet{shao2025spurious} find that even random rewards improve some
-models, which argues for a random-reward control in LLM experiments.
+at small $k$ but lose to it at large $k$, which suggests that RLVR mostly
+sharpens what the base model can already do.
 
 % ---------------------------------------------------------------------
 \section{Problem Formulation}
@@ -449,10 +446,7 @@ $\E_x[\phi(p(x), G)]$ of Eq.~\eqref{eq:informative} and with
 $\phi(\E_x[p(x)], G)$, which overestimates it when $p(x)$ varies across
 prompts~\citep{nie2026starvation}; diversity, measured as policy entropy,
 the number of distinct responses per group, and (in the multi-solution
-variant) the mass on the rarest correct responses; the
-log-probability--advantage covariance that drives entropy
-change~\citep{cui2025entropy};
-exact KL to $\piref$; gradient norm; and steps to reach a target success
+variant) the mass on the rarest correct responses; exact KL to $\piref$; gradient norm; and steps to reach a target success
 rate. We report a run as \emph{stalled} if it never improves on $p_0$, and
 as \emph{collapsed} if its final success falls below $p_0$. All results are
 averaged over at least 3 seeds.
@@ -477,13 +471,9 @@ by one of the theory papers, and confirm the main trends on a small LLM.
     when $p_0$ is small; at a fixed sample budget, the advantage of larger
     $G$ shrinks; entropy and distinct responses fall as success rises. At
     a fixed sample budget we expect $G = 2$ to match large $G$ when $p_0$
-    is moderate~\citep{wu2025ittakestwo} but to fall behind when $p_0$ is
-    small, where very large groups are needed~\citep{hu2025brorl}; locating
-    the crossover in $p_0$ reconciles the two results. We also test the
-    prediction of \citet{ghosh2026predictable} that the mean trajectory is
-    nearly invariant to $G$, and compare our measured learning speeds and
-    gradient variances with the group-size laws of \citet{bay2026grpostd}
-    and \citet{zhou2026ustat}. Finally, we repeat the grid with prompts
+    is moderate but to fall behind when $p_0$ is small, and we locate the
+    crossover in $p_0$. We also compare our measured learning speeds with
+    the group-size law of \citet{bay2026grpostd}. Finally, we repeat the grid with prompts
     whose $p_0$ is spread out rather than equal, where
     \citet{ge2026normalization} predict that std-normalization helps most
     and \citet{nie2026starvation} predict more all-equal groups than the
@@ -510,8 +500,7 @@ by one of the theory papers, and confirm the main trends on a small LLM.
     approximation. We repeat (ii) with $L = 2$ to measure the
     factorization gap. Because we compute the KL exactly, we can also
     measure how much of each update comes from the KL term on groups with
-    all-equal rewards, one of the failure modes listed by
-    \citet{ding2026klmisfires}.
+    all-equal rewards, which carry no reward signal.
 
   \item[E3] \textbf{Step-size threshold~\citep{suk2025gradientgap}.} Start
     every run from the same $p_0$ and sweep the SGD learning rate over a
@@ -530,10 +519,8 @@ by one of the theory papers, and confirm the main trends on a small LLM.
     $1/L$, so this arm tests the predicted $\bar\eta \propto 1/L$ scaling
     rather than comparing normalizations. \emph{Mixed length:} prompts
     with $L(x) \in \{2, \dots, 8\}$ share one learning rate, and we
-    sweep the length weighting $f_\alpha(L) = L^{\alpha-1}$ of
-    \citet{ding2026lengthimpossibility} over $\alpha \in \{0, 0.5, 1\}$,
-    from per-response $1/|y|$ averaging (GRPO, $\alpha = 0$) to summed
-    log-probabilities ($\alpha = 1$). Dr.~GRPO's constant $1/L_{\max}$
+    compare summed log-probabilities (REINFORCE) with per-response
+    $1/|y|$ averaging (GRPO). Dr.~GRPO's constant $1/L_{\max}$
     normalizer equals the summed loss with the learning rate divided by
     $L_{\max}$, so the learning-rate sweep covers it. We run the sweep for
     both \texttt{grpo} and \texttt{mean-only}, since
@@ -555,32 +542,26 @@ by one of the theory papers, and confirm the main trends on a small LLM.
   \item[E4] \textbf{Diversity under pass@$k$
     shaping~\citep{thrampoulidis2026passk}.} On the multi-solution task,
     compare \texttt{grpo} with pass@$k$ advantages ($k = 4, 8$, with
-    $G = 16 \ge k$), the focal-style weighting of
-    F-GRPO~\citep{plyusov2026fgrpo}, and updating only on prompts with no
-    observed success~\citep{yuan2026overtraining}. We expect higher entropy
-    and pass@16 at some cost to pass@1, and test three further predictions:
-    a non-monotonic effect of $G$ on the mass of rare correct
-    responses~\citep{plyusov2026fgrpo}; the entropy--performance law of
-    \citet{cui2025entropy}, whose driving covariance we can compute
-    exactly; and the crossover of \citet{yue2025doesrl}, where the trained
-    policy overtakes the base model at small $k$ and falls behind it at
-    large $k$.
+    $G = 16 \ge k$) and the focal-style weighting of
+    F-GRPO~\citep{plyusov2026fgrpo}. We expect higher entropy and pass@16
+    at some cost to pass@1, and test two further predictions: a
+    non-monotonic effect of $G$ on the mass of rare correct
+    responses~\citep{plyusov2026fgrpo}, and the crossover of
+    \citet{yue2025doesrl}, where the trained policy overtakes the base
+    model at small $k$ and falls behind it at large $k$.
   \item[E5] \textbf{Escaping very sparse rewards.} At $L = 6$,
     $p_0 = 4^{-6} \approx 2.4 \times 10^{-4}$ (where
     Eq.~\eqref{eq:informative} predicts almost no signal), compare a very
-    large $G$~\citep{hu2025brorl}, mixing in easier prompts, a curriculum
-    over $L$, sampling prompts in proportion to
-    $p(1-p)$~\citep{foster2025learnability} or to
-    $\phi(p, G)$~\citep[cf.][]{sha2026thinkprior,okonkwo2026arcus}, and the
-    fixed-reference advantage $A = 2r - 1$, which still learns from
+    large $G$, mixing in easier prompts, a curriculum over $L$, sampling
+    prompts in proportion to their informative-group probability
+    $\phi(p, G)$, and the fixed-reference advantage $A = 2r - 1$, which still learns from
     all-wrong groups~\citep{nie2026starvation}. In our task the exact $p$
     lets us run the prompt-selection arms with the true difficulty, an
     upper bound on what an estimated difficulty can achieve.
   \item[E6] \textbf{Small-LLM check.} We first reproduce the experiment of
     \citet[App.~A]{mroueh2025rlvr}, which uses only public components:
-    Qwen2.5-0.5B-Instruct~\citep{qwen2025qwen25} on
-    GSM8K~\citep{cobbe2021gsm8k}, trained with TRL's
-    GRPOTrainer~\citep{vonwerra2020trl} and vLLM, $G = 16$,
+    Qwen2.5-0.5B-Instruct on GSM8K~\citep{cobbe2021gsm8k}, trained with
+    the GRPOTrainer of the TRL library and vLLM, $G = 16$,
     learning rate $5 \times 10^{-6}$, $\beta = 0.1$, a 200-token context,
     and sampling temperature 0.1. Its reported success rises from 21\% to
     37.5\%. We then
@@ -589,15 +570,13 @@ by one of the theory papers, and confirm the main trends on a small LLM.
     $p \approx \{0.05, 0.2, 0.5, 0.8\}$, and run
     $G \in \{2, 4, 8, 16\}$ within each bucket (2 seeds, about 200 steps),
     logging the informative-group fraction against
-    Eq.~\eqref{eq:informative}. We add a random-reward control
-    run~\citep{shao2025spurious} and plot pass@$k$ of the base and trained
-    models up to $k = 256$ to check for the crossover of
-    \citet{yue2025doesrl}; \citet{tan2025scaling} report reference curves
-    for Qwen2.5-0.5B. \texttt{mean-only} is TRL's
+    Eq.~\eqref{eq:informative}. We also plot pass@$k$ of the base and
+    trained models up to $k = 256$ to check for the crossover of
+    \citet{yue2025doesrl}. \texttt{mean-only} is TRL's
     \texttt{scale\_rewards=False}; for E4 we use verl's built-in pass@$k$
     advantage or a small subclass of the TRL trainer. If GSM8K has too few
-    prompts in the hard buckets, we use MATH~\citep{hendrycks2021math}
-    difficulty levels 1--5 instead. Runs use 40\,GB MIG slices of H100
+    prompts in the hard buckets, we use the difficulty levels 1--5 of the
+    MATH dataset instead. Runs use 40\,GB MIG slices of H100
     GPUs on the DRAC Fir cluster. We will time a pilot run before
     committing; at an assumed $\sim$2 GPU-hours per run, the 32-run grid
     costs about 3 GPU-days. We drop the multiple-choice variant of our
@@ -629,7 +608,8 @@ These deviations are the most useful output of the project.
 
 % ---------------------------------------------------------------------
 \bibliographystyle{plainnat}
-\bibliography{references}
+\bibliography{ref}
+
 
 % ---------------------------------------------------------------------
 \appendix
