@@ -104,45 +104,53 @@
 \section{Introduction and Motivation}
 \label{sec:intro}
 
-Reinforcement Learning (RL) learns a policy of actions from a reward signal,
-usually sparse and delayed. In the context of large language models (LLMs),
-RL is used to align the model's responses with human preferences or task-
-specific objectives through reinforcement learning with human feedback (RLHF).
-However, RLHF can be expensive and time-consuming, as it requires human
-input for annotation of queries.
+Reinforcement learning (RL) learns a policy of actions from a reward signal
+that is often sparse and delayed. In the context of large language models
+(LLMs), RL is used to align the model's responses with human preferences or
+task-specific objectives, most notably through reinforcement learning from
+human feedback (RLHF)~\citep{ouyang2022instructgpt}. However, RLHF can be
+expensive and time-consuming, as it requires humans to label which responses
+they prefer, and those labels are used to train a reward model.
 
-In 2025, DeepSeek-R1~\citep{guo2025deepseekr1} showed that a language
-model could learn long chain-of-thought reasoning from a binary reward signal,
-that is checking if the final answer is correct or not, without any human
-feedback: Reinforcement Learning with Verifiable Rewards (RLVR). The model was
-trained using Group Relative Policy Optimization GRPO~\citep{shao2024deepseekmath}
-which samples multiple answers per prompt and normalizes the advantages by
-the group standard deviation. Since then, practical experiments have relied on
-rules of thumb, such as sampling more answers for problem with low success rate,
-normalizing advantages by the group metrics, and averaging the loss over tokens.
-However, these choices change the fundamental optimization problem, and
-the optimal solutions are yet to be found.
+In 2025, DeepSeek-R1-Zero~\citep{guo2025deepseekr1} showed that a language
+model could learn long chain-of-thought reasoning from a rule-based reward,
+mainly a binary check of whether the final answer is correct, without any
+human feedback. This approach is called reinforcement learning with
+verifiable rewards (RLVR). The model was trained using Group Relative Policy
+Optimization (GRPO)~\citep{shao2024deepseekmath}, which samples multiple
+answers per prompt and normalizes the advantages by the group standard
+deviation. Since then, practitioners have relied on rules of thumb, such as
+sampling more answers for problems with a low success rate, normalizing
+advantages by the group metrics, and averaging the loss over tokens.
+However, each of these choices changes the fundamental optimization problem,
+and it is still unclear which ones matter and why.
 
 Initial theoretical work provides precise answers in simplified
 settings~\citep{mroueh2025rlvr,suk2025gradientgap,thrampoulidis2026passk,bay2026grpostd}.
-Such as the success amplification property of GRPO, which states that the success
-probability of the policy increases with each iteration, and the gradient gap
-property, which states that the difference between the expected score of correct
-and incorrect responses is a sufficient condition for convergence. However,
-these theoretical bounds are derived under simplified conditions, far from
-the stochastic real-life data GRPO is actually run on. For example, they
-assume exact expectations and solved inner problems, or experiment on
-isolated variables, which is not possible in LLM experiments where success rate,
-task difficulty, and response length all change together.
+Examples include the success amplification property of
+GRPO~\citep{mroueh2025rlvr}, which states that, with a KL penalty, the
+success probability settles at a fixed point higher than that of the
+reference model, and the gradient gap~\citep{suk2025gradientgap}, the
+difference between the expected score of correct and incorrect responses,
+which is used to derive a step-size threshold below which training
+converges. However, these results are derived under simplified conditions,
+far from the stochastic, finite-sample regime in which GRPO is actually run.
+For example, they assume exact expectations and, in the case of
+\citet{mroueh2025rlvr}, an exactly solved inner optimization problem.
+Testing them directly is also hard, because LLM experiments cannot isolate a
+single variable: the success rate, task difficulty, and response length all
+change together.
 
 Our project aims to bridge the gap between theory and practice. We plan
-controlled experiments that will allow us the grid of parameters including initial
-success rate, group size, reward sparsity, KL strength, and step size.
-By doing so, we can test the theoretical predictions in a more realistic setting
-by changing one parameter at a time and observing the effect on the learning dynamics.
-These results will offer further insight into the working dynamics of RLVR and GRPO
-in practical settings. This can lead to better understanding of the optimization
-problem and help form the optimal solutions for training LLMs with verifiable rewards.
+controlled experiments that will allow us to sweep a grid of parameters,
+including the initial success rate, group size, reward sparsity, KL
+strength, and step size. By changing one parameter at a time and observing
+the effect on the learning dynamics, we can test the theoretical predictions
+in a setting closer to practice, with finite samples, stochastic gradients,
+and a learned policy. These results will offer further insight into the
+dynamics of RLVR and GRPO in practical settings. This can lead to a better
+understanding of the optimization problem and help guide how these settings
+are chosen when training LLMs with verifiable rewards.
 
 % ---------------------------------------------------------------------
 \section{Related Work}
