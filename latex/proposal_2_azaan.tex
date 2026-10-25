@@ -246,11 +246,14 @@ $p_0$, KL strength and step size, with every quantity measured exactly,
 compared against these closed forms.
 
 \paragraph{Pass@$K$ advantage shaping.}
-\citet{thrampoulidis2026passk} show that advantage-shaping
-heuristics, such as hard-example upweighting, implicitly maximize surrogate
-rewards such as pass@$K$, and derive an unbiased leave-one-out pass@$K$
-advantage. We test whether optimizing pass@$K$ preserves response diversity
-and at what cost to pass@1.
+\citet{thrampoulidis2026passk} show how advantage shaping corresponds to
+maximizing surrogate rewards and derive an unbiased leave-one-out pass@$K$
+estimator. Their population analysis explains how different advantage rules
+affect optimization. They also present initial experiments and identify
+finite-sample effects as a direction for further study. We build on this
+work using controlled tasks where the success probability can be computed
+exactly, allowing us to test how closely training with different group sizes
+follows the population predictions.
 
 \paragraph{Entropy and diversity collapse.}
 \citet{yue2025doesrl} show that RLVR-trained models beat their base model
@@ -321,10 +324,10 @@ We define the following core experiments, in order:
     threshold shrinks roughly as $1/L$ and as $p_0$ grows.
 
   \item[E4] \textbf{Pass@$k$ and response
-    diversity~\citep{thrampoulidis2026passk}.} On a variant of the synthetic
-    task with several correct tokens per position, we will compare pass@$k$
-    advantages with GRPO in terms of pass@1, pass@$k$, and response
-    diversity.
+    diversity~\citep{thrampoulidis2026passk}.} On a synthetic task with
+    multiple correct answers, we will compare GRPO with biased and unbiased
+    pass@$k$ estimators across group sizes, measuring pass@1, pass@$k$, and
+    response diversity under a fixed sampling budget.
 
   \item[E5] \textbf{Escaping very sparse rewards.} When rewards are sparse and
     almost no group has mixed rewards, training stalls. We will test what helps
