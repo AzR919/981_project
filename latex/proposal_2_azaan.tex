@@ -201,10 +201,13 @@ mass-covering (forward) regularization.
 The paper introduces the gradient gap, defined as the difference between the expected
 score of correct and incorrect responses. It proves a sufficient step-size condition for
 convergence and proves lower bounds where a constant step size makes performance
-drop to zero. With exact gradients, the bound scales as $1/T$ in the response
+drop to zero. To focus purely on optimization dynamics the authors first validate their framework on controlled bandit problems.
+With exact gradients, the bound scales as $1/T$ in the response
 length $T$ and shrinks with the success rate through $(1-p)$. The paper argues
-that GRPO reaches this scaling through its normalization. We will test these
-claims in a stochastic setting and see how the threshold moves when responses
+that GRPO reaches this scaling through its normalization. 
+The authors prove that policy improvement in RLVR follows a logistic growth relation with the cumulative alignment gap.
+They further show this in simulation and in actual LLM post-training.
+We will verify these claims in a stochastic setting and see how the threshold moves when responses
 have different lengths but share the learning rate.
 
 \paragraph{Group size and informative prompts.}
