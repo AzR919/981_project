@@ -99,30 +99,19 @@
 
 \maketitle
 
-
-
 \begin{abstract}
-  Reinforcement learning with verifiable rewards (RLVR), and in particular
-  Group Relative Policy Optimization (GRPO), is now the standard recipe for
-  training reasoning in large language models. Recent theory makes concrete
-  predictions about its dynamics: how many sampled groups carry a learning
-  signal, whether GRPO amplifies the success probability, and when a step
-  size is too large. These predictions are derived for exact gradients and
-  idealized policies, and are hard to check at LLM scale, where every run is
-  expensive and the true success probability is unknown. We propose an
-  experiment-centred project that tests them on a small synthetic task with
-  a binary verifier. Its difficulty is set exactly by the answer length, and
-  the policy's success probability can be computed in closed form, so runs
-  take seconds on a CPU. We vary the initial success rate, the number of
-  sampled answers per prompt, reward sparsity, KL strength, and step size,
-  and compare each result with the corresponding theoretical prediction. As
-  a small theoretical contribution, we extend the success-amplification
-  fixed point of \citet{mroueh2025rlvr} from infinite to finite group size,
-  which gives closed forms for mean-only and leave-one-out baselines and a
-  testable prediction of how the group size shifts GRPO's fixed point. We
-  also show that on-policy SGD shares these fixed points with Mroueh's
-  exact iteration but not their stability. We close with a confirmation on
-  a 0.5B-parameter LLM.
+  Reinforcement learning with verifiable rewards (RLVR) together with Group
+  Relative Policy Optimization (GRPO) has become the standard recipe for
+  fine-tuning large language models (LLMs) on reasoning tasks with verifiable
+  rewards. Recent theory provides concrete bounds on its dynamics like the
+  success amplification property, the gradient gap, and the step-size threshold.
+  However, they are derived for idealized scenarios that are impractical in LLM
+  training. We propose a small-scale empirical study that tests these predictions
+  on a synthetic task with a binary verifier. We vary initial success rate,
+  group size, reward sparsity, KL strength, and step size, and compare each
+  result with the corresponding theoretical prediction. We increase the difficulty
+  of our task, starting with the bandit setting, then a synthetic task with
+  multiple correct answers, and finally a small LLM.
 \end{abstract}
 
 % ---------------------------------------------------------------------
@@ -209,41 +198,28 @@ $\KL(\piref \,\|\, \pi_\theta)$, which lets us distinguish mode-seeking (reverse
 mass-covering (forward) regularization.
 
 \paragraph{Gradient gap and step-size thresholds~\citep{suk2025gradientgap}.}
-The paper defines the gradient gap, the difference between the expected
-score of correct and incorrect responses, and proves a sufficient step-size
-condition for convergence together with lower-bound constructions
-where a constant step makes performance decrease to zero. With exact
-gradients, the threshold scales as $1/T$ in the response length $T$ and
-shrinks with the success rate through $(1-J)$; the paper argues that GRPO's
-$1/|y|$ normalization provides exactly this scaling and Dr.~GRPO's does not.
-Its experiments use a single step size. We test whether a sharp transition
-appears in a stochastic, learned-policy setting, and how it moves with
-response length when responses of different lengths share one learning
-rate. \citet{ge2026normalization} sharpen this question: they show that
-std-normalization acts as an adaptive step size matched to local
-curvature, with a speed-up that depends on how much the per-prompt reward
-variance differs across prompts.
+The paper introduces the gradient gap, defined as the difference between the expected
+score of correct and incorrect responses. It proves a sufficient step-size condition for
+convergence and proves lower bounds where a constant step size makes performance
+drop to zero. With exact gradients, the bound scales as $1/T$ in the response
+length $T$ and shrinks with the success rate through $(1-p)$. The paper argues
+that GRPO reaches this scaling through its normalization. We will test these
+claims in a stochastic setting and see how the threshold moves when responses
+have different lengths but share the learning rate.
 
 \paragraph{Group size and informative prompts.}
 A group with all-equal rewards has zero advantage, and a common practice is
-to filter out such groups. \citet{bay2026grpostd} show that GRPO, Dr.~GRPO
-and DAPO differ only in how they use the group standard deviation, derive a
+to filter out such groups. \citet{bay2026grpostd} show that GRPO and Dr.~GRPO
+differ only in how they use the group standard deviation. They also derive a
 closed-form group-size law in $G\,p(1-p)$, and check it on a Bernoulli toy
-model at $G=8$ and by subsampling logged rollouts.
-\citet{nie2026starvation} prove that when the success rate varies across
+model by subsampling rollouts. \citet{nie2026starvation} prove that when the success rate varies across
 prompts, the fraction of all-equal groups exceeds the prediction from the
 average success rate, and that a fixed-reference advantage $A = 2r - 1$
-outperforms Dr.~GRPO at $G = 4$ on GSM8K. \citet{plyusov2026fgrpo} show that
+outperforms Dr.~GRPO on GSM8K. \citet{plyusov2026fgrpo} show that
 a group can have mixed rewards yet miss rare correct solutions, with a
-non-monotonic dependence on $G$.
-
-We do not claim the informative-group fraction $1 - p^G - (1-p)^G$ or the
-$p(1-p)$ scaling as new. The closest prior work to ours is
-\citet{bay2026grpostd}, \citet{nie2026starvation} and
-\citet{plyusov2026fgrpo}, each of which varies $G$ in theory or in a toy
-model. Our contribution is a controlled \emph{training} grid over $G$,
-$p_0$, KL strength and step size, with every quantity measured exactly,
-compared against these closed forms.
+non-monotonic dependence on $G$. We plan a controlled study of the group-size
+law, where we can set the success rate and group size independently.
+This will allow us to test the law's predictions and see where it breaks down.
 
 \paragraph{Pass@$K$ advantage shaping.}
 \citet{thrampoulidis2026passk} show how advantage shaping corresponds to
