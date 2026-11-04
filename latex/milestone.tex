@@ -1,0 +1,232 @@
+% =====================================================================
+%  CMPT 981 Project - Milestone (NeurIPS 2022 format)
+%
+%  Build (from this folder):  latexmk milestone.tex
+%  latexmkrc puts the PDF in ../docs/ and keeps build files here.
+%  References live in ref.bib (shared with the proposal).
+%
+%  Paper assignments (one per author):
+%    Sec. 2.1  Mroueh (2025)                -> Azaan Rehman
+%    Sec. 2.2  Suk & Duan (2025)            -> Ankush Singh
+%    Sec. 2.3  Thrampoulidis et al. (2026)  -> Simon Doan
+%  Lines starting with % are guidance only; delete them as you write.
+% =====================================================================
+
+\documentclass{article}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+\usepackage[final]{neurips_2022}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+% --- Added for this project -------------------------------------------
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage[capitalize,noabbrev]{cleveref} % must load after hyperref
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+% Handy macros
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\pref}{p_{\mathrm{ref}}}
+\newcommand{\piref}{\pi_{\mathrm{ref}}}
+\DeclareMathOperator{\logit}{logit}
+\DeclareMathOperator{\Bin}{Bin}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+% Inline TODO notes; comment out the first line and uncomment the
+% second to hide them all before submitting.
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+% \newcommand{\todo}[1]{}
+
+
+\title{GRPO unraveled: A Small-Scale Empirical Study of RLVR\\
+  CMPT 981 Project Milestone}
+
+
+\author{%
+  Ankush Singh\\
+  Simon Fraser University\\
+  \texttt{asa715@sfu.ca} \\
+  \And
+  Simon Doan\\
+  Simon Fraser University\\
+  \texttt{vtd@sfu.ca} \\
+  \And
+  Azaan Rehman\\
+  Simon Fraser University\\
+  \texttt{ara199@sfu.ca} \\
+}
+
+
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+  \todo{Abstract. Write last: the project goal in one sentence, the three
+  papers reviewed, and the progress made since the proposal.}
+\end{abstract}
+
+% ---------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+% - One short paragraph recapping the project goal from the proposal.
+% - Why these three papers: each one gives a prediction that one of our
+%   core experiments tests (Mroueh -> E2, Suk & Duan -> E3,
+%   Thrampoulidis et al. -> E4).
+% - What the rest of the milestone covers.
+\todo{Introduction}
+
+% ---------------------------------------------------------------------
+\section{Paper Reviews}
+\label{sec:reviews}
+
+% Shared setup used by all three reviews, so each review can refer to it
+% instead of repeating it: prompt x, policy pi_theta, binary reward
+% r in {0, 1}, success probability p, group size G, advantages A_i,
+% KL strength beta.
+\todo{Shared notation (a few lines)}
+
+% Each review uses the same four parts so the three read consistently.
+% Keep each review to a similar length.
+
+% ---------------------------------------------------------------------
+\subsection{\texorpdfstring{Success amplification~\citep{mroueh2025rlvr}}{Success amplification (Mroueh)}}
+\label{sec:mroueh}
+% Reviewer: Azaan Rehman
+
+\paragraph{Setting and assumptions.}
+% Binary rewards, reverse-KL penalty, no clipping; which quantities are
+% assumed exact (expectations, the inner KL-regularized problem).
+\todo{Setting and assumptions}
+
+\paragraph{Main results.}
+% GRPO's effective loss as a contrastive loss between correct and
+% incorrect samples; the recurrence p_n = h(p_{n-1}); fixed points
+% p* > p_ref (success amplification); the condition on beta for local
+% convergence; mean-only vs. mean+std normalization.
+\todo{Main results}
+
+\paragraph{Connection to our project.}
+% What E2 tests: finite G vs. the paper's G -> infinity, SGD vs. the
+% exact iteration, reverse vs. forward KL. State the prediction we
+% compare against.
+\todo{Connection to our project}
+
+\paragraph{Limitations and open questions.}
+\todo{Limitations and open questions}
+
+% ---------------------------------------------------------------------
+\subsection{\texorpdfstring{Gradient gap and step-size thresholds~\citep{suk2025gradientgap}}{Gradient gap and step-size thresholds (Suk and Duan)}}
+\label{sec:suk}
+% Reviewer: Ankush Singh
+
+\paragraph{Setting and assumptions.}
+\todo{Setting and assumptions}
+
+\paragraph{Main results.}
+% Definition of the gradient gap; the sufficient step-size condition and
+% the lower-bound constructions; scaling with response length T and
+% success rate (1 - p); the logistic growth relation; what the paper says
+% about GRPO's length normalization.
+\todo{Main results}
+
+\paragraph{Connection to our project.}
+% What E3 tests: the learning-rate sweep, the 1/L scaling, and the
+% mixed-length case where prompts share one learning rate.
+\todo{Connection to our project}
+
+\paragraph{Limitations and open questions.}
+\todo{Limitations and open questions}
+
+% ---------------------------------------------------------------------
+\subsection{\texorpdfstring{Pass@$k$ advantage shaping~\citep{thrampoulidis2026passk}}{Pass@k advantage shaping (Thrampoulidis et al.)}}
+\label{sec:thrampoulidis}
+% Reviewer: Simon Doan
+
+\paragraph{Setting and assumptions.}
+\todo{Setting and assumptions}
+
+\paragraph{Main results.}
+% Advantage shaping as surrogate reward maximization; the unbiased
+% leave-one-out pass@k advantage; what the population analysis predicts
+% for different advantage rules.
+\todo{Main results}
+
+\paragraph{Connection to our project.}
+% What E4 tests: biased vs. unbiased pass@k estimators across group
+% sizes on the multi-solution task; pass@1, pass@k, and diversity under
+% a fixed sampling budget.
+\todo{Connection to our project}
+
+\paragraph{Limitations and open questions.}
+\todo{Limitations and open questions}
+
+% ---------------------------------------------------------------------
+\iffalse
+TODO: If we wanna add these parts in:
+\section{Progress}
+\label{sec:progress}
+
+% What is implemented so far (e.g. the bandit playground in main.py),
+% any preliminary results, and how they compare with the predictions
+% above. Replace the placeholder figure with real plots.
+\todo{Progress since the proposal}
+
+\begin{figure}[t]
+  \centering
+  % Replace the box with: \includegraphics[width=0.6\linewidth]{figures/<name>.pdf}
+  \fbox{\parbox[c][4cm][c]{0.6\linewidth}{\centering Figure placeholder}}
+  \caption{\todo{Caption}}
+  \label{fig:prelim}
+\end{figure}
+
+% ---------------------------------------------------------------------
+\section{Updated Plan}
+\label{sec:plan}
+
+% Changes to the experiments since the proposal (E1--E6), anything
+% dropped or added, and the timeline to the final report.
+\todo{Remaining work and timeline}
+
+% ---------------------------------------------------------------------
+\section{Contributions}
+\label{sec:contributions}
+
+\begin{itemize}
+  \item \textbf{Ankush Singh:} review of \citet{suk2025gradientgap}. \todo{other work}
+  \item \textbf{Simon Doan:} review of \citet{thrampoulidis2026passk}. \todo{other work}
+  \item \textbf{Azaan Rehman:} review of \citet{mroueh2025rlvr}. \todo{other work}
+\end{itemize}
+
+% ---------------------------------------------------------------------
+\bibliographystyle{plainnat}
+\bibliography{ref}
+
+\fi
+
+\end{document}
