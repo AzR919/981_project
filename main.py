@@ -84,13 +84,25 @@ def main():
     rng = np.random.default_rng(args.seed)
     K, G = args.num_answers, args.group_size
     correct = 0
-    logits = np.zeros(K)
-    log_ref = np.full(K, -math.log(K))  # uniform reference policy
 
-    print(f"K={K} (p0={1 / K:.4g})  G={G}  advantage={args.advantage}  "
+    # logits = np.zeros(K)
+    # log_ref = np.full(K, -math.log(K))  # uniform reference policy
+    # Set the initial probability of the correct answer.
+    p0 = 1 / K if args.p0 is None else args.p0
+    if not 0 < p0 < 1:
+        raise ValueError("--p0 must be between 0 and 1, exclusive.")
+
+    # Distribute the remaining probability equally among incorrect answers.
+    initial_pi = np.full(K, (1 - p0) / (K - 1))
+    initial_pi[correct] = p0
+
+    logits = np.log(initial_pi)
+    log_ref = np.log(initial_pi.copy())  # fixed reference: initial policy
+
+    print(f"K={K} (p0={p0:.4g})  G={G}  advantage={args.advantage}  "
           f"lr={args.lr}  beta={args.beta}  steps={args.steps}")
     if args.beta > 0 and args.advantage != "passk":
-        p_star = predicted_fixed_point(1 / K, G, args.beta, args.advantage)
+        p_star = predicted_fixed_point(p0, G, args.beta, args.advantage)
         print(f"predicted fixed point p* = {p_star:.4f} (Proposition 1)")
     print(f"{'step':>6} {'p(correct)':>11} {'informative':>12} {'entropy':>8}")
 
