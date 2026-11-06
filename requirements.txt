@@ -8,3 +8,6 @@ matplotlib==3.11.2
 
 # Utilities
 tqdm==4.70.1
+
+# Neural network and automatic gradients
+torch
