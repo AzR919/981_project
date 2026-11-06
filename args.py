@@ -81,6 +81,14 @@ def build_parser():
         help="Print a progress line every this many steps.",
     )
 
+    # Initial success probability
+    parser.add_argument(
+    "--p0",
+    type=float,
+    default=None,
+    help="Initial success probability; defaults to 1/K.",
+) 
+
     return parser
 
 
@@ -103,5 +111,7 @@ def parse_args(argv=None):
         parser.error("--passk must satisfy 1 <= k <= G")
     if args.steps < 1 or args.print_every < 1:
         parser.error("--steps and --print-every must be >= 1")
+    if args.p0 is not None and not 0 < args.p0 < 1:
+        parser.error("--p0 must be between 0 and 1")
 
     return args
