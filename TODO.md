@@ -1,7 +1,7 @@
 # TODO
 
 What the project still needs, from now to the final report.
-It builds on the proposal (`latex/proposal_2_azaan.tex`) and the instructor's feedback on it.
+It builds on the proposal (`latex/proposal.tex`) and the instructor's feedback on it.
 Items marked **Decide** need a team decision. Where there is a suggestion, it is only a starting point.
 
 ---
