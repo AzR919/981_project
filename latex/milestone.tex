@@ -169,22 +169,59 @@
 % Reviewer: Simon Doan
 
 \paragraph{Setting and assumptions.}
-\todo{Setting and assumptions}
+\citet{thrampoulidis2026passk} study how advantage shaping changes the
+objective optimized by RLVR methods. They consider binary rewards, where
+a correct response receives 1 and 0 otherwise. Under their setting, for
+each prompt $x$, the model independently samples a training group of $G$
+responses from its current policy. If its success probability is
+$p_\theta(x)$, the probability of obtaining at least one correct response
+in $k$ independent attempts is
+\[
+  P_k(x) = 1 - (1 - p_\theta(x))^k.
+\]
+Here, $G$ is the number of responses during the training phase, while $k$
+is the number of attempts considered by the pass@$k$ evaluation metric.
+Their analysis assumes one policy update per freshly sampled training
+group, with clipping inactive and KL regularization omitted.
 
 \paragraph{Main results.}
-% Advantage shaping as surrogate reward maximization; the unbiased
-% leave-one-out pass@k advantage; what the population analysis predicts
-% for different advantage rules.
-\todo{Main results}
+The gradient of the $P_k(x)$, pass@$k$ objective, is
+\[
+  \nabla_\theta P_k(x)
+  = k(1 - p_\theta(x))^{k-1}\nabla_\theta p_\theta(x).
+\]
+For fixed $k > 1$, a high success probability $p_\theta(x)$ makes
+$1 - p_\theta(x)$ really small. So pass@$k$ optimization places less
+weight on prompts already solved reliably, and more weight to prompts
+with lower success probabilities.
+
+To estimate the pass@$k$ gradient from sampled responses, the authors
+construct $\mathrm{RLOO}_k$, an unbiased estimator that uses the other
+responses in each group to calculate leave-one-out weights. Applying
+standard deviation normalization produces their biased $\mathrm{GRPO}_k$
+variant. More broadly, the paper connects advantage shaping to surrogate
+reward maximization, explaining how existing shaping rules can be
+interpreted through the objective they optimize.
 
 \paragraph{Connection to our project.}
-% What E4 tests: biased vs. unbiased pass@k estimators across group
-% sizes on the multi-solution task; pass@1, pass@k, and diversity under
-% a fixed sampling budget.
-\todo{Connection to our project}
+For our experiment, we are aiming to compare GRPO with biased and
+unbiased pass@$k$ estimators on a simple synthetic task that has one
+correct answer. To do this, we will vary the training group size $G$,
+while holding the total sampling budget fixed. We will then measure how
+each trained model performs on different pass@$k$ versions. Our goal here
+is to determine whether larger training groups improve performance under
+the same sampling budget. Moreover, under these settings, we can also
+compute population gradients directly and use it to compare them with
+average sampled gradients during training.
 
 \paragraph{Limitations and open questions.}
-\todo{Limitations and open questions}
+\citet{thrampoulidis2026passk} note that their surrogate reward
+interpretation relies on an infinite group limit with $k$ being fixed.
+But for practical perspectives and also in our experiments, we use
+finite groups instead, where noisy success rate estimates can cause
+updates to differ from the theoretical prediction. This raises a
+question about how closely training with small groups follows the
+population predictions.
 
 % ---------------------------------------------------------------------
 \iffalse
@@ -223,10 +260,10 @@ TODO: If we wanna add these parts in:
   \item \textbf{Azaan Rehman:} review of \citet{mroueh2025rlvr}. \todo{other work}
 \end{itemize}
 
+\fi
+
 % ---------------------------------------------------------------------
 \bibliographystyle{plainnat}
 \bibliography{ref}
-
-\fi
 
 \end{document}
