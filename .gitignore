@@ -228,3 +228,5 @@ latex/*.fls
 latex/*.out
 latex/*.synctex.gz
 latex/*.toc
+
+.DS_Store
