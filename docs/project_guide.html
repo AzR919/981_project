@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GRPO Project Guide</title>
+<meta name="description" content="CMPT 981 project guide: one synthetic setting, one equation that unifies GRPO-style advantage rules, and hypotheses that connect step size, group size, KL strength and parameter sharing.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --text: #1d1d1b;
+    --muted: #5d5c57;
+    --border: #e3e0d8;
+    --accent: #2f5d8a;
+    --accent-soft: #e8eff6;
+    --code-bg: #f3f1ec;
+    --note-bg: #fdf6e3;
+    --note-border: #e6cf8f;
+    --ok: #2e6b3a;
+    --warn: #8a4b16;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161616;
+      --surface: #1e1e1e;
+      --text: #e8e6e1;
+      --muted: #a3a19b;
+      --border: #34332f;
+      --accent: #8bb4dc;
+      --accent-soft: #1f2a35;
+      --code-bg: #232321;
+      --note-bg: #2a2518;
+      --note-border: #6b5a2a;
+      --ok: #8fcf9b;
+      --warn: #e4a66b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #161616;
+    --surface: #1e1e1e;
+    --text: #e8e6e1;
+    --muted: #a3a19b;
+    --border: #34332f;
+    --accent: #8bb4dc;
+    --accent-soft: #1f2a35;
+    --code-bg: #232321;
+    --note-bg: #2a2518;
+    --note-border: #6b5a2a;
+    --ok: #8fcf9b;
+    --warn: #e4a66b;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.65 Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 48px 16px 96px; }
+  header { margin-bottom: 40px; }
+  .kicker {
+    font: 600 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--accent);
+  }
+  h1 { font-size: 2.3rem; line-height: 1.15; margin: 8px 0 12px; }
+  h2 {
+    font-size: 1.45rem; margin: 56px 0 12px; padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  h2 .num { color: var(--accent); margin-right: 8px; }
+  h3 { font-size: 1.12rem; margin: 32px 0 8px; }
+  h4 { font-size: 1rem; margin: 20px 0 4px; }
+  .lede { color: var(--muted); font-size: 1.08rem; }
+  a { color: var(--accent); }
+  nav.toc {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px 20px; font: 15px/1.7 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  nav.toc ol { margin: 4px 0 0; padding-left: 20px; }
+  code, pre { font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace; font-size: .86em; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; font-size: 1em; }
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .note, .def, .hyp, .key {
+    border-radius: 8px; padding: 12px 16px; margin: 20px 0;
+  }
+  .note { background: var(--note-bg); border: 1px solid var(--note-border); }
+  .def { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+  .hyp { background: var(--accent-soft); border: 1px solid var(--border); }
+  .key { background: var(--surface); border: 2px solid var(--accent); }
+  .note > :first-child, .def > :first-child, .hyp > :first-child, .key > :first-child { margin-top: 0; }
+  .note > :last-child, .def > :last-child, .hyp > :last-child, .key > :last-child { margin-bottom: 0; }
+  .label {
+    font: 700 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--accent);
+    display: block; margin-bottom: 6px;
+  }
+  .status { font: 600 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif; white-space: nowrap; }
+  .status.ok { color: var(--ok); }
+  .status.warn { color: var(--warn); }
+  dl.spec { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 12px 0; }
+  dl.spec dt { font: 600 14px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--muted); }
+  dl.spec dd { margin: 0; min-width: 0; }
+  @media (max-width: 560px) {
+    dl.spec { grid-template-columns: minmax(0, 1fr); }
+    dl.spec dd { margin-bottom: 8px; }
+  }
+  .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+  footer { margin-top: 64px; color: var(--muted); font-size: .92rem; }
+  @media (max-width: 520px) {
+    body { font-size: 16px; }
+    h1 { font-size: 1.8rem; }
+    main { padding-top: 32px; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="kicker">CMPT 981 &middot; Project guide</div>
+  <h1>GRPO Project Guide</h1>
+  <p class="lede">One setting, one equation, and a small number of effective quantities that explain how
+  GRPO-style training responds to its hyperparameters. This page builds the definitions from scratch, defines
+  the synthetic setting precisely, summarizes the papers, and lays out the project as connected hypotheses
+  rather than a hyperparameter search. Background at a slower pace is in the
+  <a href="rlvr_primer.html">RLVR primer</a>.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#idea">The idea in one page</a>
+      <ul style="list-style:none;padding-left:1em;margin:0"><li><a href="#gap">1.5 The advantage gap in detail</a></li></ul></li>
+    <li><a href="#feedback">How this answers the proposal feedback</a></li>
+    <li><a href="#defs">Definitions from the basics</a></li>
+    <li><a href="#setting">The setting: one synthetic task family</a></li>
+    <li><a href="#papers">The papers</a></li>
+    <li><a href="#framework">The unifying framework</a></li>
+    <li><a href="#pilot">Pilot evidence</a></li>
+    <li><a href="#hypotheses">Hypotheses and experiments</a></li>
+    <li><a href="#plan">Execution plan</a></li>
+    <li><a href="#outcomes">What we could conclude</a></li>
+    <li><a href="#symbols">Symbol table</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="idea"><span class="num">1</span>The idea in one page</h2>
+
+<p>GRPO-style training has many knobs: the advantage rule, the group size $G$, the number of prompts per step
+$B$, the step size $\eta$, the KL strength $\beta$ and direction, the response length $L$, and how the model
+shares parameters across prompts. Sweeping them one by one gives a hyperparameter search, not an
+understanding. Our claim is that they act through a few effective quantities, and that the theory papers
+each describe one of them.</p>
+
+<div class="key">
+  <span class="label">The equation behind everything</span>
+  <p>For binary rewards and any advantage rule that depends only on the group's rewards, the expected update
+  on a prompt $x$ is a scalar times the gradient of its success probability:
+  $$\mathbb{E}\big[\widehat g_x\big] \;=\; W_G(p_x)\,\nabla_\theta\, p_x,
+  \qquad W_G(p) \;=\; \mathbb{E}[A \mid r=1] - \mathbb{E}[A \mid r=0].$$
+  This holds for <em>any</em> parameterization: a table of logits, a shared MLP, any $L$. Only the scalar
+  $W_G(p)$, the <strong>advantage gap</strong>, depends on the rule and on $G$.</p>
+</div>
+
+<p>From this one equation, the knobs fall into four roles:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Role</th><th>Governed by</th><th>Paper it generalizes</th></tr></thead>
+  <tbody>
+    <tr><td><strong>What</strong> is optimized</td><td>The shape of $W_G(p)$ across prompts (rule, $G$)</td><td>Thrampoulidis et al.</td></tr>
+    <tr><td><strong>Where</strong> training stops</td><td>The balance $W_G(p) = \beta \times$ KL pull</td><td>Mroueh</td></tr>
+    <tr><td><strong>Whether</strong> training is stable</td><td>The per-prompt effective step $s = \eta\, W_G / B$ times how much prompts interfere</td><td>Suk &amp; Duan</td></tr>
+    <tr><td><strong>How noisy</strong> it is</td><td>$G$ and $B$, and the chance $\varphi$ that a group is informative</td><td>Bay &amp; Yearick, Nie et al.</td></tr>
+  </tbody>
+</table></div>
+
+<p>Two consequences make this more than bookkeeping. First, the <em>scale</em> of $W$ is absorbed by the step
+size, so many configurations that look different are provably the same, which collapses the grid. Second, a
+pilot shows that the main failure mode is not "SGD is noisy" but a specific mechanism: prompts get pushed into
+a deterministic wrong answer, where no group ever contains a correct sample and the prompt can never recover.
+That mechanism links step size, group size, KL strength and parameter sharing in testable ways.</p>
+
+<!-- ============================================================ -->
+<h2 id="gap"><span class="num">1.5</span>The advantage gap in detail</h2>
+
+<p>This section unpacks the boxed equation above: what each piece is, why it holds, what it lets us say, and
+where it stops being true. The full proof and its numerical check are in <a href="#framework">Section 6.1</a>;
+definitions of every symbol are in <a href="#defs">Section 3</a>.</p>
+
+<h3>The setup</h3>
+<p>Fix one prompt $x$. Sample a group of $G$ responses $y_1,\dots,y_G$ from the current policy $\pi_\theta$,
+score each with the verifier ($r_i=1$ if correct, $0$ if not), turn the rewards into advantages
+$A_1,\dots,A_G$ with some rule, and form the update direction</p>
+$$\widehat g_x \;=\; \frac{1}{G}\sum_{i=1}^{G} A_i\,\nabla_\theta\log\pi_\theta(y_i\mid x).$$
+<p>$\widehat g_x$ is random because the group is random. The identity is a statement about its
+<em>average</em> over groups, $\mathbb{E}[\widehat g_x]$: the direction training moves in on this prompt, on
+average.</p>
+
+<h3>Why it holds, in three steps</h3>
+<ol>
+  <li><strong>Split each sample by whether it was correct.</strong> With probability $p$ the sample is correct,
+  with probability $1-p$ it is wrong. Because the advantage $A_i$ depends on $y_i$ only through $r_i$ (and on
+  the other, independent samples), the average splits into a "correct" term and a "wrong" term:
+  $$\mathbb{E}\big[A\,\nabla\log\pi\big]
+  = p\;\mathbb{E}[A\mid r{=}1]\;\mathbb{E}[\nabla\log\pi\mid r{=}1]
+  \;+\;(1-p)\;\mathbb{E}[A\mid r{=}0]\;\mathbb{E}[\nabla\log\pi\mid r{=}0].$$</li>
+  <li><strong>Average score of correct and wrong samples.</strong> The score $\nabla\log\pi$ averaged over
+  correct samples points toward making correct answers more likely, and over wrong samples it points the
+  opposite way, with the same total size:
+  $$\mathbb{E}[\nabla\log\pi\mid r{=}1] = \frac{\nabla p}{p},\qquad
+  \mathbb{E}[\nabla\log\pi\mid r{=}0] = -\frac{\nabla p}{1-p}.$$
+  (These follow from $\mathbb{E}[r\,\nabla\log\pi]=\nabla p$ and $\mathbb{E}[\nabla\log\pi]=0$.)</li>
+  <li><strong>The probabilities cancel.</strong> Substituting, the $p$ and $1-p$ cancel exactly:
+  $$\mathbb{E}[A\,\nabla\log\pi] = \mathbb{E}[A\mid r{=}1]\,\nabla p \;-\; \mathbb{E}[A\mid r{=}0]\,\nabla p
+  = \big(\mathbb{E}[A\mid r{=}1]-\mathbb{E}[A\mid r{=}0]\big)\,\nabla p.$$
+  Averaging over the $G$ samples in the group changes nothing, since they are identically distributed.</li>
+</ol>
+<p>So $W_G(p)$ is simply <strong>how much more the rule rewards a correct answer than a wrong one, on
+average</strong>. It is a number, not a vector, and it depends only on $p$, $G$ and the rule.</p>
+
+<h3>A worked example</h3>
+<p>Take $G=4$ and a prompt with $p=0.2$. For a fixed sample, average its advantage over the other three
+samples' rewards, once assuming it is correct and once assuming it is wrong:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Rule</th><th class="num">$\mathbb{E}[A\mid r=1]$</th><th class="num">$\mathbb{E}[A\mid r=0]$</th><th class="num">$W_4(0.2)$</th></tr></thead>
+  <tbody>
+    <tr><td>Mean-only, $A_i=r_i-\bar r$</td><td class="num">0.600</td><td class="num">&minus;0.150</td><td class="num">0.750</td></tr>
+    <tr><td>RLOO, $A_i=r_i-\text{mean of others}$</td><td class="num">0.800</td><td class="num">&minus;0.200</td><td class="num">1.000</td></tr>
+    <tr><td>GRPO, $(r_i-\bar r)/\mathrm{std}$</td><td class="num">1.326</td><td class="num">&minus;0.332</td><td class="num">1.658</td></tr>
+  </tbody>
+</table></div>
+<p>For mean-only by hand: if the sample is correct, $\bar r=(1+3p)/4$ on average, so
+$\mathbb{E}[A\mid r{=}1]=1-(1+3p)/4=0.6$; if it is wrong, $\bar r=3p/4$, so $\mathbb{E}[A\mid r{=}0]=-3p/4=-0.15$.
+The gap is $0.75=(G-1)/G$, and the $p$ terms cancel in general, so mean-only's gap does not depend on $p$.
+RLOO's gap is exactly $1$ for the same reason. GRPO's does depend on $p$, because the standard deviation
+it divides by depends on how many samples were correct.</p>
+
+<h3>What it lets us say</h3>
+<ol>
+  <li><strong>All rules agree on the direction.</strong> On average every rule moves $\theta$ along
+  $\nabla p_x$, toward a higher success rate on that prompt. Mean-only, RLOO and GRPO differ only by the
+  scalar $W_G(p_x)$, which acts as a per-prompt step-size multiplier.</li>
+  <li><strong>It sets the effective step.</strong> Writing $p=\sigma(z)$ for the logit $z$ of success,
+  $\nabla p = p(1-p)\nabla z$, so one step moves the logit by about
+  $$\Delta z_x \approx \frac{\eta}{B}\,W_G(p_x)\,p_x(1-p_x)\,\|\nabla z_x\|^2.$$
+  Step size $\eta$, prompts per step $B$, group size and rule (through $W$), and the current difficulty $p$
+  all enter through this one quantity. This is what H3 tests instead of a grid over each knob.</li>
+  <li><strong>The scale is absorbed by $\eta$.</strong> A constant $W$ is indistinguishable from a different
+  step size: mean-only with $\eta$ is RLOO with $\eta(G-1)/G$, in expectation. Only the <em>shape</em> of
+  $W$ in $p$ changes behaviour (H1).</li>
+  <li><strong>The shape decides which prompts get pushed hardest.</strong> As $G\to\infty$, GRPO's
+  $W\to 1/\sqrt{p(1-p)}$, so $W\,p(1-p)\to\sqrt{p(1-p)}$. At $p=0.05$ that is $0.218$, against
+  $0.0475$ for mean-only: GRPO pushes hard prompts about 4.6 times harder. That helps them escape, but it
+  also lowers the step size at which training breaks, which is what the pilot showed (Section 7).</li>
+  <li><strong>It defines an objective.</strong> Since $\mathbb{E}[\widehat g]=W_G(p)\nabla p=\nabla F_G(p)$
+  with $F_G(p)=\int_0^p W_G(u)\,du$, each rule is gradient ascent on its own surrogate $F_G$. Mean-only,
+  RLOO and GRPO at $G=2$ climb $p$ itself (pass@1); GRPO at large $G$ climbs $2\arcsin\sqrt p$. Group size
+  therefore changes <em>what</em> GRPO optimizes (H2).</li>
+  <li><strong>It sets where training stops.</strong> With a KL penalty, training stops where the push $W_G(p)$
+  balances the pull $\beta\times$(KL gradient). That gives the fixed points tested in H4.</li>
+</ol>
+
+<h3>What it does not cover</h3>
+<ul>
+  <li><strong>Noise.</strong> It is a statement about the average update. Two rules with the same $W$ can have
+  very different variance; Section 7.3 shows GRPO's per-sample signal-to-noise rises with $G$ while mean-only's
+  stays flat.</li>
+  <li><strong>Interference.</strong> It is per prompt. With shared parameters, a step on prompt $x$ also moves
+  every other prompt, through $\nabla p_x\cdot\nabla p_{x'}$. That cross-talk is the missing piece in
+  Section 6.5, and the source of the collapse seen in the pilot.</li>
+  <li><strong>Its assumptions.</strong> Binary rewards; independent samples in a group; advantages computed
+  from the group's rewards only; and the summed log-probability of the response. It fails with PPO-style
+  clipping, with per-token length normalization when lengths vary, and with non-binary rewards. A KL term
+  adds its own separate gradient on top.</li>
+</ul>
+
+<h3>Where it comes from, and what is ours</h3>
+<div class="note"><span class="label">Credit</span>
+<p>The fact that the expected update is a scalar function of $p$ times $\nabla p$ is not new. Davis &amp; Recht
+(2025) show that common rules with binary rewards are, in expectation, ascent on a monotone transform of $p$
+(GRPO's is $\arcsin\sqrt p$). Mroueh (2025) writes GRPO as a contrastive loss with $p$-dependent weights.
+Thrampoulidis et al. show that reshaping the advantage is equivalent to maximizing a surrogate reward. We should
+not write that we "introduce" the identity.</p>
+<p>What we can claim: the name <em>advantage gap</em> and the one-line formula
+$W=\mathbb{E}[A\mid r{=}1]-\mathbb{E}[A\mid r{=}0]$ that computes it for any rule; using it to put the three papers
+on one axis; the effective-step view that ties $\eta$, $B$, $G$, the rule and sharing together; and the
+experiments that test its predictions. A safe phrasing for the write-up: "Following Davis &amp; Recht (2025) and
+Mroueh (2025), we write the expected update of any group-baseline rule as $W_G(p)\nabla p$ and call $W_G$ the
+advantage gap." Check whether Davis &amp; Recht state the finite-$G$ form or only the large-$G$ limit before
+writing the related-work sentence.</p></div>
+
+<!-- ============================================================ -->
+<h2 id="feedback"><span class="num">2</span>How this answers the proposal feedback</h2>
+
+<div class="table-wrap"><table>
+  <thead><tr><th>Feedback</th><th>Response in this plan</th></tr></thead>
+  <tbody>
+    <tr><td>"Trying to do too much... a list of seemingly unrelated experiments... relate everything."</td>
+        <td>Every hypothesis is a consequence of the same equation (Section 6). No LLM; one task family.</td></tr>
+    <tr><td>"Fix the setting: bandit or token-level MDP."</td>
+        <td>One synthetic family. The bandit is exactly its $L=1$, tabular special case, so it is a point in the grid, not a second setting (Section 4).</td></tr>
+    <tr><td>"Test the effect of the algorithm hyperparameters."</td>
+        <td>H1 to H4 vary them, but through the effective quantities, with collapse plots as the test.</td></tr>
+    <tr><td>"Do the group-size scaling law separately."</td>
+        <td>H5 is its own study, with its own prediction, linked back through $W_G$ and $\varphi$.</td></tr>
+    <tr><td>"Test the predictions on a toy task where we can control all the variables."</td>
+        <td>That is the framing. In the synthetic task, $p$, entropy, KL and even gradients are exact.</td></tr>
+    <tr><td>Undefined: inner problem, $p^\star$, "SGD on what", "step size for what", size of $y$, base model.</td>
+        <td>All defined in Sections 3 and 4.</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="defs"><span class="num">3</span>Definitions from the basics</h2>
+
+<h3>3.1 Prompts, responses, policies</h3>
+<div class="def">
+  <span class="label">Definition</span>
+  <p>A <strong>prompt</strong> $x$ is the input. A <strong>response</strong> $y$ is the output. A
+  <strong>policy</strong> $\pi_\theta(y\mid x)$ is a probability distribution over responses for each prompt,
+  with parameters $\theta$. Training changes $\theta$.</p>
+</div>
+
+<p>In our code, prompts and responses are plain arrays, not text. The task family has two parameterizations
+(Section 4), and the format differs slightly between them:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th></th><th>Shared (MLP, <code>synthetic_rl/</code>)</th><th>Tabular / bandit (<code>main.py</code>)</th></tr></thead>
+  <tbody>
+    <tr><td>One prompt $x$</td>
+        <td>A float vector in $\mathbb{R}^d$ (default $d=16$), drawn from $\mathcal{N}(0,I)$. It has no meaning beyond being the input to the hidden rule.</td>
+        <td>Just an identity: a prompt index $j\in\{0,\dots,n-1\}$, or equivalently a one-hot vector of length $n$. <code>main.py</code> uses a single prompt.</td></tr>
+    <tr><td>One response $y$</td>
+        <td>An integer sequence of length $L$, each entry a token in $\{0,\dots,K-1\}$. Example with $K=4$, $L=2$: <code>[3, 1]</code>.</td>
+        <td>A single integer in $\{0,\dots,K-1\}$ (the chosen answer), so $L=1$.</td></tr>
+    <tr><td>Correct answer $y^\star(x)$</td>
+        <td>An integer sequence of length $L$, computed from $x$ by the hidden rule. Only one sequence is correct.</td>
+        <td>A fixed integer (index <code>0</code> in <code>main.py</code>).</td></tr>
+    <tr><td>Reward $r$</td>
+        <td colspan="2"><code>1.0</code> if the response equals the correct answer at every position, else <code>0.0</code>.</td></tr>
+  </tbody>
+</table></div>
+
+<p>Batched shapes in <code>synthetic_rl</code>, with $B$ prompts per step and $G$ responses per prompt:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Array</th><th>Shape</th><th>Type</th><th>Produced by</th></tr></thead>
+  <tbody>
+    <tr><td>Prompts</td><td>$(B, d)$</td><td>float32 tensor (float64 NumPy in the dataset)</td><td><code>SyntheticTask.generate_dataset</code></td></tr>
+    <tr><td>Correct answers</td><td>$(B, L)$</td><td>integer</td><td><code>SyntheticTask.generate_dataset</code></td></tr>
+    <tr><td>Policy logits</td><td>$(B, L, K)$</td><td>float</td><td><code>Policy.forward</code></td></tr>
+    <tr><td>Sampled responses</td><td>$(B, G, L)$</td><td>integer (long)</td><td><code>Policy.sample</code></td></tr>
+    <tr><td>Rewards</td><td>$(B, G)$</td><td>float, 0 or 1</td><td><code>verify</code></td></tr>
+    <tr><td>Advantages, log-probabilities</td><td>$(B, G)$</td><td>float</td><td><code>calculate_advantages</code>, <code>Policy.log_prob</code> (summed over the $L$ tokens)</td></tr>
+  </tbody>
+</table></div>
+<p>In the bandit, the same objects shrink to a vector of $K$ logits, a group of $G$ integers, and $G$ rewards.</p>
+
+<h4>What $\theta$ is</h4>
+<ul>
+  <li><strong>Bandit / tabular:</strong> $\theta$ is just the logits, $K$ numbers per prompt. Changing one prompt's
+    logits cannot affect any other prompt.</li>
+  <li><strong>Shared MLP:</strong> $\theta$ is the weights of a network $d \to 128 \to 128 \to L\cdot K$ with ReLU
+    activations. For $d=16$, $K=4$, $L=2$ that is 19,720 numbers shared by all prompts. The last layer starts at zero,
+    so the initial policy is exactly uniform: $\pi_\theta(y_\ell\mid x)=1/K$ for every prompt and position.</li>
+</ul>
+
+<h4>A policy is a distribution, not a choice</h4>
+<p>The policy outputs probabilities; responses are <em>sampled</em> from them, so the same prompt can get different
+responses on different draws. That randomness is what lets a group of $G$ responses contain both correct and wrong
+answers, and it is why the success probability $p$ (next section) is the natural quantity to track rather than
+whether "the" answer is right. A policy that puts all its mass on one response is called
+<strong>deterministic</strong>; its entropy is zero, and Section 6.5 shows why reaching that state on a wrong answer
+is the main way training fails.</p>
+
+<h3>3.2 Verifier, reward, success probability</h3>
+<div class="def">
+  <span class="label">Definition</span>
+  <p>A <strong>verifier</strong> checks a response and returns a <strong>binary reward</strong>
+  $r(x,y)\in\{0,1\}$. <strong>RLVR</strong> (reinforcement learning with verifiable rewards) is the framework
+  of training a policy on such rewards; GRPO and RLOO are algorithms within it. The <strong>success
+  probability</strong> on prompt $x$ is
+  $$p_\theta(x) = \Pr_{y\sim\pi_\theta(\cdot\mid x)}\big[r(x,y)=1\big] = \mathbb{E}_{y\sim\pi_\theta}\big[r(x,y)\big].$$
+  The <strong>initial success rate</strong> $p_0$ is its value when RL starts, that is, for the base policy.</p>
+</div>
+
+<h4>The verifier in our task</h4>
+<ul>
+  <li><strong>Exact match.</strong> <code>verify</code> returns 1 if the sampled sequence equals the correct
+    sequence at every one of the $L$ positions, else 0. There is no partial credit: getting $L-1$ tokens right
+    earns the same 0 as getting none right. This is what makes rewards sparse as $L$ grows.</li>
+  <li><strong>Deterministic and free.</strong> The same response always gets the same reward, and checking costs
+    nothing. Unlike a learned reward model in RLHF, it cannot be fooled or "hacked"; the only way to earn reward is
+    to be correct.</li>
+  <li><strong>One correct answer per prompt.</strong> Our task has exactly one correct sequence. (Real math
+    problems often have many correct solutions; supporting that would need a multi-solution variant of the task.)</li>
+</ul>
+
+<h4>Computing $p$ exactly</h4>
+<p>Because tokens are drawn independently given $x$ and only one sequence is correct, $p$ is a product of the
+probabilities the policy gives the correct token at each position:</p>
+$$p_\theta(x) = \prod_{\ell=1}^{L} \pi_\theta\big(y^\star_\ell(x)\mid x\big).$$
+<p>Example with $K=4$, $L=2$: if the policy puts probability $0.5$ on the correct first token and $0.4$ on the
+correct second token, then $p = 0.5\times0.4 = 0.2$. A uniform policy would have $p = (1/4)^2 = 0.0625$. In the
+bandit, $p$ is just the probability of the correct answer, $\pi(y^\star)$. In code this is
+<code>Policy.success_probability</code>; no sampling is needed.</p>
+
+<h4>What a group of rewards looks like</h4>
+<p>Each sampled response is correct with probability $p$, independently, so a reward is a Bernoulli($p$) coin flip
+and the number of correct responses in a group of $G$ is Binomial($G$, $p$). The group mean $\bar r$ is an unbiased
+estimate of $p$. With $p=0.2$ and $G=8$: on average $1.6$ responses are correct, the whole group is wrong with
+probability $0.8^8\approx0.17$, and the whole group is right with probability $0.2^8\approx3\times10^{-6}$. These
+all-equal groups carry no learning signal (Section 3.4).</p>
+
+<h4>Per-prompt and average success</h4>
+<p>$p_\theta(x)$ is defined per prompt. "Success rate" on a dataset means the average of $p_\theta(x)$ over its
+prompts, which is the expected pass@1. Two policies with the same average can be very different: one at $p=0.5$ on
+every prompt, another at $p=1$ on half the prompts and $p=0$ on the rest. Section 7 shows that the second kind
+is exactly what failed training produces, which is why we log per-prompt $p$, not only the average.</p>
+
+<h3>3.3 Objective and policy gradient</h3>
+
+<h4>The objective</h4>
+<p>Without regularization, training maximizes the average success probability over the training prompts:</p>
+$$J(\theta) = \mathbb{E}_x\big[p_\theta(x)\big] = \mathbb{E}_x\,\mathbb{E}_{y\sim\pi_\theta(\cdot\mid x)}\big[r(x,y)\big].$$
+<p>With the KL penalty of Section 3.5 it becomes
+$J(\theta)=\mathbb{E}_x\big[p_\theta(x)-\beta\,\mathrm{KL}_x\big]$. The difficulty is that $\theta$ appears in the
+<em>distribution we sample from</em>, and sampling a discrete token cannot be differentiated. So we need an
+expression for $\nabla J$ that can be estimated from samples.</p>
+
+<h4>The score-function identity</h4>
+<p>For one prompt, write the expectation as a sum over responses and use
+$\nabla\pi = \pi\,\nabla\log\pi$:</p>
+$$\nabla_\theta\, p_\theta(x) = \sum_y r(x,y)\,\nabla_\theta\pi_\theta(y\mid x)
+= \sum_y \pi_\theta(y\mid x)\, r(x,y)\,\nabla_\theta\log\pi_\theta(y\mid x)
+= \mathbb{E}_{y\sim\pi_\theta}\big[r(x,y)\,\nabla_\theta\log\pi_\theta(y\mid x)\big].$$
+<p>The vector $\nabla_\theta\log\pi_\theta(y\mid x)$ is the <strong>score</strong> of response $y$: the direction
+in parameter space that makes $y$ more likely. Averaging $r(y_i)\nabla\log\pi_\theta(y_i)$ over sampled
+responses gives an unbiased estimate of $\nabla p$. This estimator is <strong>REINFORCE</strong>.</p>
+
+<h4>What the score looks like in our settings</h4>
+<ul>
+  <li><strong>Bandit.</strong> With logits $z\in\mathbb{R}^K$ and $\log\pi(y)=z_y-\log\sum_j e^{z_j}$, the score with
+    respect to the logits is $e_y-\pi$: raise the sampled answer's logit, lower all logits in proportion to their
+    probability. Hence $\partial p/\partial z_{y^\star}=p(1-p)$ and $\partial p/\partial z_j=-p\,\pi_j$ for wrong
+    answers $j$.</li>
+  <li><strong>Synthetic task.</strong> $\log\pi_\theta(y\mid x)=\sum_\ell\log\pi_\theta(y_\ell\mid x)$, so the score is
+    a sum of $L$ per-position terms. With respect to position $\ell$'s logits each term is
+    $e_{y_\ell}-\pi_\theta(\cdot\mid x)_\ell$, and backpropagation carries it into the shared network weights.
+    Because of the sum, the score grows with $L$, which is one reason step size and length interact.</li>
+</ul>
+
+<h4>Why REINFORCE alone is a poor estimator</h4>
+<p>With $r\in\{0,1\}$, only correct samples contribute: wrong samples are multiplied by $0$ and teach nothing. When
+$p$ is small almost every sample is wrong, so the estimate is usually zero and occasionally large, which means very
+high variance.</p>
+
+<div class="def">
+  <span class="label">Definition</span>
+  <p>A <strong>baseline</strong> $b$ is a number subtracted from the reward. Because
+  $\mathbb{E}_{y\sim\pi}[\nabla\log\pi(y)]=\nabla\sum_y\pi(y)=\nabla 1=0$, subtracting any $b$ that does not depend
+  on the response being scored leaves the expected gradient unchanged while reducing its variance. The result,
+  possibly rescaled, is the <strong>advantage</strong> $A=r-b$. A positive advantage pushes the response's
+  probability up, a negative one pushes it down, so now wrong samples also teach: they push their own probability
+  down. Group-based rules (Section 3.4) build $b$ from the other responses to the same prompt.</p>
+</div>
+
+<h4>Correct and incorrect responses separately</h4>
+<p>Splitting the expectation by reward gives two useful facts:
+$\mathbb{E}[\nabla\log\pi\mid r=1]=\nabla p/p$ and $\mathbb{E}[\nabla\log\pi\mid r=0]=-\nabla p/(1-p)$. Their
+difference is Suk &amp; Duan's <strong>gradient gap</strong>, and it equals $\nabla p/\big(p(1-p)\big)$. These two facts
+are all that is needed for the identity in Section 6.1.</p>
+
+<h4>From math to code</h4>
+<p>PyTorch minimizes a loss, so the trainer writes the update as a loss whose gradient is $-\widehat g$:</p>
+<pre><code>policy_loss = -(advantages * log_probs).mean()   # mean over B prompts and G responses
+loss = policy_loss + beta * kl.mean()            # exact KL per prompt, averaged over prompts
+loss.backward(); optimizer.step()</code></pre>
+<p>The advantages are computed from the rewards and detached, so gradients flow only through
+<code>log_probs</code>, which is exactly the score-function estimator. With plain SGD, <code>optimizer.step()</code>
+is $\theta\leftarrow\theta+\eta\,\widehat g$.</p>
+
+<h3>3.4 Groups, batches and advantage rules</h3>
+<p>Each training step draws $B$ prompts and samples a <strong>group</strong> of $G$ responses for each. With
+group mean $\bar r$, the update is</p>
+$$\theta \leftarrow \theta + \eta\,\widehat g,\qquad
+\widehat g = \frac{1}{B}\sum_{x}\widehat g_x,\qquad
+\widehat g_x = \frac{1}{G}\sum_{i=1}^{G} A_i\,\nabla_\theta\log\pi_\theta(y_i\mid x) \;-\; \beta\,\nabla_\theta\mathrm{KL}_x .$$
+<p>This is what "SGD" means in this project: one stochastic gradient step on the policy parameters $\theta$,
+with a fresh on-policy sample at every step. The step size $\eta$ is the learning rate of that step.</p>
+
+<h4>One training step, concretely</h4>
+<ol>
+  <li>Draw $B$ prompts from the training set (with replacement, in the current trainer).</li>
+  <li>For each prompt, sample $G$ responses from the <em>current</em> policy. This is what <strong>on-policy</strong>
+    means: the data always comes from the policy being updated, never from an older copy.</li>
+  <li>Score each response with the verifier: $B\times G$ rewards.</li>
+  <li>Compute the advantages within each group (the rules below).</li>
+  <li>Take one gradient step, then throw the samples away.</li>
+</ol>
+<p>Each step uses $N=B\,G$ samples. Comparing configurations at the same number of <em>samples</em> rather than the same
+number of steps matters whenever $G$ or $B$ changes; the trainer logs <code>responses_sampled</code> for this.</p>
+
+<h4>The advantage rules</h4>
+<p>They differ only in $A_i$:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Rule</th><th>$A_i$</th><th>Comment</th></tr></thead>
+  <tbody>
+    <tr><td>Mean-only (Dr. GRPO)</td><td>$r_i-\bar r$</td><td>REINFORCE with the group mean as baseline</td></tr>
+    <tr><td>RLOO</td><td>$r_i-\frac{1}{G-1}\sum_{j\neq i}r_j$</td><td>Leave-one-out baseline; unbiased</td></tr>
+    <tr><td>GRPO</td><td>$(r_i-\bar r)/\sqrt{\bar r(1-\bar r)+\varepsilon}$</td><td>Divides by the group std</td></tr>
+    <tr><td>Pass@$k$ shaping</td><td>A reweighted GRPO or RLOO advantage</td><td>Targets pass@$k$ instead of pass@1</td></tr>
+  </tbody>
+</table></div>
+
+<p><strong>Worked example.</strong> $G=4$, rewards $(1,0,0,0)$, so $\bar r=0.25$:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Rule</th><th class="num">Correct response</th><th class="num">Each wrong response</th></tr></thead>
+  <tbody>
+    <tr><td>Mean-only</td><td class="num">$+0.75$</td><td class="num">$-0.25$</td></tr>
+    <tr><td>RLOO</td><td class="num">$+1.00$</td><td class="num">$-0.33$</td></tr>
+    <tr><td>GRPO (std $=\sqrt{0.25\cdot0.75}=0.433$)</td><td class="num">$+1.73$</td><td class="num">$-0.58$</td></tr>
+  </tbody>
+</table></div>
+<p>All three rank the responses the same way and differ in scale; RLOO is exactly mean-only times $G/(G-1)=4/3$.
+If the rewards had been $(0,0,0,0)$ or $(1,1,1,1)$, every rule would give all zeros.</p>
+
+<h4>Properties worth knowing</h4>
+<ul>
+  <li><strong>Zero sum.</strong> For mean-only, RLOO and GRPO, the advantages in a group add up to zero. In the bandit
+    this cancels the "$-\pi$" part of every score $e_y-\pi$, so an update only touches the logits of answers that were
+    actually sampled. Pass@$k$ shaping does not have this property.</li>
+  <li><strong>Mean-only's small bias.</strong> Because $\bar r$ includes $r_i$ itself, the baseline depends on the
+    response being scored. The effect is only a shrinking of the expected gradient by $(G-1)/G$, not a change of
+    direction. RLOO removes it.</li>
+  <li><strong>What std normalization does.</strong> Dividing by $\sqrt{\bar r(1-\bar r)}$ gives every informative group
+    the same advantage scale, whatever its success rate. Prompts with $p$ near 0 or 1 have a small std, so they get
+    up-weighted. Dr. GRPO argues this is a bias; Section 6.4 shows it is equivalent to optimizing a different
+    objective. The $\varepsilon=10^{-5}$ only prevents division by zero in all-equal groups, whose advantages are zero
+    anyway.</li>
+  <li><strong>Pass@$k$ shaping.</strong> In <code>main.py</code>, with $n_{\text{wrong}}$ wrong responses in the
+    group, a correct response's GRPO advantage is multiplied by
+    $\binom{n_{\text{wrong}}}{k-1}/\binom{G-1}{k-1}$ (the chance that $k-1$ other draws from the group are all wrong)
+    and a wrong one's by $\binom{n_{\text{wrong}}-1}{k-1}/\binom{G-1}{k-1}$. Correct answers on prompts that are
+    already solved often get little credit.</li>
+  <li><strong>What we leave out.</strong> PPO-style clipping and importance ratios only matter when the same samples are
+    reused for several updates. We take exactly one step per batch, so they would have no effect, and we drop them.
+    Per-token length normalization is also left out; our log-probabilities are summed over the $L$ tokens.</li>
+</ul>
+
+<div class="def">
+  <span class="label">Definition</span>
+  <p>A group is <strong>informative</strong> if its rewards are not all equal; otherwise all advantages are
+  zero and the prompt contributes nothing to the step. The probability is $\varphi(p,G) = 1-p^G-(1-p)^G$.</p>
+</div>
+<div class="table-wrap"><table>
+  <thead><tr><th>$p$</th><th class="num">$G=2$</th><th class="num">$G=8$</th><th class="num">$G=32$</th><th class="num">$G=64$</th></tr></thead>
+  <tbody>
+    <tr><td>0.01</td><td class="num">0.020</td><td class="num">0.077</td><td class="num">0.275</td><td class="num">0.474</td></tr>
+    <tr><td>0.05</td><td class="num">0.095</td><td class="num">0.337</td><td class="num">0.806</td><td class="num">0.962</td></tr>
+    <tr><td>0.3</td><td class="num">0.420</td><td class="num">0.942</td><td class="num">1.000</td><td class="num">1.000</td></tr>
+  </tbody>
+</table></div>
+<p>For small $p$, $\varphi\approx1-e^{-Gp}$, so groups only become reliably informative once $G$ is a few times
+$1/p$. This is the root of the sparse-reward problem: at $p=0.01$ and $G=8$, more than 92% of prompts in a batch
+teach nothing.</p>
+
+<h3>3.5 Reference policy and KL</h3>
+<div class="def">
+  <span class="label">Definition</span>
+  <p>The <strong>reference policy</strong> $\pi_{\mathrm{ref}}$ is a frozen copy of the policy at the start of
+  RL. The penalty $\beta\,\mathrm{KL}$ keeps the policy near it. <strong>Reverse KL</strong>
+  $\mathrm{KL}(\pi_\theta\|\pi_{\mathrm{ref}})$ is mode-seeking and is the standard choice;
+  <strong>forward KL</strong> $\mathrm{KL}(\pi_{\mathrm{ref}}\|\pi_\theta)$ is mass-covering: it becomes very
+  large when $\pi_\theta$ drops an answer that $\pi_{\mathrm{ref}}$ supports. In our task both are computed
+  exactly.</p>
+</div>
+
+<h4>The formulas</h4>
+$$\mathrm{KL}(\pi\,\|\,\pi_{\mathrm{ref}}) = \sum_y \pi(y)\log\frac{\pi(y)}{\pi_{\mathrm{ref}}(y)},\qquad
+\mathrm{KL}(\pi_{\mathrm{ref}}\,\|\,\pi) = \sum_y \pi_{\mathrm{ref}}(y)\log\frac{\pi_{\mathrm{ref}}(y)}{\pi(y)}.$$
+<p>Both are zero when $\pi=\pi_{\mathrm{ref}}$ and positive otherwise. Because our policy is a product over positions,
+the KL of the whole sequence is the sum of the KLs at each position, so it costs $L\times K$ operations instead of a
+sum over all $K^L$ sequences. <code>Policy.kl_divergence</code> computes it that way, in either direction.</p>
+
+<h4>Mode-seeking vs. mass-covering, with numbers</h4>
+<p>Take $\pi_{\mathrm{ref}}=(0.5,0.5)$ over two answers.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Policy $\pi$</th><th class="num">Reverse KL</th><th class="num">Forward KL</th></tr></thead>
+  <tbody>
+    <tr><td>$(0.9, 0.1)$</td><td class="num">0.37</td><td class="num">0.51</td></tr>
+    <tr><td>$(1, 0)$</td><td class="num">$\log 2 = 0.69$</td><td class="num">$\infty$</td></tr>
+  </tbody>
+</table></div>
+<p>Reverse KL lets the policy drop an answer entirely at a finite cost; forward KL forbids it. That is why we expect
+forward KL to protect against prompts collapsing onto a single (wrong) answer (H4).</p>
+
+<h4>The KL-regularized optimum</h4>
+<p>If we could optimize $\mathbb{E}_\pi[A(y)]-\beta\,\mathrm{KL}(\pi\|\pi_{\mathrm{ref}})$ exactly over all
+distributions, the answer would be the reference reweighted by the advantage:</p>
+$$\pi^\star(y)\;\propto\;\pi_{\mathrm{ref}}(y)\,\exp\!\big(A(y)/\beta\big).$$
+<p>With $A=r$ this multiplies the odds of success by $e^{1/\beta}$:
+$\operatorname{logit}p^\star=\operatorname{logit}p_{\mathrm{ref}}+1/\beta$. For $p_{\mathrm{ref}}=0.05$ and
+$\beta=2$ that is $p^\star=0.080$. Mroueh's fixed point (next section) is this formula with GRPO's weights in place of
+$A=r$. Smaller $\beta$ lets the policy move further; $\beta\to0$ removes the anchor.</p>
+
+<h4>The gradients</h4>
+<p>In the bandit, with respect to the logits: reverse KL has gradient
+$\pi\odot\big(\log(\pi/\pi_{\mathrm{ref}})-\mathrm{KL}\big)$ (used in <code>main.py</code>), and forward KL has the
+simpler $\pi-\pi_{\mathrm{ref}}$. The forward gradient keeps pulling with a fixed strength towards every answer the
+reference supports, however small $\pi$ gets.</p>
+
+<h4>In practice</h4>
+<ul>
+  <li>Large-scale implementations estimate the KL from the sampled responses (for example the "$k_3$" estimator used in
+    DeepSeek's GRPO), which adds noise. Zhang et al. (2025) show $k_3$ corresponds to an unnormalized KL. We avoid that
+    issue entirely by computing the KL exactly.</li>
+  <li>In our code the reference is frozen when the <code>Trainer</code> is created, so any warm-start must happen before
+    that. The reference then equals the base policy.</li>
+</ul>
+
+<h3>3.6 The "exact inner problem"</h3>
+<div class="def">
+  <span class="label">Definition</span>
+  <p>Mroueh's analysis does not take gradient steps. At iteration $n$ it fixes the advantage weights computed
+  from $\pi_{n-1}$ and jumps to the policy that <em>exactly maximizes</em> the resulting KL-regularized
+  objective. We replace that jump by one stochastic gradient step, which is what practice does.</p>
+</div>
+
+<h4>The iteration, written out</h4>
+<p>With $p=p_{n-1}$, GRPO's population advantages are $a_+=\sqrt{(1-p)/p}$ for a correct response and
+$a_-=-\sqrt{p/(1-p)}$ for a wrong one. The inner problem is</p>
+$$\pi_n=\arg\max_\pi\;\mathbb{E}_{y\sim\pi}\big[a_+\,r(y)+a_-\,(1-r(y))\big]-\beta\,\mathrm{KL}(\pi\,\|\,\pi_{\mathrm{ref}}),$$
+<p>and by the optimum of Section 3.5 its solution is $\pi_n\propto\pi_{\mathrm{ref}}\,e^{a(y)/\beta}$. Since
+$a_+-a_-=1/\sqrt{p(1-p)}$, the success probability updates as</p>
+$$\operatorname{logit}p_n=\operatorname{logit}p_{\mathrm{ref}}+\frac{1}{\beta\sqrt{p_{n-1}(1-p_{n-1})}}\quad\big(=: h(p_{n-1})\big).$$
+<p>Example with $p_{\mathrm{ref}}=0.05$, $\beta=2$, starting from $p_0=p_{\mathrm{ref}}$:</p>
+<p style="font-variant-numeric: tabular-nums">$0.050 \to 0.343 \to 0.131 \to 0.188 \to 0.159 \to 0.171 \to 0.166 \to 0.168 \to 0.167$</p>
+<p>The first step overshoots, then it oscillates into the fixed point $p^\star\approx0.167$. The oscillation is the
+non-monotone $h$ at work.</p>
+
+<h4>Exact iteration vs. what we run</h4>
+<div class="table-wrap"><table>
+  <thead><tr><th></th><th>Mroueh's iteration</th><th>Our training</th></tr></thead>
+  <tbody>
+    <tr><td>Advantages</td><td>Population values ($G\to\infty$)</td><td>From a group of $G$ samples</td></tr>
+    <tr><td>Per iteration</td><td>Jump to the exact maximizer</td><td>One gradient step of size $\eta$</td></tr>
+    <tr><td>Step size</td><td>None (no notion of instability)</td><td>$\eta$, which can be too large</td></tr>
+    <tr><td>Parameters</td><td>Any distribution (tabular)</td><td>Tabular or a shared network</td></tr>
+    <tr><td>Noise</td><td>None</td><td>Sampling noise, and interference between prompts</td></tr>
+  </tbody>
+</table></div>
+<p>Each row is an idealization we can switch on and off in the synthetic task, which is what makes the comparison
+a controlled experiment rather than a single "theory vs. practice" check.</p>
+
+<h3>3.7 What we measure</h3>
+<p>All quantities below are exact in our task, computed from the policy's probabilities with no sampling, so the
+only noise in a learning curve comes from training itself.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Quantity</th><th>Definition</th><th>Why we track it</th></tr></thead>
+  <tbody>
+    <tr><td>pass@1</td><td>$p_\theta(x)$, averaged over prompts</td><td>The training objective</td></tr>
+    <tr><td>pass@$k$</td><td>$1-(1-p_\theta(x))^k$; e.g. $p=0.2$, $k=4$ gives $0.59$</td><td>An evaluation metric; distinct from "pass@$k$ shaping", which is a training rule that targets it</td></tr>
+    <tr><td>Entropy</td><td>$\sum_\ell H\big(\pi_\theta(\cdot\mid x)_\ell\big)$, summed over positions; at most $L\log K$ ($2.77$ for $K=4$, $L=2$)</td><td>How spread out the policy still is; RLVR typically drives it down, and zero means deterministic</td></tr>
+    <tr><td>KL to reference</td><td>Exact, in the chosen direction</td><td>How far training has moved; with $\beta&gt;0$, whether it has settled</td></tr>
+    <tr><td>Informative fraction</td><td>Measured share of mixed groups, next to the predicted $\overline{\varphi(p,G)}$</td><td>Already logged by the trainer; the gap between the two shows the effect of prompt heterogeneity</td></tr>
+    <tr><td>Absorbed fraction</td><td>Share of prompts with $p_\theta(x)&lt;0.01$ and near-zero entropy</td><td>These prompts are effectively lost (Section 6.5); the clearest sign of instability</td></tr>
+    <tr><td>Train vs. test success</td><td>pass@1 on held-out prompts from the same rule</td><td>Only a shared network can generalize; a tabular policy cannot learn anything about unseen prompts</td></tr>
+  </tbody>
+</table></div>
+
+<h4>How we report</h4>
+<ul>
+  <li><strong>Per prompt, not just the average.</strong> The same average can hide a bimodal split (Section 3.2), so we
+    log the whole distribution of $p_\theta(x)$, or at least its quantiles.</li>
+  <li><strong>Against samples, not just steps.</strong> When $G$ or $B$ changes, the $x$-axis is samples used
+    ($N$ per step).</li>
+  <li><strong>Over seeds.</strong> At least 3 seeds per configuration, reporting the mean and the spread.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="setting"><span class="num">4</span>The setting: one synthetic task family</h2>
+
+<div class="def">
+  <span class="label">Definition: the task</span>
+  <p>A prompt is a feature vector $x\in\mathbb{R}^d$. A response is a sequence of $L$ tokens
+  $y=(y_1,\dots,y_L)$, each from a vocabulary of size $K$. A fixed hidden linear rule picks the correct token
+  at each position, $y^\star_\ell(x)=\arg\max_k\langle w_{\ell k},x\rangle$. The reward is 1 only if every
+  token is correct.</p>
+</div>
+
+<div class="def">
+  <span class="label">Definition: the policy</span>
+  <p>A network maps $x$ to $L$ rows of $K$ logits, and tokens are drawn <strong>independently given
+  $x$</strong>:
+  $$\pi_\theta(y\mid x)=\prod_{\ell=1}^{L}\pi_\theta(y_\ell\mid x),\qquad
+  p_\theta(x)=\prod_{\ell=1}^{L}\pi_\theta\big(y^\star_\ell(x)\mid x\big).$$
+  There is no autoregressive structure. Each prompt is a one-shot decision among $K^L$ possible sequences: a
+  contextual bandit with a structured action space.</p>
+</div>
+
+<h3>4.1 Two structural knobs</h3>
+<ul>
+  <li><strong>Length $L$</strong> (Suk &amp; Duan call it $T$). The score $\nabla\log\pi$ is a sum of $L$ terms.
+    Together with $K$, it sets the sparsity: a uniform policy has $p=K^{-L}$.</li>
+  <li><strong>Parameter sharing.</strong>
+    <em>Tabular:</em> each prompt has its own free logits (equivalently, a linear layer on a one-hot prompt
+    index), so an update on one prompt never touches another.
+    <em>Shared:</em> one MLP for all prompts, so every update moves every prompt. Sharing can be graded by
+    the network width or by how correlated prompt features are.</li>
+</ul>
+
+<div class="note">
+  <span class="label">The bandit is a special case</span>
+  <p>The bandit in <code>main.py</code> is this family with $L=1$ and tabular parameters. So we do not need
+  two settings. We run everything in the synthetic family and treat the bandit as one corner of it, which
+  also serves as a correctness check, since its fixed points are known in closed form.</p>
+</div>
+
+<h3>4.2 Setting $p_0$: the base policy</h3>
+<p>A freshly initialized policy is uniform, so $p_0=K^{-L}$ is tied to sparsity. To set $p_0$ independently,
+we pretrain briefly with supervised learning on the correct answers (a <strong>warm-start</strong>) and stop
+when the average success rate reaches the target. The warm-started network is the <strong>base
+policy</strong>, and its frozen copy is $\pi_{\mathrm{ref}}$. A side effect is useful: the warm-start leaves
+some prompts easier than others, which gives the spread of difficulties that H2 needs. In the tabular case,
+$p_0$ can be set directly through the logits, as <code>--p0</code> already does.</p>
+
+<!-- ============================================================ -->
+<h2 id="papers"><span class="num">5</span>The papers</h2>
+
+<h3>5.1 Mroueh (2025): success amplification</h3>
+<p><em>Reinforcement learning with verifiable rewards: GRPO's effective loss, dynamics, and success
+amplification.</em> arXiv:2503.06639.</p>
+<dl class="spec">
+  <dt>Problem</dt><dd>What does GRPO with binary rewards optimize, and where does iterating it lead?</dd>
+  <dt>Result</dt><dd>GRPO's loss is a weighted contrastive loss between correct and incorrect samples: with
+    std normalization, correct samples get weight $\sqrt{(1-p)/p}$ and incorrect ones
+    $-\sqrt{p/(1-p)}$. If each iteration solves the KL-regularized problem exactly, success follows
+    $p_n=h(p_{n-1})$, whose fixed points satisfy
+    $\operatorname{logit}p^\star=\operatorname{logit}p_{\mathrm{ref}}+\Omega(p^\star)/\beta$ with
+    $\Omega=1/\sqrt{p(1-p)}$. So $p^\star&gt;p_{\mathrm{ref}}$: success is <em>amplified</em>.</dd>
+  <dt>Assumptions</dt><dd>Reverse KL, no clipping, exact expectations ($G\to\infty$), exact inner problem,
+    per-prompt analysis.</dd>
+  <dt>In our framework</dt><dd>$\Omega$ is the $G\to\infty$ limit of $W_G$. Finite $G$, SGD and shared
+    parameters each change the answer (H4).</dd>
+</dl>
+
+<h3>5.2 Suk &amp; Duan (2025): gradient gap and step-size thresholds</h3>
+<p><em>On the optimization dynamics of RLVR: Gradient gap and step size thresholds.</em> arXiv:2510.08539.</p>
+<dl class="spec">
+  <dt>Problem</dt><dd>When does RLVR converge, and how large can the step size be?</dd>
+  <dt>Result</dt><dd>The <strong>gradient gap</strong> is the difference between the expected score of correct
+    and incorrect responses. The paper proves a sufficient step-size condition for convergence and lower bounds
+    where a constant step makes performance collapse, with the threshold scaling like $1/T$ in the response
+    length and depending on the success rate through $(1-p)$. Progress follows a logistic law in the cumulative
+    alignment with the gap.</dd>
+  <dt>Assumptions</dt><dd>Exact (population) gradients in the main analysis.</dd>
+  <dt>In our framework</dt><dd>The gradient gap is $\nabla p/(p(1-p))$, so their update direction is ours up to
+    the scalar $W$. We test the threshold with stochastic groups and shared parameters, and propose the
+    mechanism behind the collapse (H3).</dd>
+</dl>
+<div class="note"><p>To pin down in Ankush's review: the exact form of the $p$-dependence (does the threshold
+grow or shrink with $p$?) and what the paper says about length normalization.</p></div>
+
+<h3>5.3 Thrampoulidis, Mahdavi &amp; Deng (2026): advantage shaping as surrogate rewards</h3>
+<p><em>Advantage shaping as surrogate reward maximization: Unifying pass@K policy gradients.</em> TMLR 2026,
+arXiv:2510.23049.</p>
+<dl class="spec">
+  <dt>Problem</dt><dd>Many papers reshape GRPO's advantages. What does each reshaping optimize?</dd>
+  <dt>Result</dt><dd>Shaping the advantage corresponds to maximizing a surrogate reward $F(p)$. For pass@$k$,
+    $F=1-(1-p)^k$, with gradient $k(1-p)^{k-1}\nabla p$. They derive an unbiased leave-one-out estimator
+    ($\mathrm{RLOO}_k$) and a biased std-normalized one ($\mathrm{GRPO}_k$).</dd>
+  <dt>Assumptions</dt><dd>One update per fresh group, no clipping, no KL; the surrogate view is a population
+    statement, with finite-sample effects left open.</dd>
+  <dt>In our framework</dt><dd>$F' = W$ exactly. Computing $W_G$ at finite $G$ gives the surrogate that a
+    finite-group rule actually optimizes (H2).</dd>
+</dl>
+
+<h3>5.4 Other papers we use</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Paper</th><th>Role here</th></tr></thead>
+  <tbody>
+    <tr><td>Shao et al. (2024), DeepSeekMath</td><td>Introduced GRPO.</td></tr>
+    <tr><td>Guo et al. (2025), DeepSeek-R1</td><td>Motivation: RLVR with GRPO at scale.</td></tr>
+    <tr><td>Liu et al. (2025), Dr. GRPO</td><td>Mean-only rule; argues std normalization biases GRPO.</td></tr>
+    <tr><td>Ahmadian et al. (2024), RLOO</td><td>Leave-one-out rule.</td></tr>
+    <tr><td>Davis &amp; Recht (2025)</td><td>GRPO is approximately ascent on $\arcsin\sqrt p$: the $G\to\infty$ surrogate in our framework.</td></tr>
+    <tr><td>Bay &amp; Yearick (2026)</td><td>Group-size law in $G\,p(1-p)$; the comparison point for H5.</td></tr>
+    <tr><td>Nie et al. (2026)</td><td>Uninformative groups are more common than the average $p$ predicts when difficulty varies; relevant to H3 and H5.</td></tr>
+    <tr><td>Plyusov et al. (2026), F-GRPO</td><td>Mixed groups can still miss rare solutions; non-monotone in $G$.</td></tr>
+    <tr><td>Zhang et al. (2025), arXiv:2505.17508</td><td>Design space of KL regularization in policy gradients (direction, normalization, estimators). Suggested by the instructor; the citation for the KL-direction comparison.</td></tr>
+  </tbody>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="framework"><span class="num">6</span>The unifying framework</h2>
+
+<h3>6.1 The advantage-gap identity</h3>
+<p>Fix a prompt. Responses in a group are independent, and $A_i$ depends only on the group's rewards. Condition
+on whether $y_i$ is correct:</p>
+$$\mathbb{E}\big[A_i\nabla\log\pi(y_i)\big]
+= p\,\mathbb{E}[A_i\mid r_i{=}1]\,\mathbb{E}[\nabla\log\pi\mid r{=}1]
++ (1-p)\,\mathbb{E}[A_i\mid r_i{=}0]\,\mathbb{E}[\nabla\log\pi\mid r{=}0].$$
+<p>Since $\mathbb{E}[r\nabla\log\pi]=\nabla p$ and $\mathbb{E}[\nabla\log\pi]=0$, we have
+$p\,\mathbb{E}[\nabla\log\pi\mid r{=}1]=\nabla p$ and $(1-p)\,\mathbb{E}[\nabla\log\pi\mid r{=}0]=-\nabla p$.
+Therefore</p>
+$$\boxed{\;\mathbb{E}\big[\widehat g_x\big] = W_G(p_x)\,\nabla p_x,\qquad W_G(p)=\mathbb{E}[A\mid r{=}1]-\mathbb{E}[A\mid r{=}0].\;}$$
+<p>Nothing here depends on the parameterization, on $L$, or on how many correct answers exist. The assumptions are
+binary rewards, independent samples, rewards-only advantages, and a summed log-probability. Per-token averaging
+with variable lengths breaks it.</p>
+
+<div class="note"><span class="label">Verified</span>
+<p>On a shared MLP with $L=2$, $K=3$, $G=4$ and $p=0.109$, the average of 40,000 sampled group gradients
+matches $W_G\nabla p$ with cosine similarity $1.0000$ and norm ratio $1.01$ (Monte Carlo error), for mean-only
+($W=0.75$), RLOO ($W=1$) and GRPO ($W=1.687$).</p></div>
+
+<h3>6.2 The weight functions</h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Rule</th><th>$W_G(p)$</th><th>Shape</th></tr></thead>
+  <tbody>
+    <tr><td>Mean-only</td><td>$(G-1)/G$</td><td>Flat</td></tr>
+    <tr><td>RLOO</td><td>$1$</td><td>Flat</td></tr>
+    <tr><td>GRPO</td><td>Grows from $1$ at $G=2$ to $1/\sqrt{p(1-p)}$ as $G\to\infty$</td><td>U-shaped in $p$; sharper as $G$ grows</td></tr>
+    <tr><td>Pass@$k$ (population)</td><td>$k(1-p)^{k-1}$, up to the base rule's weight</td><td>Decreasing in $p$</td></tr>
+  </tbody>
+</table></div>
+<p>GRPO values of $W_G(p)$, computed exactly:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>$p$</th><th class="num">$G=2$</th><th class="num">$G=4$</th><th class="num">$G=16$</th><th class="num">$G\to\infty$</th></tr></thead>
+  <tbody>
+    <tr><td>0.05</td><td class="num">1.00</td><td class="num">1.71</td><td class="num">3.27</td><td class="num">4.59</td></tr>
+    <tr><td>0.3</td><td class="num">1.00</td><td class="num">1.63</td><td class="num">2.09</td><td class="num">2.18</td></tr>
+  </tbody>
+</table></div>
+
+<h3>6.3 Exact equivalences: the grid collapses</h3>
+<ul>
+  <li><strong>RLOO is mean-only with a larger step:</strong> $A^{\mathrm{RLOO}}_i=\frac{G}{G-1}(r_i-\bar r)$ for every
+    sample, not just on average. So RLOO at step $\eta$ is mean-only at $\eta\,G/(G-1)$, sample path by sample path.</li>
+  <li><strong>At $G=2$, GRPO and RLOO are the same rule:</strong> both give $\pm1$ in a mixed group and $0$ otherwise
+    (up to GRPO's tiny $\varepsilon$), so $W_2\equiv1$ for GRPO at every $p$ (verified numerically), and both equal mean-only at $2\eta$.</li>
+  <li><strong>For a single prompt, only the scale of $W$ matters, and scale is a step size.</strong> Differences
+    between rules in expectation come only from how $W$ <em>varies across prompts with different $p$</em>, or over
+    time as $p$ changes. Their noise can differ even when their expectations match.</li>
+</ul>
+<p>So the advantage-rule axis is really "which shape of $W$", and the rule $\times$ $G$ $\times$ $\eta$ grid has
+far fewer distinct points than it seems.</p>
+
+<h3>6.4 The three papers as three readings of $W$</h3>
+<ul>
+  <li><strong>What is optimized (Thrampoulidis et al.).</strong> The expected update is gradient ascent on
+    $\sum_x F_G(p_x)$ with $F_G' = W_G$. At $G=2$, GRPO's surrogate is $F=p$: plain pass@1, like mean-only. As
+    $G\to\infty$ it becomes $2\arcsin\sqrt p$ (Davis &amp; Recht). <em>Group size changes the objective, not only the
+    noise.</em></li>
+  <li><strong>Where it stops (Mroueh).</strong> With a KL penalty, the expected update vanishes where $W_G$ balances
+    the KL pull. In the tabular case this gives
+    $\operatorname{logit}p^\star=\operatorname{logit}p_{\mathrm{ref}}+W_G(p^\star)/\beta$ for reverse KL, and
+    $\frac{p^\star-p_{\mathrm{ref}}}{p^\star(1-p^\star)}=W_G(p^\star)/\beta$ for forward KL. Both were checked
+    against an exact-gradient simulation (numbers in H4). With shared parameters the balance is a sum over all prompts, so per-prompt
+    fixed points are coupled.</li>
+  <li><strong>Whether it is stable (Suk &amp; Duan).</strong> Prompt $x$'s own contribution to its log-odds
+    $z_x = \operatorname{logit}p_x$ in one step is, to first order,
+    $$\Delta z_x \approx s_x\cdot\big\|\nabla_\theta z_x\big\|^2,\qquad s_x = \frac{\eta}{B}\,W_G(p_x)\,p_x(1-p_x).$$
+    Every knob that the theory treats separately (rule, $G$, $B$, $\eta$) enters this effective step through one
+    product.</li>
+</ul>
+
+<h3>6.5 The missing piece: interference and absorbing states</h3>
+<p>The identity is about expectations. Two facts about fluctuations explain how training fails.</p>
+<ol>
+  <li><strong>Tabular training cannot fail.</strong> With $\beta=0$ and a zero-sum rule (mean-only, RLOO, GRPO),
+    a tabular update raises the correct logit and lowers only sampled wrong logits. So $p_x$ never decreases, at any
+    step size. Any collapse therefore needs <em>other prompts</em> to push $p_x$ down, which needs shared parameters.
+    The cross term is
+    $$\Delta z_x \;\ni\; \frac{\eta}{B}\sum_{x'\neq x}\Big(\tfrac1G\textstyle\sum_i A_i^{(x')}\,\langle\nabla z_x,\nabla\log\pi(y_i^{(x')})\rangle\Big),$$
+    which has random sign and grows with $\eta$ and with the overlap between prompts' gradients.</li>
+  <li><strong>$p\approx0$ is absorbing.</strong> If a prompt is pushed to a near-deterministic wrong answer, then
+    $\varphi\approx0$: no group contains a correct answer, its own term vanishes, and only interference can move it.
+    The probability of escaping in one step is $1-(1-p)^G$, so $G$ controls escape. Similarly $p\approx1$ is absorbing,
+    but harmlessly.</li>
+</ol>
+<div class="key">
+  <span class="label">The resulting picture</span>
+  <p>Each prompt's log-odds performs a random walk: an upward drift of size $s_x$ from its own samples, noise from
+  other prompts through the shared parameters, and two absorbing ends. The final fraction of prompts solved is the
+  probability of reaching the top before the bottom. Large steps raise the noise faster than the drift, so more
+  prompts are absorbed at the bottom; this is the step-size threshold. The KL penalty pulls away from both ends,
+  so it should raise the threshold, and forward KL, which strongly penalizes dropping reference-supported answers,
+  should protect better than reverse KL.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="pilot"><span class="num">7</span>Pilot evidence</h2>
+<p>Small runs to check that the framework is pointing at something real. Each is a single seed, 300 steps,
+$K=3$, a 64-wide MLP, plain SGD, $\beta=0$, so these numbers are indicative only.</p>
+
+<h3>7.1 There is a threshold</h3>
+<p>Final training success (start in brackets), GRPO, $G=8$, $B=32$:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>$\eta$</th><th class="num">$L=1$ (0.33)</th><th class="num">$L=2$ (0.11)</th><th class="num">$L=4$ (0.012)</th></tr></thead>
+  <tbody>
+    <tr><td>0.3</td><td class="num">0.995</td><td class="num">0.980</td><td class="num">0.031</td></tr>
+    <tr><td>1</td><td class="num">0.944</td><td class="num">0.694</td><td class="num">0.363</td></tr>
+    <tr><td>3</td><td class="num">0.703</td><td class="num">0.215</td><td class="num">0.077</td></tr>
+    <tr><td>10</td><td class="num">0.371</td><td class="num">0.129</td><td class="num">0.016</td></tr>
+    <tr><td>30</td><td class="num">0.332</td><td class="num">0.086</td><td class="num">0.031</td></tr>
+  </tbody>
+</table></div>
+<p>Above a threshold, training stalls near or below the start. The best $\eta$ shifts with $L$, but 300 steps is too
+short at $L=4$ to read off a scaling.</p>
+
+<h3>7.2 The failure is absorption, not noise in general</h3>
+<p>$L=1$, fixed budget of 256 samples per step ($B=256/G$). End-of-training per-prompt success:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Rule</th><th>$\eta$</th><th>$G$</th><th class="num">Mean $p$</th><th class="num">$p&lt;0.01$</th><th class="num">$p&gt;0.99$</th><th class="num">Entropy</th></tr></thead>
+  <tbody>
+    <tr><td>GRPO</td><td>1</td><td>4</td><td class="num">0.999</td><td class="num">0.00</td><td class="num">0.98</td><td class="num">0.005</td></tr>
+    <tr><td>GRPO</td><td>1</td><td>64</td><td class="num">0.512</td><td class="num">0.49</td><td class="num">0.51</td><td class="num">0.000</td></tr>
+    <tr><td>GRPO</td><td>10</td><td>4</td><td class="num">0.457</td><td class="num">0.54</td><td class="num">0.46</td><td class="num">0.000</td></tr>
+    <tr><td>Mean-only</td><td>1</td><td>64</td><td class="num">0.689</td><td class="num">0.29</td><td class="num">0.67</td><td class="num">0.016</td></tr>
+    <tr><td>Mean-only</td><td>10</td><td>4</td><td class="num">0.780</td><td class="num">0.22</td><td class="num">0.77</td><td class="num">0.004</td></tr>
+  </tbody>
+</table></div>
+<p>Three observations, all consistent with Section 6:</p>
+<ul>
+  <li>Outcomes are <strong>bimodal</strong>: prompts end almost solved or almost never solved, with entropy near
+    zero. Failure means prompts getting stuck, not a uniformly worse policy.</li>
+  <li>Under a fixed budget, <strong>larger $G$ behaves like a larger step</strong>: $G=64$ at $\eta=1$ looks like
+    $G=4$ at $\eta=10$. Both have a similar $\eta/B$ (0.25 vs. 0.16), which is what $s_x$ predicts.</li>
+  <li><strong>GRPO fails earlier than mean-only</strong> at the same $\eta$, consistent with its larger $W$.</li>
+</ul>
+
+<h3>7.3 Within-prompt noise depends on the rule</h3>
+<p>Signal-to-noise ratio per sample of the correct-logit update for one tabular prompt (higher is better), computed
+exactly:</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>$p$</th><th>Rule</th><th class="num">$G=2$</th><th class="num">$G=8$</th><th class="num">$G=32$</th><th class="num">$G=128$</th></tr></thead>
+  <tbody>
+    <tr><td>0.05</td><td>Mean-only</td><td class="num">0.053</td><td class="num">0.058</td><td class="num">0.058</td><td class="num">0.059</td></tr>
+    <tr><td>0.05</td><td>GRPO</td><td class="num">0.053</td><td class="num">0.062</td><td class="num">0.100</td><td class="num">0.204</td></tr>
+    <tr><td>0.2</td><td>Mean-only</td><td class="num">0.235</td><td class="num">0.394</td><td class="num">0.432</td><td class="num">0.441</td></tr>
+    <tr><td>0.2</td><td>GRPO</td><td class="num">0.235</td><td class="num">0.538</td><td class="num">1.447</td><td class="num">1.703</td></tr>
+  </tbody>
+</table></div>
+<p>For mean-only, spending a fixed budget on bigger groups barely changes the per-sample signal quality. For GRPO it
+improves it a lot. This is the "group size" effect isolated from the step-size effect in 7.2.</p>
+
+<!-- ============================================================ -->
+<h2 id="hypotheses"><span class="num">8</span>Hypotheses and experiments</h2>
+
+<p>Each hypothesis is a consequence of Section 6. Each test is a <strong>collapse plot</strong>: if the framework is
+right, runs with very different raw hyperparameters fall on one curve when plotted against the predicted effective
+quantity. Unless stated, all runs use plain SGD (Adam rescales steps per coordinate and would hide the effects), at
+least 3 seeds, and exact evaluation.</p>
+
+<!-- H1 -->
+<h3>H1. The advantage-gap identity and its equivalences <span class="status ok">nearly done</span></h3>
+<div class="hyp"><span class="label">Hypothesis</span>
+<p>The mean update equals $W_G(p)\nabla p$ in every configuration, and the exact equivalences of Section 6.3 hold
+along whole training runs.</p></div>
+<dl class="spec">
+  <dt>Test</dt><dd>(a) Sampled vs. predicted mean gradient across $L$, sharing, rule, $G$; with small $K^L$ the true
+    $\nabla p$ is exact by autograd. (b) Train RLOO at $\eta$ and mean-only at $\eta G/(G-1)$ with the same seed: the
+    trajectories should be identical. Same for GRPO and RLOO at $G=2$.</dd>
+  <dt>Why first</dt><dd>It is the foundation; it also catches implementation bugs.</dd>
+  <dt>Refuted if</dt><dd>Any systematic mismatch beyond Monte Carlo error.</dd>
+</dl>
+
+<!-- H2 -->
+<h3>H2. Group size changes what GRPO optimizes <span class="status warn">needs warm-start</span></h3>
+<div class="hyp"><span class="label">Hypothesis</span>
+<p>With prompts of mixed difficulty, each rule redistributes progress across prompts in proportion to its $W_G(p)$.
+GRPO at small $G$ behaves like pass@1 ascent; at large $G$ it increasingly favours prompts near $p=0$ and
+$p=1$; pass@$k$ shaping favours hard prompts.</p></div>
+<dl class="spec">
+  <dt>Setting</dt><dd>Warm-started shared MLP with a spread of per-prompt $p$; small $\eta$ (drift-dominated); $\beta=0$.</dd>
+  <dt>Vary</dt><dd>Rule (mean-only, GRPO, $\mathrm{RLOO}_k$, $\mathrm{GRPO}_k$); $G\in\{2,4,16,64\}$; $k\in\{2,4\}$.</dd>
+  <dt>Measure</dt><dd>Per-prompt change in $p$ over a window, binned by starting $p$, divided by mean-only's.</dd>
+  <dt>Collapse plot</dt><dd>That ratio against $W_G(p)/W^{\text{mean}}_G$: all rules and $G$ on one line.</dd>
+  <dt>Refuted if</dt><dd>The per-bin ratios do not follow $W_G$'s shape, for example because interference
+    redistributes progress more than $W$ does.</dd>
+</dl>
+
+<!-- H3 -->
+<h3>H3. Stability is set by one effective step and by sharing <span class="status warn">main study</span></h3>
+<div class="hyp"><span class="label">Hypothesis</span>
+<p>(a) The outcome of training (final success, absorbed fraction) depends on $\eta$, $B$, $G$ and the rule mainly
+through the effective step $\bar s = \frac{\eta}{B}\,\overline{W_G(p)\,p(1-p)}$ at the start of training.
+(b) The threshold exists only with sharing: tabular runs never collapse, and the threshold in $\bar s$ drops as the
+overlap between prompts' gradients grows. (c) The dependence on $L$ and $p_0$ enters through $\|\nabla z\|^2$ and the
+overlap, both measurable at initialization.</p></div>
+<dl class="spec">
+  <dt>Setting</dt><dd>Synthetic family, $\beta=0$.</dd>
+  <dt>Vary</dt><dd>$\eta$ on a log grid; $B$ and $G$ (including fixed-budget pairs); rule; $L\in\{1,2,4\}$; sharing:
+    tabular, MLP widths $\{16,64,256\}$, and correlated vs. independent prompt features.</dd>
+  <dt>Measure</dt><dd>Final success, absorbed fraction, entropy; at initialization, $\|\nabla z_x\|^2$ and the mean
+    cosine between prompts' gradients (the <strong>interference</strong>).</dd>
+  <dt>Collapse plot</dt><dd>Absorbed fraction against $\bar s\,\times$ interference, all configurations together.</dd>
+  <dt>Refuted if</dt><dd>Tabular runs collapse, or configurations with equal $\bar s$ and interference end in clearly
+    different places.</dd>
+</dl>
+
+<!-- H4 -->
+<h3>H4. KL sets where training stops and how safely it gets there <span class="status ok">tabular ready</span></h3>
+<div class="hyp"><span class="label">Hypothesis</span>
+<p>(a) With small steps, training settles at the finite-$G$ balance point
+$\operatorname{logit}p^\star=\operatorname{logit}p_{\mathrm{ref}}+W_G(p^\star)/\beta$ (reverse KL) or
+$\frac{p^\star-p_{\mathrm{ref}}}{p^\star(1-p^\star)}=W_G(p^\star)/\beta$ (forward KL), not Mroueh's $G\to\infty$
+value. (b) With larger steps, $p$ fluctuates around $p^\star$ with a variance proportional to $\eta$ and decreasing in
+$\beta$. (c) Because KL pulls away from the absorbing ends, the step-size threshold of H3 rises with $\beta$, and
+more so for forward KL.</p></div>
+<dl class="spec">
+  <dt>Predictions</dt><dd>Example, $p_{\mathrm{ref}}=0.05$, $\beta=2$, GRPO, reverse KL: $p^\star=0.109$ at $G=4$,
+    $0.157$ at $G=16$, about $0.17$ as $G\to\infty$. Mean-only, $G\to\infty$: $p^\star=0.0798$ for reverse KL and
+    $0.0916$ for forward KL, both matching an exact-gradient simulation. Earlier bandit runs at $\beta=2$ landed within
+    about $0.01$ of the finite-$G$ values.</dd>
+  <dt>Vary</dt><dd>$\beta\in\{0.5,1,2,4\}$; $G$; rule; KL direction; tabular vs. shared; then $\eta$ for (b) and (c).</dd>
+  <dt>Collapse plots</dt><dd>(a) Measured vs. predicted $p^\star$ on the diagonal. (b) $\mathrm{Var}(z)$ against
+    $\eta/\beta$. (c) Threshold $\bar s$ against $\beta$, one curve per KL direction.</dd>
+  <dt>Refuted if</dt><dd>(a) Measured $p^\star$ tracks the $G\to\infty$ value; (c) KL does not move the threshold.</dd>
+</dl>
+
+<!-- H5 -->
+<h3>H5. Group size, budget and escape (separate study) <span class="status ok">pilot exists</span></h3>
+<div class="hyp"><span class="label">Hypothesis</span>
+<p>Under a fixed sample budget $N=BG$, group size trades three effects: (i) better within-prompt signal (large for
+GRPO, negligible for mean-only, Section 7.3), (ii) a larger effective step per prompt ($s\propto G/N$), and (iii) a
+higher chance of escaping $p\approx0$, $1-(1-p)^G$. So the best $G$ grows as $p_0$ falls (to make groups informative,
+$G\gtrsim1/p_0$), is larger for GRPO than for mean-only, and the best $\eta$ falls as $G$ grows.</p></div>
+<dl class="spec">
+  <dt>Setting</dt><dd>Tabular first (no interference, so (ii) has no downside), then shared.</dd>
+  <dt>Vary</dt><dd>$p_0\in\{0.01,0.03,0.1,0.3\}$; $G\in\{2,\dots,64\}$ with $N$ fixed; rule; $\eta$ tuned per configuration.</dd>
+  <dt>Measure</dt><dd>Samples to reach $p=0.5$; informative fraction against $\varphi$; with mixed difficulty, the
+    excess of uninformative groups over $\varphi(\bar p)$ (Nie et al.).</dd>
+  <dt>Collapse plot</dt><dd>Samples-to-target against $G\,p_0$, compared with Bay &amp; Yearick's $G\,p(1-p)$ law.</dd>
+  <dt>Refuted if</dt><dd>The best $G$ does not move with $p_0$, or mean-only and GRPO prefer the same $G$.</dd>
+</dl>
+
+<h3>How the hypotheses connect</h3>
+<ul>
+  <li>H1 establishes the equation. H2, H3 and H4 test its three readings: what is optimized, whether it is stable,
+    and where it stops. H5 tests the noise side that the equation leaves out.</li>
+  <li>The links are explicit: $G$ enters H2 (through the shape of $W$), H3 (through $s$), H4 (through $p^\star$) and H5
+    (through noise and escape); $\beta$ enters H4 and modifies H3's threshold; sharing is what makes H3 possible at all.</li>
+  <li>The bandit is the tabular, $L=1$ corner of every experiment, where most predictions are exact.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="plan"><span class="num">9</span>Execution plan</h2>
+
+<h3>9.1 Code to add to <code>synthetic_rl/</code></h3>
+<div class="table-wrap"><table>
+  <thead><tr><th>Piece</th><th>Needed for</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Tabular parameterization (one-hot prompt index into a linear layer)</td><td>H1, H3, H4, H5</td><td>Makes the bandit a configuration of the same code; check it reproduces <code>main.py</code>.</td></tr>
+    <tr><td>Warm-start to a target $p_0$</td><td>H2, H3, H4</td><td>Must run before the <code>Trainer</code> freezes the reference.</td></tr>
+    <tr><td>Exact $W_G(p)$ and diagnostics: per-prompt $p$, $\|\nabla z_x\|^2$, gradient-overlap matrix, absorbed fraction</td><td>All</td><td><code>omega()</code> in <code>main.py</code> already computes $W_G$ for GRPO.</td></tr>
+    <tr><td>Pass@$k$ rules ($\mathrm{RLOO}_k$, $\mathrm{GRPO}_k$)</td><td>H2</td><td>Port from <code>main.py</code>.</td></tr>
+    <tr><td>Sweep runner and plotting</td><td>All</td><td>Config in, per-prompt logs out (CSV or JSON), seeds, SGD.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>9.2 Order</h3>
+<ol>
+  <li><strong>H1</strong> plus the tabular option: validates the code and the identity. Small.</li>
+  <li><strong>H4(a)</strong> in the tabular case: closed-form predictions, quick to run.</li>
+  <li><strong>H3</strong>: the main study. Start with the fixed-budget pairs and the tabular-vs-shared contrast,
+    since those are the sharpest tests.</li>
+  <li><strong>H4(b, c)</strong>: KL as a stabilizer, reusing H3's grid with $\beta&gt;0$.</li>
+  <li><strong>H5</strong> and <strong>H2</strong>, as time allows.</li>
+</ol>
+
+<h3>9.3 Open decisions</h3>
+<ul>
+  <li>Which of H2 and H5 to keep if time is short. H3 and H4 are the core.</li>
+  <li>Default task size: $K=3$ or $4$, $L\in\{1,2,4\}$, $d=16$ keeps $K^L$ small enough for exact gradients.</li>
+  <li>Response-length symbol for the write-up: $L$ or Suk &amp; Duan's $T$.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="outcomes"><span class="num">10</span>What we could conclude</h2>
+<p>Possible statements for the final report, depending on the results:</p>
+<ul>
+  <li><strong>If H1 and H2 hold:</strong> the choice of advantage rule and group size is a choice of surrogate
+    objective, given exactly by $F_G=\int W_G$. GRPO with small groups is pass@1 optimization; with large groups it is
+    closer to $\arcsin\sqrt p$.</li>
+  <li><strong>If H3 holds:</strong> instability in RLVR is prompts being absorbed into confident wrong answers through
+    interference, and it is controlled by one effective step size, not by $\eta$, $G$, $B$ and the rule separately.
+    Tuning reduces to one number plus a measure of interference.</li>
+  <li><strong>If H4 holds:</strong> the KL penalty has a second role beyond setting $p^\star$: it guards against
+    absorption, and its direction matters for stability.</li>
+  <li><strong>If H5 holds:</strong> the right group size depends on the rule: with mean-only it barely matters per
+    sample, with GRPO it should grow as $p_0$ falls.</li>
+  <li><strong>If a hypothesis fails:</strong> the collapse plot shows where, which is itself the finding, for
+    example that interference matters more than $W$ for H2.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="symbols"><span class="num">11</span>Symbol table</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Symbol</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>$x$, $y$</td><td>Prompt, response</td></tr>
+    <tr><td>$\pi_\theta$, $\pi_{\mathrm{ref}}$</td><td>Policy, frozen reference (base) policy</td></tr>
+    <tr><td>$r\in\{0,1\}$</td><td>Verifier reward</td></tr>
+    <tr><td>$p$, $p_0$, $p_{\mathrm{ref}}$, $p^\star$</td><td>Success probability; at the start; of the reference; at the fixed point</td></tr>
+    <tr><td>$z=\operatorname{logit}p$</td><td>Log-odds of success</td></tr>
+    <tr><td>$K$, $L$ ($=T$), $d$</td><td>Vocabulary size, response length, prompt feature dimension</td></tr>
+    <tr><td>$G$, $B$, $N=BG$</td><td>Group size, prompts per step, samples per step</td></tr>
+    <tr><td>$k$</td><td>Attempts in pass@$k$ (not $G$)</td></tr>
+    <tr><td>$A_i$</td><td>Advantage of response $i$</td></tr>
+    <tr><td>$W_G(p)$</td><td>Advantage gap $\mathbb{E}[A\mid r{=}1]-\mathbb{E}[A\mid r{=}0]$; $\Omega$ in Mroueh's notation as $G\to\infty$</td></tr>
+    <tr><td>$F_G$</td><td>Surrogate objective, $F_G'=W_G$</td></tr>
+    <tr><td>$s_x$</td><td>Effective step on prompt $x$: $\frac{\eta}{B}W_G(p_x)\,p_x(1-p_x)$</td></tr>
+    <tr><td>$\beta$, $\eta$</td><td>KL strength, step size</td></tr>
+    <tr><td>$\varphi$</td><td>Probability a group is informative, $1-p^G-(1-p)^G$</td></tr>
+  </tbody>
+</table></div>
+
+<footer>CMPT 981 project, Ankush Singh, Simon Doan and Azaan Rehman. The identity in Section 6.1, the forward-KL
+fixed point and the pilot numbers in Section 7 were checked with scripts against the repo's
+<code>synthetic_rl</code> code and <code>main.py</code>.</footer>
+
+</main>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.renderMathInElement) {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
+</script>
+</body>
+</html>
