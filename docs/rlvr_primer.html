@@ -120,10 +120,12 @@
 <header>
   <div class="kicker">CMPT 981 &middot; Project background</div>
   <h1>RLVR Primer</h1>
-  <p class="lede">The background you need for <em>When Does GRPO Learn?</em>: from the
+  <p class="lede">The background you need for <em>GRPO unraveled</em>: from the
   policy-gradient trick to GRPO, and from GRPO to the three theory papers the
   project tests. Each level builds on the one before it. The &ldquo;Try it&rdquo; boxes
-  use <code>main.py</code> from the repo, a small GRPO playground.</p>
+  use <code>main.py</code> from the repo, a small GRPO playground. Once you have read this,
+  <a href="project_guide.html">the project guide</a> has the precise definitions, the unifying
+  framework and the hypotheses (H1&ndash;H5).</p>
 </header>
 
 <nav class="toc" aria-label="Contents">
@@ -197,6 +199,9 @@ $$\log \pi(y \mid x) = \sum_{t=1}^{T} \log \pi(y_t \mid x, y_{&lt;t}).$$
     and <em>averaging</em> ($\tfrac{1}{T}\sum_t$). This is the root of the step-size story in
     <a href="#phenomena">Section 6</a>.</li>
 </ul>
+<p>The project does not train an LLM. Its synthetic task keeps exactly this structure, a response of $L$
+tokens whose log-probabilities add up, with one reward at the end, but drops the dependence of each token on the
+earlier ones, so that every success probability can be computed exactly.</p>
 
 <!-- ============================================================ -->
 <h2 id="rlvr"><span class="num">3</span>Verifiable rewards (RLVR)</h2>
@@ -242,8 +247,8 @@ $$A_i = \frac{r_i - \operatorname{mean}(r_1, \dots, r_G)}{\operatorname{std}(r_1
 
 <div class="note">
   <p><strong>A subtle point.</strong> $\bar r$ includes $r_i$ itself, so mean-only quietly shrinks the
-  update by a factor $(G-1)/G$. RLOO avoids that. This is exactly the finite-$G$ effect captured by
-  Proposition&nbsp;1 in the proposal.</p>
+  update by a factor $(G-1)/G$. RLOO avoids that. This is the simplest case of the finite-$G$
+  <em>advantage gap</em> $W_G(p)$ defined in Section&nbsp;1.5 of the <a href="project_guide.html#gap">project guide</a>.</p>
 </div>
 
 <h3>What each variant actually optimizes</h3>
@@ -254,14 +259,17 @@ They differ only in which $F$, so on prompt $x$ the update is roughly $F'(p)\,\n
 <table>
   <thead><tr><th>Algorithm</th><th>Objective $F(p)$</th><th>Weight $F'(p)$ on a prompt</th></tr></thead>
   <tbody>
-    <tr><td>Mean-only / RLOO</td><td>$p$</td><td>$1$: every prompt counts equally</td></tr>
+    <tr><td>Mean-only / RLOO</td><td>$p$</td><td>Constant ($1$ for RLOO, $(G-1)/G$ for mean-only): every prompt counts equally</td></tr>
     <tr><td>GRPO (large $G$)</td><td>$2\arcsin\sqrt{p}$</td><td>$1/\sqrt{p(1-p)}$: boosts very hard and very easy prompts</td></tr>
     <tr><td>Rejection sampling</td><td>$\log p$</td><td>$1/p$: boosts hard prompts most</td></tr>
   </tbody>
 </table>
 </div>
 <p>This one table explains a lot of what follows: why GRPO amplifies success more than mean-only (b), and
-why std-normalization behaves like a per-prompt step size (c).</p>
+why std-normalization behaves like a per-prompt step size (c). The project guide makes it exact for any
+finite $G$: the weight is the <em>advantage gap</em> $W_G(p) = \mathbb{E}[A\mid r{=}1] - \mathbb{E}[A\mid r{=}0]$,
+and the whole project is organized around it. For GRPO, $W_2 = 1$ (so $G=2$ optimizes plain $p$), and $W_G$
+approaches $1/\sqrt{p(1-p)}$ only as $G$ grows.</p>
 
 <!-- ============================================================ -->
 <h2 id="playground"><span class="num">5</span>The playground</h2>
@@ -287,13 +295,16 @@ python main.py --advantage passk -k 8 -G 16</code></pre>
 
 <p>Each progress line shows the exact success probability, the running fraction of steps whose group
 was <em>informative</em> (not all-equal), and the policy entropy. When $\beta &gt; 0$ it also prints the
-fixed point predicted by Proposition&nbsp;1. The numbers quoted below come from the default seed;
+finite-$G$ fixed point predicted in <a href="#phenomena">Section 6(b)</a>. The numbers quoted below come from the default seed;
 other seeds differ somewhat.</p>
 
 <!-- ============================================================ -->
 <h2 id="phenomena"><span class="num">6</span>Four phenomena the project tests</h2>
 
-<h3>(a) Most groups can be useless &mdash; E1</h3>
+<p>Each phenomenon below is tested by one of the hypotheses H2&ndash;H5 in the
+<a href="project_guide.html#hypotheses">project guide</a>.</p>
+
+<h3>(a) Most groups can be useless &mdash; H5</h3>
 <p>A group gives zero gradient when all its answers agree, which happens with probability
 $p^G + (1-p)^G$. The fraction of informative groups is</p>
 $$\phi(p, G) = 1 - p^G - (1-p)^G \;\approx\; G\,p \quad \text{for small } p.$$
@@ -311,7 +322,7 @@ Bigger $G$ helps exactly when $p$ is small; the open question is when that is wo
     (<a href="https://arxiv.org/abs/2510.00977">arXiv:2510.00977</a>) keeps 97.6% of $G = 16$'s performance
     with $G = 2$, while BroRL (<a href="https://arxiv.org/abs/2510.01180">arXiv:2510.01180</a>) revives stalled
     training with hundreds of rollouts per prompt. Both can be right: $G = 2$ is fine when $p$ is moderate,
-    and large $G$ is essential when $p$ is tiny. E1 tests exactly where the switch happens.</li>
+    and large $G$ is essential when $p$ is tiny. H5 tests where the switch happens under a fixed sample budget.</li>
 </ul>
 
 <div class="try">
@@ -325,16 +336,16 @@ python main.py -K 1000 -G 64 -n 1000 --print-every 250</code></pre>
   all-wrong.</p>
 </div>
 
-<h3>(b) Success amplification &mdash; E2 (Mroueh)</h3>
+<h3>(b) Success amplification &mdash; H4 (Mroueh)</h3>
 <p>Combine the std-normalized advantage with a KL penalty and ask where training settles. The answer is
 a fixed point $p^\ast$ that is always above the starting success rate $p_{\text{ref}}$: GRPO
-<em>amplifies</em> success. In logit form, for a group of size $G$,</p>
-$$\operatorname{logit} p^\ast = \operatorname{logit} p_{\text{ref}} + \frac{\Omega_G(p^\ast)}{\beta},$$
-<p>where $\Omega_G = (G-1)/G$ for mean-only, $\Omega_G = 1$ for RLOO, and for GRPO
-$\Omega_G(p)$ is roughly $1/\sqrt{p(1-p)}$ when $G$ is large. GRPO's weight is at least about 2,
-so it amplifies more than mean-only. The proposal's Proposition&nbsp;1 gives the exact finite-$G$
-version, and shows that SGD and Mroueh's idealized iteration share these fixed points but can behave
-differently when rewards are sparse.</p>
+<em>amplifies</em> success. In logit form, for a group of size $G$ and the reverse KL,</p>
+$$\operatorname{logit} p^\ast = \operatorname{logit} p_{\text{ref}} + \frac{W_G(p^\ast)}{\beta},$$
+<p>where $W_G = (G-1)/G$ for mean-only, $W_G = 1$ for RLOO, and for GRPO $W_G(p)$ equals $1$ at
+$G=2$ and grows with $G$ toward $1/\sqrt{p(1-p)}$ (Mroueh's $\Omega$, which is at least 2). So for
+$G&gt;2$ GRPO amplifies more than mean-only, and the amplification itself depends on $G$. Mroueh solves the
+regularized problem exactly at each iteration; we take one SGD step. H4 tests whether SGD settles at these
+finite-$G$ fixed points, and whether the KL penalty also makes training more stable.</p>
 
 <div class="try">
   <span class="label">Try it</span>
@@ -346,7 +357,7 @@ python main.py --advantage grpo --beta 2 --lr 0.2 -n 6000 --print-every 3000</co
   Each reading is a single noisy snapshot; a smaller <code>--lr</code> reduces the jitter.</p>
 </div>
 
-<h3>(c) Step-size thresholds &mdash; E3 (Suk &amp; Duan)</h3>
+<h3>(c) Step-size thresholds &mdash; H3 (Suk &amp; Duan)</h3>
 <p>The theory says that with exact gradients there is a step size above which training can overshoot
 and performance can fall instead of rise. Because the gradient magnitude scales with the response
 length $T$, the safe step size scales roughly as $1/T$. That is why averaging over tokens stabilizes
@@ -367,10 +378,14 @@ python main.py --lr 500</code></pre>
   wrong ones'. For a softmax with its own logits (one question, one token, no KL penalty), $p$ can
   never decrease, whatever the step size. Overshooting needs <em>shared parameters</em>: a network where pushing up one
   answer also moves others, as with the MLP over prompts and positions in the project's main task. That
-  is why E3 uses the MLP.</p>
+  is why H3 compares tabular and shared parameters.</p>
 </div>
+<p>A pilot on the MLP shows what failure looks like: prompts are pushed onto a confident wrong answer, where
+no group ever contains a correct sample, so they can never recover. Outcomes become bimodal (each prompt ends
+nearly always or nearly never solved). H3 tests whether a single <em>effective step</em>
+$\frac{\eta}{B}\,W_G(p)\,p(1-p)$, together with how much prompts share parameters, predicts when this happens.</p>
 
-<h3>(d) Diversity vs. pass@1 &mdash; E4 (Thrampoulidis et al.)</h3>
+<h3>(d) Diversity vs. pass@1 &mdash; H2 (Thrampoulidis et al.)</h3>
 <p>Maximizing pass@1 rewards putting all probability on one answer, which kills diversity. Optimizing
 pass@$k$ instead has gradient</p>
 $$\nabla\, \text{pass@}k = k\,(1-p)^{k-1}\, \nabla p.$$
@@ -393,6 +408,9 @@ python main.py -G 16 --advantage passk -k 8</code></pre>
   near 1, so it stops pushing. On a single question this is all you can see; the project measures it
   across many prompts, where diversity matters more.</p>
 </div>
+<p>In the project's terms, every rule (pass@$k$ shaping, GRPO, mean-only) is ascent on its own surrogate
+$F_G$ with $F_G' = W_G$. H2 tests whether progress on each prompt follows the shape of $W_G(p)$, including the
+claim that group size alone changes what GRPO optimizes.</p>
 
 <!-- ============================================================ -->
 <h2 id="project"><span class="num">7</span>How this becomes the project</h2>
@@ -400,60 +418,64 @@ python main.py -G 16 --advantage passk -k 8</code></pre>
 <p>The theory assumes exact gradients, infinite groups and simple policies. Real training uses noisy
 samples, small $G$ and neural networks. The project's synthetic task extends the playground:
 prompts become feature vectors, the softmax becomes a small MLP, and each answer has $L$ tokens,
-with a reward of 1 only if all of them are correct. Because $p$ is still exact, you can turn one knob
-at a time and see where reality departs from theory.</p>
+with a reward of 1 only if all of them are correct. The playground is the corner of this task with $L=1$
+and a separate table of logits per prompt (no sharing), so everything runs in one setting. Because $p$ is
+still exact, you can turn one knob at a time and see where reality departs from theory. There is no LLM
+experiment.</p>
 
 <div class="table-wrap">
 <table>
-  <thead><tr><th>Knob</th><th>What it controls</th><th>Experiment</th></tr></thead>
+  <thead><tr><th>Knob</th><th>What it controls</th><th>Hypothesis</th></tr></thead>
   <tbody>
-    <tr><td>Answer length $L$, vocabulary $K$</td><td>Sparsity: $p_0 = K^{-L}$</td><td>E1, E5</td></tr>
-    <tr><td>Group size $G$</td><td>Informative groups, finite-$G$ effects</td><td>E1, E2</td></tr>
-    <tr><td>KL strength $\beta$</td><td>Where training settles ($p^\ast$)</td><td>E2</td></tr>
-    <tr><td>Learning rate, length aggregation</td><td>Stability</td><td>E3</td></tr>
-    <tr><td>Advantage type</td><td>Which objective you are really optimizing</td><td>E2, E4</td></tr>
+    <tr><td>Advantage rule</td><td>The shape of $W_G(p)$: which objective you are really optimizing</td><td>H1, H2</td></tr>
+    <tr><td>Group size $G$</td><td>The shape of $W_G$, informative groups, escape from $p \approx 0$</td><td>H2, H5</td></tr>
+    <tr><td>Step size $\eta$, prompts per step $B$</td><td>The effective step, and so stability</td><td>H3</td></tr>
+    <tr><td>Parameter sharing (table vs. MLP width)</td><td>Interference between prompts: whether training can collapse at all</td><td>H3</td></tr>
+    <tr><td>KL strength $\beta$ and direction</td><td>Where training settles ($p^\ast$), and how safely</td><td>H4</td></tr>
+    <tr><td>Answer length $L$, vocabulary $K$, warm-start</td><td>Starting success $p_0$ (uniform start: $K^{-L}$) and gradient size</td><td>H3, H5</td></tr>
   </tbody>
 </table>
 </div>
-<p>E6 then checks whether the same curves appear on a real 0.5B-parameter LLM (Qwen2.5-0.5B-Instruct on GSM8K).</p>
 
 <h3>Suggested order</h3>
 <ol>
   <li>Run the playground commands above and change one flag at a time.</li>
   <li>Read DeepSeek-R1 (<a href="https://arxiv.org/abs/2501.12948">arXiv:2501.12948</a>) &sect;2.1&ndash;2.2 for the real setup.</li>
+  <li>Read the <a href="project_guide.html">project guide</a>: Sections 1, 1.5 and 3 first, then 6 and 8.</li>
   <li>Read Suk &amp; Duan (<a href="https://arxiv.org/abs/2510.08539">arXiv:2510.08539</a>) &sect;6.1, which is close to the toy task.</li>
-  <li>Read Mroueh (<a href="https://arxiv.org/abs/2503.06639">arXiv:2503.06639</a>) &sect;2&ndash;3, with Table&nbsp;1 of the proposal beside it.</li>
+  <li>Read Mroueh (<a href="https://arxiv.org/abs/2503.06639">arXiv:2503.06639</a>) &sect;2&ndash;3, with Section 3.6 of the guide beside it.</li>
   <li>Read Thrampoulidis et al. (<a href="https://arxiv.org/abs/2510.23049">arXiv:2510.23049</a>) &sect;3 last.</li>
 </ol>
 
 <h3>Recent work worth knowing</h3>
-<p>These 2025&ndash;2026 papers are now cited in the proposal. Skim the abstracts; read in full only the
-ones attached to the experiment you own.</p>
+<p>These 2025&ndash;2026 papers are related to the project; only some are cited in the proposal. Skim the
+abstracts; read in full only the ones attached to the hypothesis you own. Papers marked
+&ldquo;Background&rdquo; are about LLM-scale training, which the project no longer runs.</p>
 <div class="table-wrap">
 <table>
   <thead><tr><th>Paper</th><th>One-line takeaway</th><th>For</th></tr></thead>
   <tbody>
-    <tr><td><a href="https://arxiv.org/abs/2510.13651">Davis &amp; Recht</a></td><td>GRPO is ascent on $\arcsin\sqrt{p}$</td><td>E2</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2603.01162">Zhou et al. (U-statistic)</a></td><td>Gradient variance and a group-size law</td><td>E1</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2605.07689">Nie et al. (Gradient Starvation)</a></td><td>More dead groups than the average $p$ predicts; $A = 2r - 1$ fix</td><td>E1, E5</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2510.01180">BroRL</a> / <a href="https://arxiv.org/abs/2510.00977">It Takes Two</a></td><td>Huge $G$ vs. $G = 2$</td><td>E1</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2601.23135">Ge et al.</a></td><td>Std-normalization as an adaptive step size</td><td>E1, E3</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2607.23364">Ding et al. (length)</a></td><td>No length weighting is unbiased and length-invariant</td><td>E3</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2601.04411">Rad et al. (Rate or Fate)</a></td><td>GRPO as a flow on a bandit; phase transition under noisy verifiers</td><td>E2</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2610.12161">Ding (KL misfires)</a></td><td>Ways the KL term misbehaves</td><td>E2</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2602.06717">F-GRPO</a></td><td>Mixed groups can still miss rare correct answers</td><td>E1, E4</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2505.22617">Cui et al. (entropy)</a></td><td>Why entropy collapses</td><td>E4</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2606.15455">Yuan et al. (overtraining)</a></td><td>Train only on unsolved prompts to keep pass@$k$</td><td>E4, E5</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2504.13837">Yue et al.</a></td><td>Base model wins at large $k$</td><td>E4, E6</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2609.09075">ThinkPrior</a> / <a href="https://arxiv.org/abs/2609.38018">ARCUS</a></td><td>Pick prompts by predicted learnability</td><td>E5</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2506.10947">Spurious Rewards</a></td><td>Random rewards can help too: run a control</td><td>E6</td></tr>
-    <tr><td><a href="https://arxiv.org/abs/2509.25300">Tan et al. (scaling)</a></td><td>Reference curves down to 0.5B</td><td>E6</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2510.13651">Davis &amp; Recht</a></td><td>GRPO is ascent on $\arcsin\sqrt{p}$</td><td>H2</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2603.01162">Zhou et al. (U-statistic)</a></td><td>Gradient variance and a group-size law</td><td>H5</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2605.07689">Nie et al. (Gradient Starvation)</a></td><td>More dead groups than the average $p$ predicts; $A = 2r - 1$ fix</td><td>H5</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2510.01180">BroRL</a> / <a href="https://arxiv.org/abs/2510.00977">It Takes Two</a></td><td>Huge $G$ vs. $G = 2$</td><td>H5</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2601.23135">Ge et al.</a></td><td>Std-normalization as an adaptive step size</td><td>H3</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2607.23364">Ding et al. (length)</a></td><td>No length weighting is unbiased and length-invariant</td><td>H3</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2601.04411">Rad et al. (Rate or Fate)</a></td><td>GRPO as a flow on a bandit; phase transition under noisy verifiers</td><td>H4</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2610.12161">Ding (KL misfires)</a></td><td>Ways the KL term misbehaves</td><td>H4</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2602.06717">F-GRPO</a></td><td>Mixed groups can still miss rare correct answers</td><td>H2, H5</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2505.22617">Cui et al. (entropy)</a></td><td>Why entropy collapses</td><td>H2</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2606.15455">Yuan et al. (overtraining)</a></td><td>Train only on unsolved prompts to keep pass@$k$</td><td>H2</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2504.13837">Yue et al.</a></td><td>Base model wins at large $k$</td><td>H2</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2609.09075">ThinkPrior</a> / <a href="https://arxiv.org/abs/2609.38018">ARCUS</a></td><td>Pick prompts by predicted learnability</td><td>Background</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2506.10947">Spurious Rewards</a></td><td>Random rewards can help too: run a control</td><td>Background</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2509.25300">Tan et al. (scaling)</a></td><td>Reference curves down to 0.5B</td><td>Background</td></tr>
   </tbody>
 </table>
 </div>
 
 <footer>
-  Written for the CMPT 981 project team (Faris, Singh, Doan, Rehman). The proposal is in
+  Written for the CMPT 981 project team (Singh, Doan, Rehman). The proposal is in
   <code>latex/proposal.tex</code>; the playground is <code>main.py</code>.
 </footer>
 
