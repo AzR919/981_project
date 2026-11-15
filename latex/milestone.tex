@@ -204,15 +204,16 @@ reward maximization, explaining how existing shaping rules can be
 interpreted through the objective they optimize.
 
 \paragraph{Connection to our project.}
-For our experiment, we are aiming to compare GRPO with biased and
-unbiased pass@$k$ estimators on a simple synthetic task that has one
-correct answer. To do this, we will vary the training group size $G$,
-while holding the total sampling budget fixed. We will then measure how
-each trained model performs on different pass@$k$ versions. Our goal here
-is to determine whether larger training groups improve performance under
-the same sampling budget. Moreover, under these settings, we can also
-compute population gradients directly and use it to compare them with
-average sampled gradients during training.
+For our experiments, we will use the advantage gap $W_G(p)$ to predict
+the average gradient for each prompt. This gap is the difference between the
+expected advantages of correct and incorrect responses. We will check
+these predictions against average sampled gradients on a synthetic task
+with one correct answer per prompt. If time permits, we will also
+compare GRPO with the unbiased $\mathrm{RLOO}_k$ and biased
+$\mathrm{GRPO}_k$ estimators at different group sizes. We expect these
+rules to give different weights to easy and hard prompts. We will test
+whether the improvements in each prompt's success probability follow
+the weights predicted by $W_G(p)$.
 
 \paragraph{Limitations and open questions.}
 \citet{thrampoulidis2026passk} note that their surrogate reward
