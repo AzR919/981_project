@@ -146,9 +146,33 @@
 % Reviewer: Ankush Singh
 
 \paragraph{Setting and assumptions.}
-\todo{Setting and assumptions}
+\citet{suk2025gradientgap} study RLVR with an autoregressive policy
+$\pi_\theta(y\mid x)$, where a complete response $y$ receives a verifiable
+binary reward $r(x,y)\in\{0,1\}$. For a fixed prompt $x$, the objective is
+its success probability:
+\[
+  p_x(\theta)=\E_{y\sim\pi_\theta(\cdot\mid x)}[r(x,y)].
+\]
+They express updates as $\theta_{k+1}=\theta_k+\eta_k w_k$, with
+$\norm{w_k}_2\leq1$, separating direction from effective step size.
+Their analysis centers on the gradient gap
+\begin{align*}
+  d_x(\theta)
+  &=\E[\nabla_\theta\log\pi_\theta(y\mid x)\mid r=1]
+    -\E[\nabla_\theta\log\pi_\theta(y\mid x)\mid r=0],\\
+  \nabla_\theta p_x&=p_x(1-p_x)d_x,
+\end{align*}
+defined when $0<p_x<1$, with both conditional expectations taken at
+fixed $x$. Alignment between $w_k$ and $d_x$ measures whether an update
+locally favors success.
+
+The trajectory-level results assume uniformly bounded,
+Lipschitz-continuous score gradients. The authors establish Gradient Gap as the central pillar of the discussion.
+Given training increases the probaility of the right answer and decreases the probability of the wrong answer, and that each set of answers have a score gradient - a direction in parameter space that makes that specific set of answers more likely.
+Gradient gap can be expressed as the difference between the expected score gradients of the correct and incorrect answers. The authors show that if the update direction is aligned with the gradient gap, then the success probability will increase.
 
 \paragraph{Main results.}
+The paper explores the relationship between the gradient gap, step size, and success probability. It is shown that convergence depends on the alignment of the updates with the gradient gap and a step size that is not too large. The authors provide a sufficient condition for the step size to ensure convergence, and they also construct lower bounds on the step size that can lead to divergence. Additionally, they discuss how the gradient gap scales with the response length $T$ and the success rate $(1 - p)$, and they establish a logistic growth relation for the success probability over time. The paper also addresses how GRPO's length normalization affects the optimization process.
 % Definition of the gradient gap; the sufficient step-size condition and
 % the lower-bound constructions; scaling with response length T and
 % success rate (1 - p); the logistic growth relation; what the paper says
@@ -156,12 +180,17 @@
 \todo{Main results}
 
 \paragraph{Connection to our project.}
+This paper motivates our main stability study, H3. We will vary learning rate and response length to investigate when training improves success and when aggressive updates cause failure. We will also test whether length normalization makes training more stable across different response lengths.
+The study's experiment on contextual bandits observes that prompts improve at different rates, and that the gradient gap predicts which prompts will improve faster. We will test whether this prediction holds in our synthetic task with one correct answer per prompt.
 % What E3 tests: the learning-rate sweep, the 1/L scaling, and the
 % mixed-length case where prompts share one learning rate.
-\todo{Connection to our project}
+% \todo{Connection to our project}
 
 \paragraph{Limitations and open questions.}
-\todo{Limitations and open questions}
+The key limitation of \citet{suk2025gradientgap} is that it theroretically describes a step size dependent stability boundry beyond which convergence is difficult despite high alignment with the gradient gap. 
+Mapping this theoretical insight into practice remains an open question.
+While the contextual-bandit experiments illustrate interactions between prompts with shared parameters, the stability boundary under different degrees of sharing remains an empirical question. These limitations motivate our controlled investigation of learning rate, response length, group size, and parameter sharing.
+% \todo{Limitations and open questions}
 
 % ---------------------------------------------------------------------
 \subsection{\texorpdfstring{Pass@$k$ advantage shaping~\citep{thrampoulidis2026passk}}{Pass@k advantage shaping (Thrampoulidis et al.)}}
