@@ -1,5 +1,5 @@
 % =====================================================================
-%  CMPT 981 Project - Milestone (NeurIPS 2022 format)
+%  CMPT 981 Project - Milestone: literature review (NeurIPS 2022 format)
 %
 %  Build (from this folder):  latexmk milestone.tex
 %  latexmkrc puts the PDF in ../docs/ and keeps build files here.
@@ -9,7 +9,7 @@
 %    Sec. 2.1  Mroueh (2025)                -> Azaan Rehman
 %    Sec. 2.2  Suk & Duan (2025)            -> Ankush Singh
 %    Sec. 2.3  Thrampoulidis et al. (2026)  -> Simon Doan
-%  Lines starting with % are guidance only; delete them as you write.
+%    Sec. 3    Synthesis                    -> all
 % =====================================================================
 
 \documentclass{article}
@@ -85,212 +85,255 @@
 
 \maketitle
 
-\begin{abstract}
-  \todo{Abstract. Write last: the project goal in one sentence, the three
-  papers reviewed, and the progress made since the proposal.}
-\end{abstract}
-
 % ---------------------------------------------------------------------
-\section{Introduction}
+\section{Shared setup of GRPO and RLVR}
 \label{sec:intro}
 
-% - One short paragraph recapping the project goal from the proposal.
-% - Why these three papers: each one gives a prediction that one of our
-%   core experiments tests (Mroueh -> E2, Suk & Duan -> E3,
-%   Thrampoulidis et al. -> E4).
-% - What the rest of the milestone covers.
-\todo{Introduction}
+In practice, reinforcement learning with verifiable rewards (RLVR)
+fine-tunes a language model on prompts whose answers can be checked
+automatically, as in DeepSeek-R1~\citep{guo2025deepseekr1}. Its standard
+algorithm, GRPO~\citep{shao2024deepseekmath}, replaces the learned critic
+of Proximal Policy Optimization (PPO), the earlier standard, with a group baseline.
+Our project asks how GRPO's advantage rule, group size,
+step size, KL penalty and parameter sharing jointly determine whether and
+where training converges in a controlled setting. The three
+papers below serve as the basis for the theory we test.
+
+\paragraph{Setup.} A policy $\pi_\theta(y\mid x)$ produces a response $y$
+to a prompt $x$, and a verifier returns $r(x,y)\in\{0,1\}$. The success
+probability on $x$ is $p_x(\theta)=\E_{y\sim\pi_\theta(\cdot\mid x)}[r]$.
+For each prompt, the trainer samples a group of $G$ responses with
+rewards $r_1,\dots,r_G$, computes advantages $A_i$ from the rewards, and
+moves along
+\[
+  \widehat g_x=\frac1G\sum_{i=1}^G A_i\,\nabla_\theta\log\pi_\theta(y_i\mid x),
+\]
+optionally minus $\beta\nabla_\theta\KL(\pi_\theta\,\|\,\piref)$ for a
+frozen reference $\piref$. With group mean $\bar r$ and standard
+deviation $\sigma$, we compare the following rules: (i) mean-only (Dr.\
+GRPO~\citep{liu2025drgrpo}) $A_i=r_i-\bar r$, (ii) RLOO~\citep{ahmadian2024rloo}
+$A_i=r_i-$ (mean of the other $G-1$ rewards), and (iii) GRPO
+$A_i=(r_i-\bar r)/\sqrt{\sigma^2+\epsilon}$.
 
 % ---------------------------------------------------------------------
-\section{Paper Reviews}
+\section{Paper reviews}
 \label{sec:reviews}
-
-% Shared setup used by all three reviews, so each review can refer to it
-% instead of repeating it: prompt x, policy pi_theta, binary reward
-% r in {0, 1}, success probability p, group size G, advantages A_i,
-% KL strength beta.
-\todo{Shared notation (a few lines)}
-
-% Each review uses the same four parts so the three read consistently.
-% Keep each review to a similar length.
 
 % ---------------------------------------------------------------------
 \subsection{\texorpdfstring{Success amplification~\citep{mroueh2025rlvr}}{Success amplification (Mroueh)}}
 \label{sec:mroueh}
 % Reviewer: Azaan Rehman
 
-\paragraph{Setting and assumptions.}
-% Binary rewards, reverse-KL penalty, no clipping; which quantities are
-% assumed exact (expectations, the inner KL-regularized problem).
-\todo{Setting and assumptions}
+\paragraph{Problem and setting.}
+\citet{mroueh2025rlvr} asks what objective GRPO's standardized advantage
+optimizes and how $p_x$ evolves over iterations. Rewards are binary, the
+group mean and variance are replaced by their exact values $p$ and
+$p(1-p)$ under the previous policy (the $G\to\infty$ limit of the setup above), clipping is
+removed, and each iteration exactly maximizes a reverse-KL-regularized
+objective over all policies starting from
+$\pi_0=\piref$.
 
 \paragraph{Main results.}
-% GRPO's effective loss as a contrastive loss between correct and
-% incorrect samples; the recurrence p_n = h(p_{n-1}); fixed points
-% p* > p_ref (success amplification); the condition on beta for local
-% convergence; mean-only vs. mean+std normalization.
-\todo{Main results}
+Without clipping, iteration $n$ of GRPO maximizes the contrastive objective
+$\E_x[\omega^+(p_{n-1})P_\pi(r{=}1)-\omega^-(p_{n-1})P_\pi(r{=}0)]-\beta\KL(\pi\,\|\,\piref)$,
+where $\omega^+=(1-p)/\sqrt{p(1-p)+\epsilon}$ and
+$\omega^-=p/\sqrt{p(1-p)+\epsilon}$ are the standardized advantages of a
+correct and an incorrect answer, so correct answers are rewarded more
+when they are rare. Because the reward term depends on $\pi$ only through
+$P_\pi(r{=}1)$, the optimum rescales $\piref$ by one factor on all
+correct and one on all incorrect responses, and training reduces to a
+scalar recursion in log-odds:
+$\logit p_n=\logit\pref+\Omega(p_{n-1})/\beta$ with
+$\Omega=\omega^++\omega^-=(p(1-p)+\epsilon)^{-1/2}$. A fixed point $p^\ast$
+exists, and since $\Omega>0$ every fixed point satisfies $p^\ast>\pref$,
+hence \emph{success amplification}. Mean-only normalization gives
+$\Omega\equiv1$, so $\logit p^\ast=\logit\pref+1/\beta$, a smaller lift
+than GRPO's. Convergence is shown only locally, when
+$\beta$ is large enough that the recursion is a contraction near $p^\ast$;
+fixed points need not be unique. If the KL is taken to the previous
+iterate instead (``Mirror GRPO''), there is no interior fixed point and
+$p_n\to1$, except that a prompt with $\pref=0$ never moves. On GSM8K with
+Qwen2.5-0.5B, per-prompt success rates loosely follow these dynamics.
 
-\paragraph{Connection to our project.}
-% What E2 tests: finite G vs. the paper's G -> infinity, SGD vs. the
-% exact iteration, reverse vs. forward KL. State the prediction we
-% compare against.
-\todo{Connection to our project}
-
-\paragraph{Limitations and open questions.}
-\todo{Limitations and open questions}
+\paragraph{Assumptions and limitations.}
+An exactly solved inner problem, exact group statistics and a
+nonparametric policy leave out finite-group noise, step sizes, and
+interference between prompts that share parameters; the experiment also
+uses clipping, which the theory excludes. Prompts at $\pref=0$ stay
+there, which the paper addresses only by recommending exploration.
 
 % ---------------------------------------------------------------------
 \subsection{\texorpdfstring{Gradient gap and step-size thresholds~\citep{suk2025gradientgap}}{Gradient gap and step-size thresholds (Suk and Duan)}}
 \label{sec:suk}
 % Reviewer: Ankush Singh
 
-\paragraph{Setting and assumptions.}
-\citet{suk2025gradientgap} study RLVR with an autoregressive policy
-$\pi_\theta(y\mid x)$, where a complete response $y$ receives a verifiable
-binary reward $r(x,y)\in\{0,1\}$. For a fixed prompt $x$, the objective is
-its success probability:
+\paragraph{Problem and setting.}
+\citet{suk2025gradientgap} ask when RLVR updates increase a prompt's
+success probability and when they fail. The policy is autoregressive and
+rewards are binary; the analysis is for one prompt, with bounded,
+Lipschitz score functions and sub-exponential response lengths. With
+$g^{\pm}=\E[\nabla_\theta\log\pi_\theta(y\mid x)\mid r=1\text{ or }0]$
+the average score of correct and incorrect responses, the central
+quantity is the \emph{gradient gap} $g^+-g^-$, which satisfies
 \[
-  p_x(\theta)=\E_{y\sim\pi_\theta(\cdot\mid x)}[r(x,y)].
+  \nabla_\theta p_x=p_x(1-p_x)\,(g^+-g^-).
 \]
-They express updates as $\theta_{k+1}=\theta_k+\eta_k w_k$, with
-$\norm{w_k}_2\leq1$, separating direction from effective step size.
-Their analysis centers on the gradient gap
-\begin{align*}
-  d_x(\theta)
-  &=\E[\nabla_\theta\log\pi_\theta(y\mid x)\mid r=1]
-    -\E[\nabla_\theta\log\pi_\theta(y\mid x)\mid r=0],\\
-  \nabla_\theta p_x&=p_x(1-p_x)d_x,
-\end{align*}
-defined when $0<p_x<1$, with both conditional expectations taken at
-fixed $x$. Alignment between $w_k$ and $d_x$ measures whether an update
-locally favors success.
-
-The trajectory-level results assume uniformly bounded,
-Lipschitz-continuous score gradients. The authors establish Gradient Gap as the central pillar of the discussion.
-Given training increases the probaility of the right answer and decreases the probability of the wrong answer, and that each set of answers have a score gradient - a direction in parameter space that makes that specific set of answers more likely.
-Gradient gap can be expressed as the difference between the expected score gradients of the correct and incorrect answers. The authors show that if the update direction is aligned with the gradient gap, then the success probability will increase.
+The factor $p_x(1-p_x)$ makes $\nabla p_x$ vanish near $p_x=0$ and $1$
+even when the gap is large, so the gap, not $\nabla p_x$, measures how
+good an update direction is.
 
 \paragraph{Main results.}
-The paper explores the relationship between the gradient gap, step size, and success probability. It is shown that convergence depends on the alignment of the updates with the gradient gap and a step size that is not too large. The authors provide a sufficient condition for the step size to ensure convergence, and they also construct lower bounds on the step size that can lead to divergence. Additionally, they discuss how the gradient gap scales with the response length $T$ and the success rate $(1 - p)$, and they establish a logistic growth relation for the success probability over time. The paper also addresses how GRPO's length normalization affects the optimization process.
-% Definition of the gradient gap; the sufficient step-size condition and
-% the lower-bound constructions; scaling with response length T and
-% success rate (1 - p); the logistic growth relation; what the paper says
-% about GRPO's length normalization.
-\todo{Main results}
+For a step $\eta_k w_k$ with unit-norm direction $w_k$, the identity
+gives a first-order change $\eta_k\,p(1-p)\,\Delta\mu_k$ in $p$, where
+$\Delta\mu_k=w_k\cdot(g^+-g^-)$ is the alignment of the step with the
+gap. Since $p(1-p)$ is the derivative of $p$ in its log-odds, each step
+raises the log-odds by roughly $\eta_k\Delta\mu_k$. Summing, for small
+enough steps, $p_K\ge p_0/(p_0+(1-p_0)e^{-M(K)/2})$, a logistic law in the
+cumulative alignment $M(K)=\sum_k\eta_k[\Delta\mu_k]_+$: $p\to1$ if
+$M(K)$ diverges, while progress can stall if it stays bounded. Large
+steps break this picture, because the second-order term grows with the
+response length $T$: a constant step above a threshold can drive $p$ to
+$0$ even when every update is aligned with the gap. At the token level
+the threshold scales as $\eta\lesssim\Delta\mu\,(1-p)/T$ up to
+constants, and the $1/T$ dependence is tight. Writing GRPO and Dr.\ GRPO
+as such steps gives effective step sizes proportional to
+$\sqrt{p(1-p)}/T$ and $p(1-p)$: GRPO divides by the group standard
+deviation $\approx\sqrt{p(1-p)}$ and by the length $T$, while Dr.\ GRPO
+does neither. The authors use this to explain why length normalization
+helps keep GRPO stable. On a linear contextual bandit and
+Qwen2.5-Math-7B, success tracks cumulative alignment in the predicted
+logistic shape.
 
-\paragraph{Connection to our project.}
-This paper motivates our main stability study, H3. We will vary learning rate and response length to investigate when training improves success and when aggressive updates cause failure. We will also test whether length normalization makes training more stable across different response lengths.
-The study's experiment on contextual bandits observes that prompts improve at different rates, and that the gradient gap predicts which prompts will improve faster. We will test whether this prediction holds in our synthetic task with one correct answer per prompt.
-% What E3 tests: the learning-rate sweep, the 1/L scaling, and the
-% mixed-length case where prompts share one learning rate.
-% \todo{Connection to our project}
-
-\paragraph{Limitations and open questions.}
-The key limitation of \citet{suk2025gradientgap} is that it theroretically describes a step size dependent stability boundry beyond which convergence is difficult despite high alignment with the gradient gap. 
-Mapping this theoretical insight into practice remains an open question.
-While the contextual-bandit experiments illustrate interactions between prompts with shared parameters, the stability boundary under different degrees of sharing remains an empirical question. These limitations motivate our controlled investigation of learning rate, response length, group size, and parameter sharing.
-% \todo{Limitations and open questions}
+\paragraph{Assumptions and limitations.}
+Constants are not sharp and GRPO is analyzed as one unclipped step.
+The main limitation for us is that the theory covers one prompt: a step safe for one
+prompt may overshoot another sharing the same parameters, and the
+multi-prompt stability boundary is left open.
 
 % ---------------------------------------------------------------------
 \subsection{\texorpdfstring{Pass@$k$ advantage shaping~\citep{thrampoulidis2026passk}}{Pass@k advantage shaping (Thrampoulidis et al.)}}
 \label{sec:thrampoulidis}
 % Reviewer: Simon Doan
 
-\paragraph{Setting and assumptions.}
-\citet{thrampoulidis2026passk} study how advantage shaping changes the
-objective optimized by RLVR methods. They consider binary rewards, where
-a correct response receives 1 and 0 otherwise. Under their setting, for
-each prompt $x$, the model independently samples a training group of $G$
-responses from its current policy. If its success probability is
-$p_\theta(x)$, the probability of obtaining at least one correct response
-in $k$ independent attempts is
-\[
-  P_k(x) = 1 - (1 - p_\theta(x))^k.
-\]
-Here, $G$ is the number of responses during the training phase, while $k$
-is the number of attempts considered by the pass@$k$ evaluation metric.
-Their analysis assumes one policy update per freshly sampled training
-group, with clipping inactive and KL regularization omitted.
+\paragraph{Problem and setting.}
+\citet{thrampoulidis2026passk} study how reshaping the advantage changes
+the objective that RLVR optimizes, with pass@$k$, $P_k(x)=1-(1-p_x)^k$,
+as the main example ($k$ is the number of attempts in the metric, distinct
+from the training group size $G$). Rewards are binary, each freshly
+sampled group gives one update, and clipping and KL are omitted.
 
 \paragraph{Main results.}
-The gradient of the $P_k(x)$, pass@$k$ objective, is
-\[
-  \nabla_\theta P_k(x)
-  = k(1 - p_\theta(x))^{k-1}\nabla_\theta p_\theta(x).
-\]
-For fixed $k > 1$, a high success probability $p_\theta(x)$ makes
-$1 - p_\theta(x)$ really small. So pass@$k$ optimization places less
-weight on prompts already solved reliably, and more weight to prompts
-with lower success probabilities.
+Differentiating gives
+$\nabla_\theta P_k(x)=k(1-p_x)^{k-1}\nabla_\theta p_x$, so pass@$k$
+reweights the ordinary gradient toward hard prompts. They estimate it
+with $\mathrm{RLOO}_k$ (unbiased, leave-one-out weights) and
+$\mathrm{GRPO}_k$ (std-normalized, biased). More broadly, an update that
+weights correct and incorrect responses by functions of the success rate
+ascends a surrogate reward $F(p)$ fixed by those weights, and any
+differentiable $F$ yields the advantage $F'(\hat p)(r_i-\hat p)$. In this view, RLOO maximizes $F(p)=p$ and GRPO maximizes
+$F(p)=2\arcsin\sqrt{p}$, matching \citet{davis2025objective}.
 
-To estimate the pass@$k$ gradient from sampled responses, the authors
-construct $\mathrm{RLOO}_k$, an unbiased estimator that uses the other
-responses in each group to calculate leave-one-out weights. Applying
-standard deviation normalization produces their biased $\mathrm{GRPO}_k$
-variant. More broadly, the paper connects advantage shaping to surrogate
-reward maximization, explaining how existing shaping rules can be
-interpreted through the objective they optimize.
-
-\paragraph{Connection to our project.}
-For our experiments, we will use the advantage gap $W_G(p)$ to predict
-the average gradient for each prompt. This gap is the difference between the
-expected advantages of correct and incorrect responses. We will check
-these predictions against average sampled gradients on a synthetic task
-with one correct answer per prompt. If time permits, we will also
-compare GRPO with the unbiased $\mathrm{RLOO}_k$ and biased
-$\mathrm{GRPO}_k$ estimators at different group sizes. We expect these
-rules to give different weights to easy and hard prompts. We will test
-whether the improvements in each prompt's success probability follow
-the weights predicted by $W_G(p)$.
-
-\paragraph{Limitations and open questions.}
-\citet{thrampoulidis2026passk} note that their surrogate reward
-interpretation relies on an infinite group limit with $k$ being fixed.
-But for practical perspectives and also in our experiments, we use
-finite groups instead, where noisy success rate estimates can cause
-updates to differ from the theoretical prediction. This raises a
-question about how closely training with small groups follows the
-population predictions.
+\paragraph{Assumptions and limitations.}
+The surrogate view is a population result (group size $\to\infty$ with
+$k$ fixed); finite-group plug-in estimates are generally biased and
+noisy, and the framework does not say how the choice of surrogate
+affects stability.
 
 % ---------------------------------------------------------------------
-\iffalse
-TODO: If we wanna add these parts in:
-\section{Progress}
-\label{sec:progress}
+\section{Connections between the papers and relevance to the project}
+\label{sec:synthesis}
 
-% What is implemented so far (e.g. the bandit playground in main.py),
-% any preliminary results, and how they compare with the predictions
-% above. Replace the placeholder figure with real plots.
-\todo{Progress since the proposal}
+\paragraph{A unifying identity.}
+With binary rewards and an advantage computed from the group's
+rewards, conditioning each sample on its reward gives
+\begin{equation}
+  \label{eq:identity}
+  \E\big[\widehat g_x\big]
+  = W_G(p_x)\,\nabla_\theta p_x,
+  \qquad
+  W_G(p)=\E[A\mid r{=}1]-\E[A\mid r{=}0],
+\end{equation}
+for any parameterization and response length. With Suk and Duan's
+equation it also equals $W_G(p_x)\,p_x(1-p_x)(g^+-g^-)$. We call $W_G$ the
+\emph{advantage gap}. \citet{davis2025objective} and
+\citet{heckel2026asymmetric} use this form for infinite groups. We
+compute $W_G$ exactly for finite $G$: $(G-1)/G$ for
+mean-only, $1$ for RLOO at every $p$, and for GRPO it is $1$ at
+$G=2$ and approaches $1/\sqrt{p(1-p)}$ as $G$ grows. Each paper studies
+\eqref{eq:identity} from a different angle (\cref{tab:readings}).
 
-\begin{figure}[t]
+\begin{table}[h]
   \centering
-  % Replace the box with: \includegraphics[width=0.6\linewidth]{figures/<name>.pdf}
-  \fbox{\parbox[c][4cm][c]{0.6\linewidth}{\centering Figure placeholder}}
-  \caption{\todo{Caption}}
-  \label{fig:prelim}
-\end{figure}
+  \small
+  \caption{How each paper fits into the identity \eqref{eq:identity}.}
+  \label{tab:readings}
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    Paper & Question & Role of $W_G$ & Assumptions \\
+    \midrule
+    Mroueh & Where does it stop? & $\logit p^\ast=\logit\pref+W(p^\ast)/\beta$ & exact solve, $G\to\infty$ \\
+    Suk \& Duan & Is it stable? & effective step $\eta\,W(p)\,p(1-p)$ & one prompt \\
+    Thrampoulidis et al. & What is optimized? & slope of the surrogate, $F'=W$ & $G\to\infty$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-% ---------------------------------------------------------------------
-\section{Updated Plan}
-\label{sec:plan}
+\paragraph{How the papers build on each other.}
+Mroueh's total weight $\Omega$ is exactly
+GRPO's advantage gap in the infinite-group limit, and its integral
+(for $\epsilon=0$), $2\arcsin\sqrt{p}$, is the surrogate that Thrampoulidis et al.\ assign to
+GRPO: the fixed point of one paper and the objective of the other are
+determined by the same function. Suk and Duan's effective step sizes,
+$\sqrt{p(1-p)}$ for GRPO and $p(1-p)$ for Dr.\ GRPO (before length
+normalization), are again
+$W\,p(1-p)$ for the two rules up to constants, so the weight that sets the objective
+also sets how close training is to its stability threshold: GRPO's
+large weight on hard prompts is both a choice of objective and a larger
+step. Beyond binary rewards and no clipping, each paper removes one
+difficulty: Mroueh and Thrampoulidis et al.\ take exact group
+statistics, Mroueh also solves each iteration exactly, and Suk and Duan
+analyze one prompt at a time. In practice, training uses small groups, a
+few SGD steps per batch, and one network shared by every prompt.
 
-% Changes to the experiments since the proposal (E1--E6), anything
-% dropped or added, and the timeline to the final report.
-\todo{Remaining work and timeline}
+\paragraph{Project-specific details.}
+Equation~\eqref{eq:identity} lets us use the papers' results as
+theoretical predictions to test against training with finite $G$, SGD and shared parameters. Our synthetic task
+has feature-vector prompts and responses of $L$ tokens drawn
+independently given the prompt (no autoregressive structure), with
+$r=1$ only if all tokens are correct, so $p_x$ and $\nabla p_x$ are
+exact. A bandit is the case $L=1$ with a separate table of logits per
+prompt, so ``bandit or token-level'' becomes two knobs: length and
+parameter sharing. We test that \textbf{H1} the identity \eqref{eq:identity} holds at finite
+$G$, and rules whose $W_G$ differ by a constant match after rescaling
+the step; \textbf{H2} group size alone moves GRPO's surrogate from $p$ at $G=2$
+toward $2\arcsin\sqrt p$; \textbf{H3} stability is set by one effective step,
+$\eta W_G(p)p(1-p)/B$ for batch size $B$, together with how strongly
+prompts interfere through shared parameters; and \textbf{H4} SGD with a KL
+penalty settles at the finite-$G$ fixed point
+$\logit p^\ast=\logit\pref+W_G(p^\ast)/\beta$, not Mroueh's limit (for
+$\pref=0.05$, $\beta=2$, GRPO gives $p^\ast\approx0.11$ at $G=4$ against
+$0.17$ as $G\to\infty$). Group-size scaling is a separate study (\textbf{H5}).
+Preliminary runs suggest that, with shared parameters, Suk and Duan's
+failure shows up as prompts pushed to $p\approx0$, where groups rarely
+contain a correct answer and recovery is slow (Mroueh's $\pref=0$ case is
+the extreme); \textbf{H3} tests this link.
 
-% ---------------------------------------------------------------------
-\section{Contributions}
-\label{sec:contributions}
+\paragraph{Other works.}
+Several other papers also informed the project. \citet{davis2025objective}
+show that common RLVR algorithms ascend monotone transforms of $p$, the
+infinite-group version of \eqref{eq:identity}. \citet{heckel2026asymmetric}
+propose weights that give all-incorrect groups a nonzero gradient,
+removing the stuck state at $p=0$; adding them to our rules is a natural
+test of the mechanism above. \citet{huang2026coverage} show that, with
+graded rewards, policy gradient can lose probability on optimal
+responses while expected reward rises, and that periodically resetting
+the KL reference prevents this, so reference resets could be an
+extra KL setting for H4. \citet{bay2026grpostd} and
+\citet{nie2026starvation} analyze the group standard deviation and how
+often groups are all-equal, which bear on H5, and
+\citet{ge2026normalization} read standardization as an adaptive step
+size, consistent with the $W\,p(1-p)$ view.
 
-\begin{itemize}
-  \item \textbf{Ankush Singh:} review of \citet{suk2025gradientgap}. \todo{other work}
-  \item \textbf{Simon Doan:} review of \citet{thrampoulidis2026passk}. \todo{other work}
-  \item \textbf{Azaan Rehman:} review of \citet{mroueh2025rlvr}. \todo{other work}
-\end{itemize}
-
-\fi
 
 % ---------------------------------------------------------------------
 \bibliographystyle{plainnat}
