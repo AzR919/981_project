@@ -173,7 +173,7 @@ each describe one of them.</p>
   on a prompt $x$ is a scalar times the gradient of its success probability:
   $$\mathbb{E}\big[\widehat g_x\big] \;=\; W_G(p_x)\,\nabla_\theta\, p_x,
   \qquad W_G(p) \;=\; \mathbb{E}[A \mid r=1] - \mathbb{E}[A \mid r=0].$$
-  This holds for <em>any</em> parameterization: a table of logits, a shared MLP, any $L$. Only the scalar
+  This holds for <em>any</em> parameterization: a table of logits, a linear policy, a shared MLP, any $L$. Only the scalar
   $W_G(p)$, the <strong>advantage gap</strong>, depends on the rule and on $G$.</p>
 </div>
 
@@ -372,6 +372,10 @@ writing the related-work sentence.</p></div>
 <ul>
   <li><strong>Bandit / tabular:</strong> $\theta$ is just the logits, $K$ numbers per prompt. Changing one prompt's
     logits cannot affect any other prompt.</li>
+  <li><strong>Linear:</strong> $\theta$ is one weight matrix $W_\ell\in\mathbb{R}^{K\times d}$ per position, with logits
+    $W_\ell x$ and no bias: $L\cdot K\cdot d$ numbers (128 for $d=16$, $K=4$, $L=2$), shared by all prompts. It starts
+    at zero, so the initial policy is uniform. The tabular policy is this same model fed one-hot prompt features
+    (Section 4.2).</li>
   <li><strong>Shared MLP:</strong> $\theta$ is the weights of a network $d \to 128 \to 128 \to L\cdot K$ with ReLU
     activations. For $d=16$, $K=4$, $L=2$ that is 19,720 numbers shared by all prompts. The last layer starts at zero,
     so the initial policy is exactly uniform: $\pi_\theta(y_\ell\mid x)=1/K$ for every prompt and position.</li>
@@ -715,12 +719,17 @@ only noise in a learning curve comes from training itself.</p>
 <ul>
   <li><strong>Length $L$</strong> (Suk &amp; Duan call it $T$). The score $\nabla\log\pi$ is a sum of $L$ terms.
     Together with $K$, it sets the sparsity: a uniform policy has $p=K^{-L}$.</li>
-  <li><strong>Parameter sharing.</strong>
-    <em>Tabular:</em> each prompt has its own free logits (equivalently, a linear layer on a one-hot prompt
-    index), so an update on one prompt never touches another.
-    <em>Shared:</em> one MLP for all prompts, so every update moves every prompt. Sharing can be graded by
-    the network width or by how correlated prompt features are.</li>
+  <li><strong>Parameter sharing</strong>, set by two choices: the <em>model</em> (linear or MLP) and the
+    <em>prompt features</em> it reads (one-hot, Gaussian, or correlated Gaussian).
+    <em>Tabular:</em> a linear model on one-hot features. Each prompt has its own free logits, so an update on
+    one prompt never touches another.
+    <em>Linear:</em> a linear model on Gaussian features. Every prompt shares the same weights, and how much two
+    prompts interact is set by how much their features overlap (Section 4.2).
+    <em>MLP:</em> one network for all prompts, the most flexible and least predictable form of sharing.</li>
 </ul>
+
+<p>Ordered by how much the prompts share, the settings are: linear on one-hot features (tabular), linear on
+Gaussian features, linear on correlated features, and the MLP. Two model classes cover all four.</p>
 
 <div class="note">
   <span class="label">The bandit is a special case</span>
@@ -729,7 +738,46 @@ only noise in a learning curve comes from training itself.</p>
   also serves as a correctness check, since its fixed points are known in closed form.</p>
 </div>
 
-<h3>4.2 Setting $p_0$: the base policy</h3>
+<h3>4.2 The linear policy</h3>
+<div class="def">
+  <span class="label">Definition</span>
+  <p>At each position, a softmax over a linear function of the prompt's features:
+  $$\pi_\theta(y_\ell=k\mid x)=\operatorname{softmax}_k\big(W_\ell\,x\big),\qquad W_\ell\in\mathbb{R}^{K\times d},$$
+  with no bias term and $W_\ell=0$ at the start. In code it is the existing <code>Policy</code> with the hidden
+  layers removed: <code>nn.Linear(d, L*K, bias=False)</code>.</p>
+</div>
+
+<p>Why it earns a place next to the tabular policy and the MLP:</p>
+<ul>
+  <li><strong>The tabular policy is a special case.</strong> With one-hot features $x=e_j$, the logits $W_\ell e_j$
+    are just column $j$ of $W_\ell$: a free table of logits per prompt. So one class covers both, and the only
+    difference is the input. This is why the bias must be off: a bias is an input shared by every prompt, and it
+    would break the reduction.</li>
+  <li><strong>Interference has a formula.</strong> The score is
+    $\nabla_{W_\ell}\log\pi(y_\ell\mid x)=(e_{y_\ell}-\pi_\ell)\,x^\top$, so the overlap between two prompts'
+    gradients factorizes into the feature overlap $\langle x,x'\rangle$ times the overlap of their
+    prediction-error vectors. The interference term of H3 then follows from the data: one-hot features give none,
+    Gaussian features with $n\gg d$ prompts must overlap, and correlated features overlap more. For the MLP we can
+    only measure interference; here we can also set and predict it.</li>
+  <li><strong>It is well specified.</strong> The hidden rule $y^\star_\ell=\arg\max_k\langle w_{\ell k},x\rangle$ is
+    itself linear, so scaling the true weights drives every prompt to $p\to1$. Any collapse is then an optimization
+    effect, not a limit of what the model can represent.</li>
+  <li><strong>It matches the papers' settings.</strong> Suk &amp; Duan's simulation (their Section 5.1) is a linear
+    contextual bandit, so this reproduces it, with many prompts in place of one. Huang et al.'s reference-reset
+    guarantees are proved for softmax-linear policies.</li>
+</ul>
+
+<div class="key">
+  <span class="label">A prediction it makes possible</span>
+  <p>With a linear policy, a prompt stuck at $p\approx0$ is one that the current $W$ sends confidently to the wrong
+  side of the hidden rule's decision boundary. Unlike in the tabular case, it is not permanently stuck: updates from
+  other prompts move $W$ and can rescue it. So we expect tabular runs never to collapse, linear runs to show partial,
+  recoverable absorption concentrated near the decision boundaries, and the MLP to be the most fragile. If the
+  absorbed fraction lines up across all three against effective step $\times$ interference, that is strong evidence
+  for the mechanism (H3).</p>
+</div>
+
+<h3>4.3 Setting $p_0$: the base policy</h3>
 <p>A freshly initialized policy is uniform, so $p_0=K^{-L}$ is tied to sparsity. To set $p_0$ independently,
 we pretrain briefly with supervised learning on the correct answers (a <strong>warm-start</strong>) and stop
 when the average success rate reaches the target. The warm-started network is the <strong>base
@@ -874,7 +922,11 @@ far fewer distinct points than it seems.</p>
     $\operatorname{logit}p^\star=\operatorname{logit}p_{\mathrm{ref}}+W_G(p^\star)/\beta$ for reverse KL, and
     $\frac{p^\star-p_{\mathrm{ref}}}{p^\star(1-p^\star)}=W_G(p^\star)/\beta$ for forward KL. Both were checked
     against an exact-gradient simulation (numbers in H4). With shared parameters the balance is a sum over all prompts, so per-prompt
-    fixed points are coupled.</li>
+    fixed points are coupled. They can still be predicted: since the KL gradient is deterministic and
+    $F_G'=W_G$, the expected update is exactly
+    $\nabla_\theta\big[\sum_x F_G(p_x)-\beta\,\mathrm{KL}\big]$, so finite-$G$ SGD should settle at a stationary
+    point of this deterministic objective, found by full-batch exact gradient ascent. In the tabular case this
+    reduces to the per-prompt formula above; for the linear policy and the MLP it gives the coupled answer.</li>
   <li><strong>Whether it is stable (Suk &amp; Duan).</strong> Prompt $x$'s own contribution to its log-odds
     $z_x = \operatorname{logit}p_x$ in one step is, to first order,
     $$\Delta z_x \approx s_x\cdot\big\|\nabla_\theta z_x\big\|^2,\qquad s_x = \frac{\eta}{B}\,W_G(p_x)\,p_x(1-p_x).$$
@@ -890,7 +942,9 @@ far fewer distinct points than it seems.</p>
     step size. Any collapse therefore needs <em>other prompts</em> to push $p_x$ down, which needs shared parameters.
     The cross term is
     $$\Delta z_x \;\ni\; \frac{\eta}{B}\sum_{x'\neq x}\Big(\tfrac1G\textstyle\sum_i A_i^{(x')}\,\langle\nabla z_x,\nabla\log\pi(y_i^{(x')})\rangle\Big),$$
-    which has random sign and grows with $\eta$ and with the overlap between prompts' gradients.</li>
+    which has random sign and grows with $\eta$ and with the overlap between prompts' gradients. For the linear
+    policy each inner product factorizes as $\langle x,x'\rangle$ times an overlap of prediction errors (Section 4.2),
+    so the size of this term is set by the prompt features.</li>
   <li><strong>$p\approx0$ is absorbing.</strong> If a prompt is pushed to a near-deterministic wrong answer, then
     $\varphi\approx0$: no group contains a correct answer, its own term vanishes, and only interference can move it.
     The probability of escaping in one step is $1-(1-p)^G$, so $G$ controls escape. Similarly $p\approx1$ is absorbing,
@@ -1009,7 +1063,8 @@ overlap, both measurable at initialization.</p></div>
 <dl class="spec">
   <dt>Setting</dt><dd>Synthetic family, $\beta=0$.</dd>
   <dt>Vary</dt><dd>$\eta$ on a log grid; $B$ and $G$ (including fixed-budget pairs); rule; $L\in\{1,2,4\}$; sharing:
-    tabular, MLP widths $\{16,64,256\}$, and correlated vs. independent prompt features.</dd>
+    linear on one-hot features (tabular), on Gaussian features and on correlated features, plus one or two MLP widths.
+    The linear settings vary interference in a controlled, computable way, so they replace most of the MLP widths.</dd>
   <dt>Measure</dt><dd>Final success, absorbed fraction, entropy; at initialization, $\|\nabla z_x\|^2$ and the mean
     cosine between prompts' gradients (the <strong>interference</strong>).</dd>
   <dt>Collapse plot</dt><dd>Absorbed fraction against $\bar s\,\times$ interference, all configurations together.</dd>
@@ -1031,7 +1086,9 @@ more so for forward KL.</p></div>
     $0.157$ at $G=16$, about $0.17$ as $G\to\infty$. Mean-only, $G\to\infty$: $p^\star=0.0798$ for reverse KL and
     $0.0916$ for forward KL, both matching an exact-gradient simulation. Earlier bandit runs at $\beta=2$ landed within
     about $0.01$ of the finite-$G$ values.</dd>
-  <dt>Vary</dt><dd>$\beta\in\{0.5,1,2,4\}$; $G$; rule; KL direction; tabular vs. shared; then $\eta$ for (b) and (c).</dd>
+  <dt>Vary</dt><dd>$\beta\in\{0.5,1,2,4\}$; $G$; rule; KL direction; tabular, linear and MLP; then $\eta$ for (b) and (c).
+    With sharing, the predicted $p^\star$ comes from full-batch exact ascent on $\sum_x F_G(p_x)-\beta\,\mathrm{KL}$
+    (Section 6.4), and Huang et al.'s reference resets are an optional extra arm for the linear policy.</dd>
   <dt>Collapse plots</dt><dd>(a) Measured vs. predicted $p^\star$ on the diagonal. (b) $\mathrm{Var}(z)$ against
     $\eta/\beta$. (c) Threshold $\bar s$ against $\beta$, one curve per KL direction.</dd>
   <dt>Refuted if</dt><dd>(a) Measured $p^\star$ tracks the $G\to\infty$ value; (c) KL does not move the threshold.</dd>
@@ -1069,7 +1126,9 @@ $G\gtrsim1/p_0$), is larger for GRPO than for mean-only, and the best $\eta$ fal
 <div class="table-wrap"><table>
   <thead><tr><th>Piece</th><th>Needed for</th><th>Notes</th></tr></thead>
   <tbody>
-    <tr><td>Tabular parameterization (one-hot prompt index into a linear layer)</td><td>H1, H3, H4, H5</td><td>Makes the bandit a configuration of the same code; check it reproduces <code>main.py</code>.</td></tr>
+    <tr><td>Linear policy (<code>nn.Linear(d, L*K, bias=False)</code>, zero-initialized)</td><td>H1, H3, H4, H5</td><td>With one-hot features it is the tabular policy, which makes the bandit a configuration of the same code; check it reproduces <code>main.py</code> at $L=1$. The bias must stay off.</td></tr>
+    <tr><td>Feature options in <code>SyntheticTask</code>: one-hot and correlated Gaussian, next to the current Gaussian</td><td>H3, H4</td><td>One-hot features need the correct answers from the hidden rule on the original Gaussian features.</td></tr>
+    <tr><td>Exact-gradient oracle: full-batch ascent on $\sum_x F_G(p_x)-\beta\,\mathrm{KL}$</td><td>H4</td><td>Predicted $p^\star$ with sharing (Section 6.4).</td></tr>
     <tr><td>Warm-start to a target $p_0$</td><td>H2, H3, H4</td><td>Must run before the <code>Trainer</code> freezes the reference.</td></tr>
     <tr><td>Exact $W_G(p)$ and diagnostics: per-prompt $p$, $\|\nabla z_x\|^2$, gradient-overlap matrix, absorbed fraction</td><td>All</td><td><code>omega()</code> in <code>main.py</code> already computes $W_G$ for GRPO.</td></tr>
     <tr><td>Pass@$k$ rules ($\mathrm{RLOO}_k$, $\mathrm{GRPO}_k$)</td><td>H2</td><td>Port from <code>main.py</code>.</td></tr>
@@ -1092,6 +1151,7 @@ $G\gtrsim1/p_0$), is larger for GRPO than for mean-only, and the best $\eta$ fal
   <li>Which of H2 and H5 to keep if time is short. H3 and H4 are the core.</li>
   <li>Default task size: $K=3$ or $4$, $L\in\{1,2,4\}$, $d=16$ keeps $K^L$ small enough for exact gradients.</li>
   <li>Response-length symbol for the write-up: $L$ or Suk &amp; Duan's $T$.</li>
+  <li>How many MLP widths to keep next to the three linear settings, and how strongly to correlate the features.</li>
 </ul>
 
 <!-- ============================================================ -->
