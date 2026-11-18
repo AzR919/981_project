@@ -771,8 +771,11 @@ amplification.</em> arXiv:2503.06639.</p>
     the scalar $W$. We test the threshold with stochastic groups and shared parameters, and propose the
     mechanism behind the collapse (H3).</dd>
 </dl>
-<div class="note"><p>To pin down in Ankush's review: the exact form of the $p$-dependence (does the threshold
-grow or shrink with $p$?) and what the paper says about length normalization.</p></div>
+<div class="note"><p>Pinned down in Ankush's review: the token-level threshold is
+$\eta\lesssim\Delta\mu\,(1-p)/T$ up to constants, so it <em>shrinks</em> as $p$ grows, and the $1/T$ scaling is
+tight. Written as such steps, GRPO's effective step is $\propto\sqrt{p(1-p)}/T$ and Dr.&nbsp;GRPO's is
+$\propto p(1-p)$; the paper credits GRPO's $1/T$ length normalization for its stability, since Dr.&nbsp;GRPO
+lacks it.</p></div>
 
 <h3>5.3 Thrampoulidis, Mahdavi &amp; Deng (2026): advantage shaping as surrogate rewards</h3>
 <p><em>Advantage shaping as surrogate reward maximization: Unifying pass@K policy gradients.</em> TMLR 2026,
@@ -800,6 +803,8 @@ arXiv:2510.23049.</p>
     <tr><td>Bay &amp; Yearick (2026)</td><td>Group-size law in $G\,p(1-p)$; the comparison point for H5.</td></tr>
     <tr><td>Nie et al. (2026)</td><td>Uninformative groups are more common than the average $p$ predicts when difficulty varies; relevant to H3 and H5.</td></tr>
     <tr><td>Plyusov et al. (2026), F-GRPO</td><td>Mixed groups can still miss rare solutions; non-monotone in $G$.</td></tr>
+    <tr><td>Heckel, Soltanolkotabi &amp; Thrampoulidis (2026), arXiv:2602.11128</td><td>Asymmetric prompt weights $A_i=\omega(\hat p)(r_i-\hat p)$ that give all-incorrect groups a nonzero gradient, removing the stuck state at $p=0$. A natural extra rule for testing the absorption mechanism (H3, H5).</td></tr>
+    <tr><td>Huang et al. (2026), arXiv:2611.14467</td><td>Policy gradient can drive the probability of optimal responses toward zero while reward rises ("coverage collapse"), even with exact gradients and a KL to the base model; periodically resetting the KL reference to the current policy preserves coverage. Reference resets are a possible extra KL setting for H4.</td></tr>
     <tr><td>Zhang et al. (2025), arXiv:2505.17508</td><td>Design space of KL regularization in policy gradients (direction, normalization, estimators). Suggested by the instructor; the citation for the KL-direction comparison.</td></tr>
   </tbody>
 </table></div>
