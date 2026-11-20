@@ -31,9 +31,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from synthetic_rl.theory import advantage_gap, fixed_points, informative_fraction  # noqa: E402
 
 HYPOTHESES = ("h1", "h2", "h3", "h4", "h5")
+STRETCH = ("s_h1", "s_drift", "s_pred", "s_abl", "s_eq")
 CONFIG_KEYS = (
     "name", "mode", "level", "part", "features", "rho", "arch", "width", "init", "p0", "L", "G", "B",
     "rule", "passk", "eta", "beta", "kl", "steps", "seed",
+    "update", "block", "optimizer", "momentum", "reward_noise", "ablation", "p_start", "offset", "R", "chunks",
 )
 DIAGNOSTICS = ("mean_cos", "mean_abs_cos", "mean_sq_grad", "mean_sq_grad_logit")
 PROMPT_ARRAYS = {
@@ -58,6 +60,11 @@ def read_one(path):
         for k in ("rel_err", "mc_rel", "cosine", "mean_z2", "frac_abs_z_gt3", "pred_norm", "n_coords"):
             row[k] = d[k]
         row["p_probe_mean"] = float(np.mean(d["p_probe"]))
+        if "mean_z2_null" in d:
+            null = np.asarray(d["mean_z2_null"])
+            row.update({"bias_par": d["bias_par"], "bias_par_se": d["bias_par_se"],
+                        "null_lo": float(np.quantile(null, 0.025)), "null_hi": float(np.quantile(null, 0.975)),
+                        "null_median": float(np.median(null)), "null_rank": float((null < d["mean_z2"]).mean())})
     elif cfg["mode"] == "onestep":
         arrays = {k: np.asarray(d[k], dtype=np.float32) for k in PROMPT_ARRAYS["onestep"]}
     else:
@@ -93,6 +100,14 @@ def read_one(path):
             "absorbed_at": np.asarray(d["absorbed_at"], dtype=np.int32),
             "predicted_drift": np.asarray(d.get("predicted_drift", np.full(len(last), np.nan)), dtype=np.float32),
         }
+        p_init = arrays["p_init"]
+        row["max_drop"] = float(np.max(p_init - arrays["min_p"]))
+        absorbed_steps = at[at >= 0]
+        row["t50"] = float(np.median(absorbed_steps)) if len(absorbed_steps) else np.nan
+        if "checkpoints" in d:
+            row.update(predictor_scores(d, cfg, p_init, at))
+        if cfg.get("p_start") is not None:
+            row.update(switching(snaps, cfg))
         if cfg.get("part") == "b":
             # Var(logit p) across the 64 replicates at each snapshot in the second half.
             half = [s for s in snaps if int(s) >= cfg["steps"] / 2]
@@ -102,14 +117,74 @@ def read_one(path):
     return cfg["hypothesis"], row, arrays
 
 
+def predictor_scores(d, cfg, p_init, absorbed_at, window=500):
+    """Within-run AUCs for which prompts get absorbed, at step 0 and at each checkpoint.
+
+    At step 0 the label is "absorbed at any later time"; at a checkpoint t it is
+    "absorbed in (t, t + window]" among prompts still above 0.01 at t.
+    """
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import StratifiedKFold, cross_val_predict
+
+    snaps = d["snapshots"]
+    eta, n = cfg["eta"], len(p_init)
+    out = {"p_init_sd": float(np.std(p_init))}
+    per = {k: [] for k in ("drift", "logit_drift", "p", "grad", "combo")}
+    for t, ck in sorted(d["checkpoints"].items(), key=lambda kv: int(kv[0])):
+        t = int(t)
+        p = np.asarray(snaps[str(t)], dtype=float) if t else p_init.astype(float)
+        drift, own = np.asarray(ck["drift"]), np.asarray(ck["own"])
+        W = advantage_gap(p, cfg["G"], cfg["rule"], passk=cfg.get("passk"))
+        grad = np.sqrt(np.clip(own * n / (eta * np.maximum(W, 1e-300)), 0, None))
+        alive = (p >= 0.01) & (p_init >= 0.01)
+        later = absorbed_at > t if t == 0 else (absorbed_at > t) & (absorbed_at <= t + window)
+        label = later[alive]
+        if not (5 <= label.sum() <= len(label) - 5):
+            continue
+        pa, da = p[alive], drift[alive]
+        scores = {"drift": -da, "logit_drift": -da / (pa * (1 - pa)), "p": -pa, "grad": -grad[alive]}
+        X = np.column_stack([np.log(pa), np.sign(da) * np.log1p(np.abs(da) / (np.abs(da).mean() + 1e-300))])
+        folds = StratifiedKFold(5, shuffle=True, random_state=0)
+        scores["combo"] = cross_val_predict(LogisticRegression(), X, label, cv=folds, method="predict_proba")[:, 1]
+        for k, v in scores.items():
+            a = auc(v, label)
+            if t == 0:
+                out[f"auc0_{k}"] = a
+            else:
+                per[k].append(a)
+    for k, v in per.items():
+        out[f"aucck_{k}"] = float(np.nanmean(v)) if v else np.nan
+    return out
+
+
+def switching(snaps, cfg):
+    """Crossings of the unstable KL fixed point by the replicate prompts, and the end state."""
+    roots = fixed_points(cfg["p0"], cfg["beta"], cfg["G"], cfg["rule"], direction=cfg["kl"])
+    unstable = [p for p, stable in roots if not stable]
+    stable = [p for p, s in roots if s]
+    keys = sorted(snaps, key=int)
+    P = np.array([snaps[k] for k in keys])
+    out = {"n_stable": len(stable), "stable_low": stable[0], "stable_high": stable[-1],
+           "unstable": unstable[0] if unstable else np.nan}
+    u = unstable[0] if unstable else 0.5 * (stable[0] + 1)
+    above = P > u
+    out["crossings"] = int((above[1:] != above[:-1]).sum())
+    out["share_above_final"] = float(above[-1].mean())
+    out["share_above_start"] = float(above[0].mean())
+    end = P[-1]
+    out["end_low_mean"] = float(end[~above[-1]].mean()) if (~above[-1]).any() else np.nan
+    out["end_high_mean"] = float(end[above[-1]].mean()) if above[-1].any() else np.nan
+    return out
+
+
 def collect(raw, jobs):
-    paths = sorted(glob.glob(os.path.join(raw, "*", "results", "h*", "*.json.gz")))
+    paths = sorted(glob.glob(os.path.join(raw, "*", "results", "*", "*.json.gz")))
     print(f"reading {len(paths)} files with {jobs} processes")
     with Pool(jobs) as pool:
         results = pool.map(read_one, paths, chunksize=64)
     cache = os.path.join(raw, "cache")
     os.makedirs(cache, exist_ok=True)
-    for h in HYPOTHESES:
+    for h in sorted({r[0] for r in results}):
         items = sorted((r for r in results if r[0] == h), key=lambda r: r[1]["name"])
         rows = pd.DataFrame([r[1] for r in items])
         rows.to_csv(os.path.join(cache, f"runs_{h}.csv"), index=False)

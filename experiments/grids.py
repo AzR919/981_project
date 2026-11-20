@@ -95,7 +95,105 @@ def h5():
                    snapshot_every=1000, level=level)
 
 
-BATCHES = {"base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)]}
+# ---------------------------------------------------------------- stretch
+
+def around(centre, decades=1.5, per_decade=4):
+    """Log-spaced eta values within +-decades of centre."""
+    k = int(round(decades * per_decade))
+    return [float(f"{centre * 10 ** (i / per_decade):.4g}") for i in range(-k, k + 1)]
+
+
+# Base-batch absorption thresholds (B = 32, G = 8, GRPO) used to centre the eta grids.
+BASE_ETA_STAR = {
+    ("lin", 1): 1000, ("lin", 2): 1000, ("c05", 1): 10, ("c05", 2): 30, ("c09", 1): 10, ("c09", 2): 0.01,
+    ("m64", 1): 3, ("m64", 2): 1, ("m256", 1): 3, ("m256", 2): 1,
+}
+STRETCH_SEEDS = [0, 1, 2, 3, 4]
+
+
+def s_h1():
+    """H1 again with 5x the samples and chunked statistics for the calibrated tests."""
+    for cfg in h1():
+        yield dict(cfg, R=20000, chunks=20)
+
+
+def s_drift():
+    """Drift against noise: the same runs with sampled, expected and full expected updates."""
+    common = dict(L=2, G=8, rule="grpo", steps=5000, log_every=5, snapshot_every=1000)
+    for level in ("lin", "c05", "c09", "m64"):
+        etas = around(BASE_ETA_STAR[(level, 2)])
+        for eta, seed in itertools.product(etas, STRETCH_SEEDS):
+            base = dict(SHARING[level], **common, eta=eta, seed=seed, level=level)
+            for update in ("sampled", "expected", "expected_full"):
+                yield dict(base, block="main", update=update, B=32)
+            for update, B in itertools.product(("sampled", "expected"), (8, 128)):
+                yield dict(base, block="batch", update=update, B=B)
+        for eta, seed in itertools.product(around(10 ** -2.5), STRETCH_SEEDS):
+            for update in ("sampled", "expected_full"):
+                yield dict(SHARING[level], **common, block="adam", optimizer="adam", update=update, B=32,
+                           eta=eta, seed=seed, level=level)
+
+
+def s_pred():
+    """Per-prompt absorption predictor, with spread starting points and drift checkpoints."""
+    for level, L, rule, init, seed in itertools.product(
+        ("lin", "c05", "c09", "m64", "m256"), (1, 2), ("grpo", "mean"), ("sft_mixed", "uniform"), STRETCH_SEEDS
+    ):
+        for f in (0.3, 1, 3, 10):
+            yield dict(SHARING[level], L=L, rule=rule, init=init, eta=BASE_ETA_STAR[(level, L)] * f, B=32, G=8,
+                       seed=seed, steps=5000, log_every=25, snapshot_every=500, drift_every=500, level=level)
+
+
+ABLATIONS = {
+    "control": {},
+    "flip05": {"reward_noise": 0.05},
+    "flip20": {"reward_noise": 0.2},
+    "momentum": {"momentum": 0.9},
+    "kl01": {"beta": 0.1},
+    "kl1": {"beta": 1.0},
+    "sign": {"rule": "sign"},
+}
+
+
+def s_abl():
+    """Break one condition of the tabular monotonicity proposition at a time."""
+    common = dict(features="onehot", init="tabular", p0="spread", G=8, B=32, rule="grpo", steps=5000,
+                  log_every=50, diagnostics=False, level="tab")
+    for L, G, seed in itertools.product((1, 2, 4), (4, 8), SEEDS):
+        for name, change in ABLATIONS.items():
+            for eta in (0.3, 3, 30, 300):
+                yield dict(common, **change, ablation=name, L=L, G=G, eta=eta, seed=seed)
+        for eta in (1e-3, 1e-2, 1e-1):
+            yield dict(common, ablation="adam", optimizer="adam", L=L, G=G, eta=eta, seed=seed)
+
+
+def s_eq():
+    """Bistable KL fixed points: start on both sides of the unstable root."""
+    import math
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from synthetic_rl.theory import fixed_points
+
+    common = dict(features="onehot", n_train=64, init="tabular", L=1, G=64, B=64, kl="reverse", steps=10000,
+                  log_every=100, snapshot_every=100, diagnostics=False, level="tab")
+    for p_ref, beta in ((0.01, 0.5), (0.03, 0.5), (0.2, 1.0)):
+        roots = fixed_points(p_ref, beta, 64, "grpo")
+        unstable = [p for p, stable in roots if not stable][0]
+        z_u = math.log(unstable / (1 - unstable))
+        for offset in (-3, -2, -1, -0.5, -0.25, 0, 0.25, 0.5, 1, 2, 3):
+            p_start = 1 / (1 + math.exp(-(z_u + offset)))
+            for seed in SEEDS:
+                for eta in (0.1, 0.3, 1, 3, 10):
+                    yield dict(common, p0=p_ref, beta=beta, rule="grpo", p_start=p_start, offset=offset,
+                               eta=eta, seed=seed)
+                yield dict(common, p0=p_ref, beta=beta, rule="mean", p_start=p_start, offset=offset,
+                           eta=1.0, seed=seed)
+
+
+BATCHES = {
+    "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
+    "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
+}
 
 
 def main():

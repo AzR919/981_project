@@ -11,7 +11,11 @@ so a batch can be relaunched after a crash or a reboot.
 
 Modes:
     train      train with plain SGD (or the optimizer named) and log exact
-               per-prompt success
+               per-prompt success. "update" picks the step: "sampled" (GRPO
+               with sampled groups), "expected" (the exact expected step on
+               the sampled prompt batch, no response noise) or
+               "expected_full" (the exact expected step on all prompts, a
+               deterministic flow)
     gradcheck  H1: average many sampled gradients at fixed parameters and
                compare with the predicted mean -(1/B) sum_x W_G(p_x) grad p_x
     onestep    H2: average the change in every p_x over many independent
@@ -32,6 +36,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from synthetic_rl.diagnostics import (  # noqa: E402
     effective_step,
+    grad_sq_norms,
     interference,
     predicted_drift,
     success_jacobian,
@@ -40,7 +45,7 @@ from synthetic_rl.policy import Policy  # noqa: E402
 from synthetic_rl.synthetic_task import SyntheticTask, verify  # noqa: E402
 from synthetic_rl.theory import advantage_gap  # noqa: E402
 from synthetic_rl.trainer import Trainer, calculate_advantages  # noqa: E402
-from synthetic_rl.warmstart import set_tabular_success, supervised_warmstart  # noqa: E402
+from synthetic_rl.warmstart import mixed_targets, set_tabular_success, supervised_warmstart  # noqa: E402
 
 DEFAULTS = {
     "mode": "train",
@@ -56,7 +61,9 @@ DEFAULTS = {
     "reward_noise": 0.0,
     "steps": 3000, "log_every": 50, "snapshot_every": 500,
     "diagnostics": True, "subset": 128,
-    "R": 2000, "probe": 32,
+    "R": 2000, "probe": 32, "chunks": 1,
+    "update": "sampled", "p_start": None, "drift_every": 0,
+    "mix": 0.5, "sft_steps": 200,
     "seed": 0,
 }
 
@@ -104,6 +111,15 @@ def build(cfg):
             lr=cfg.get("sft_lr", 0.5), direction=direction,
         )
         cfg["_warmstart"] = {"steps": steps, "mean_success": reached}
+    elif init == "sft_mixed":
+        # Correct answers on a random share of prompts, decoys on the rest, for a
+        # fixed number of steps: with shared parameters this spreads p widely.
+        targets = mixed_targets(train[1], cfg["K"], cfg["mix"], rng)
+        steps, reached = supervised_warmstart(
+            policy, train[0], targets, 2.0, train[1], lr=cfg.get("sft_lr", 0.5),
+            max_steps=cfg["sft_steps"], direction="up",
+        )
+        cfg["_warmstart"] = {"steps": steps, "mean_success": reached}
     elif init != "uniform":
         raise ValueError(f"unknown init {init}")
 
@@ -130,6 +146,23 @@ def make_optimizer(cfg, policy):
     if cfg["optimizer"] == "adam":
         return torch.optim.Adam(policy.parameters(), lr=cfg["eta"])
     raise ValueError(f"unknown optimizer {cfg['optimizer']}")
+
+
+def expected_step(policy, optimizer, prompts, correct, cfg):
+    """One step on the exact expected GRPO update, -mean_x W_G(p_x) grad p_x.
+
+    Same normalization as the sampled loss -(A * log pi).mean() over (B, G),
+    whose expected gradient is exactly this (H1).
+    """
+    p = policy.success_probability(prompts, correct)
+    W = torch.as_tensor(advantage_gap(p.detach().numpy(), cfg["G"], cfg["rule"], passk=cfg["passk"]), dtype=p.dtype)
+    loss = -(W * p).mean()
+    optimizer.zero_grad(set_to_none=True)
+    loss.backward()
+    optimizer.step()
+    with torch.no_grad():
+        after = policy.success_probability(prompts, correct)
+    return int((after < p.detach()).sum().item())
 
 
 def summarize(p, p_init):
@@ -163,8 +196,16 @@ def run_train(cfg):
         kl_direction=cfg["kl"], seed=cfg["seed"], passk=cfg["passk"],
         reward_noise=cfg["reward_noise"],
     )
+    if cfg["p_start"] is not None:
+        # The trainer has frozen the reference at p_ref; start the policy elsewhere.
+        set_tabular_success(policy, train[1], float(cfg["p_start"]))
+        p_init = success(policy, train)
+        out["p_init"] = p_init.astype(np.float32).tolist()
+    if cfg["update"] != "sampled" and (cfg["beta"] > 0 or cfg["reward_noise"] > 0):
+        raise ValueError("expected updates support beta = 0 and an exact verifier only")
 
     n = len(train[0])
+    checkpoints = {}
     absorbed_at = np.full(n, -1, dtype=np.int64)
     min_p = p_init.copy()
     history, snapshots = [], {}
@@ -189,13 +230,31 @@ def run_train(cfg):
         history.append(record)
         if step % cfg["snapshot_every"] == 0 or step == cfg["steps"]:
             snapshots[str(step)] = np.round(p, 6).astype(np.float32).tolist()
+        if cfg["drift_every"] and step % cfg["drift_every"] == 0 and step < cfg["steps"]:
+            d = predicted_drift(policy, prompts_t, correct_t, cfg["rule"], cfg["G"], cfg["eta"], passk=cfg["passk"])
+            W = advantage_gap(p, cfg["G"], cfg["rule"], passk=cfg["passk"])
+            own = cfg["eta"] / n * W * grad_sq_norms(policy, prompts_t, correct_t)
+            checkpoints[str(step)] = {
+                "drift": d.numpy().astype(np.float32).tolist(),
+                "own": own.astype(np.float32).tolist(),
+            }
 
     log(0)
     for step in range(1, cfg["steps"] + 1):
-        idx = trainer.rng.integers(n, size=cfg["B"])
-        metrics = trainer.train_step(train[0][idx], train[1][idx])
-        informative.append(metrics["informative_before"])
-        expected.append(metrics["expected_informative_before"])
+        if cfg["update"] == "sampled":
+            idx = trainer.rng.integers(n, size=cfg["B"])
+            metrics = trainer.train_step(train[0][idx], train[1][idx])
+            informative.append(metrics["informative_before"])
+            expected.append(metrics["expected_informative_before"])
+        else:
+            if cfg["update"] == "expected":
+                idx = trainer.rng.integers(n, size=cfg["B"])
+                batch = (prompts_t[idx], correct_t[idx])
+            elif cfg["update"] == "expected_full":
+                batch = (prompts_t, correct_t)
+            else:
+                raise ValueError(f"unknown update {cfg['update']}")
+            trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg)
         if step % cfg["log_every"] == 0 or step == cfg["steps"]:
             log(step)
 
@@ -206,6 +265,8 @@ def run_train(cfg):
         "min_p": min_p.astype(np.float32).tolist(),
         "decreases_total": trainer.decreases,
     })
+    if checkpoints:
+        out["checkpoints"] = checkpoints
     return out
 
 
@@ -227,8 +288,13 @@ def run_gradcheck(cfg):
     torch.manual_seed(cfg["seed"] + 1)
     total = torch.zeros_like(predicted)
     total_sq = torch.zeros_like(predicted)
-    R = cfg["R"]
-    for _ in range(R):
+    R, C = cfg["R"], cfg["chunks"]
+    if R % C:
+        raise ValueError("R must be a multiple of chunks")
+    chunk_sums = torch.zeros(C, predicted.numel(), dtype=predicted.dtype)
+    # Projection of each sample on the predicted direction: an exactly 1-D statistic.
+    proj = torch.zeros(R, dtype=predicted.dtype)
+    for r in range(R):
         responses = policy.sample(prompts, cfg["G"])
         rewards = torch.as_tensor(verify(responses.numpy(), correct.numpy()), dtype=prompts.dtype)
         A = calculate_advantages(rewards, kind=cfg["rule"], passk=cfg["passk"])
@@ -236,13 +302,34 @@ def run_gradcheck(cfg):
         g = flat_grad(loss, policy)
         total += g
         total_sq += g * g
+        chunk_sums[r * C // R] += g
+        proj[r] = g @ predicted
 
     mean = total / R
     se = ((total_sq / R - mean**2).clamp(min=0) / (R - 1)).sqrt()
     norm = predicted.norm().item()
     mask = se > 0
     z = (mean - predicted)[mask] / se[mask]
+
+    # Relative bias along the prediction: b = (m - pred).pred / |pred|^2.
+    pp = predicted @ predicted
+    extra = {}
+    if C > 1:
+        extra["bias_par"] = ((proj.mean() - pp) / pp).item()
+        extra["bias_par_se"] = (proj.std() / np.sqrt(R) / pp).item()
+        # Null for mean z^2 with the same coordinate correlation: half of the
+        # chunks against the other half, each half-mean has twice the variance.
+        chunk_means = chunk_sums / (R // C)
+        rng = np.random.default_rng(cfg["seed"] + 2)
+        null = []
+        for _ in range(50):
+            half = rng.permutation(C)[: C // 2]
+            other = np.setdiff1d(np.arange(C), half)
+            diff = chunk_means[half].mean(dim=0) - chunk_means[other].mean(dim=0)
+            null.append(((diff[mask] / (2 * se[mask])) ** 2).mean().item())
+        extra["mean_z2_null"] = null
     return {
+        **extra,
         "p_probe": p.numpy().astype(np.float32).tolist(),
         "pred_norm": norm,
         "rel_err": (mean - predicted).norm().item() / norm,

@@ -36,6 +36,15 @@ def success_jacobian(policy, prompts, correct):
     return p, J
 
 
+def grad_sq_norms(policy, prompts, correct, chunk=128):
+    """||grad p_x||^2 for every prompt, in chunks to bound the Jacobian's memory."""
+    out = [
+        (success_jacobian(policy, prompts[i:i + chunk], correct[i:i + chunk])[1] ** 2).sum(dim=1)
+        for i in range(0, prompts.shape[0], chunk)
+    ]
+    return torch.cat(out).numpy()
+
+
 def interference(policy, prompts, correct, subset=128, seed=0):
     """Interference measures from the gradient Gram matrix on a prompt subset.
 

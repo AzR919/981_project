@@ -74,3 +74,14 @@ def supervised_warmstart(policy, prompts, targets, target_success, correct,
         success = mean_success()
 
     return max_steps, success
+
+
+def mixed_targets(correct, num_tokens, frac, rng):
+    """Correct answers for a random share frac of prompts, decoys for the rest.
+
+    A decoy shifts every correct token by one. Supervised training on these
+    targets with shared parameters spreads success widely across prompts.
+    """
+    correct = np.asarray(correct)
+    keep = rng.random(len(correct)) < frac
+    return np.where(keep[:, None], correct, (correct + 1) % num_tokens)
