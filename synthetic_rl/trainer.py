@@ -17,6 +17,8 @@ Run the example from the project root:
     python3.12 -m synthetic_rl.trainer
 """
 
+import math
+
 import numpy as np
 import torch
 
@@ -24,11 +26,36 @@ from .policy import Policy
 from .synthetic_task import SyntheticTask, verify
 
 
-def calculate_advantages(rewards, kind="grpo", epsilon=1e-5):
-    """Return advantages shaped (B, G) from binary rewards."""
+ADVANTAGES = ("grpo", "mean", "rloo", "passk", "maxrl", "sign")
+
+
+def log_comb(n, k):
+    """log C(n, k) elementwise, -inf where k > n."""
+    n = n.to(torch.float64)
+    value = (
+        torch.lgamma(n + 1)
+        - torch.lgamma(torch.tensor(k + 1.0, dtype=torch.float64))
+        - torch.lgamma((n - k + 1).clamp(min=1))
+    )
+    return torch.where(n >= k, value, torch.full_like(value, -torch.inf))
+
+
+def calculate_advantages(rewards, kind="grpo", epsilon=1e-5, passk=None):
+    """Return advantages shaped (B, G) from binary rewards.
+
+    grpo:  (r - mean) / sqrt(mean (1 - mean) + epsilon)
+    mean:  r - mean (Dr. GRPO)
+    rloo:  r - mean of the other G - 1 rewards
+    passk: GRPO advantage reweighted for pass@k (Thrampoulidis et al.,
+           combinatorial form of their Eq. 14); needs passk = k <= G
+    maxrl: G r / K - 1 with K correct samples, 0 if K = 0 (MaxRL; equal to
+           reward budgeting for binary rewards)
+    sign:  2 r - 1, a fixed baseline (Nie et al.); not zero-sum
+    """
     if rewards.ndim != 2 or rewards.shape[1] < 2:
         raise ValueError("rewards must have shape (B, G), with G >= 2")
 
+    group_size = rewards.shape[1]
     group_mean = rewards.mean(dim=1, keepdim=True)
     centered = rewards - group_mean
 
@@ -36,19 +63,37 @@ def calculate_advantages(rewards, kind="grpo", epsilon=1e-5):
         return centered
 
     if kind == "rloo":
-        group_size = rewards.shape[1]
         other_mean = (
             rewards.sum(dim=1, keepdim=True) - rewards
         ) / (group_size - 1)
 
         return rewards - other_mean
 
-    if kind == "grpo":
-        # Population variance for binary rewards; no Bessel correction.
-        variance = group_mean * (1 - group_mean)
-        return centered / torch.sqrt(variance + epsilon)
+    # Population variance for binary rewards; no Bessel correction.
+    grpo = centered / torch.sqrt(group_mean * (1 - group_mean) + epsilon)
 
-    raise ValueError("kind must be 'grpo', 'mean', or 'rloo'")
+    if kind == "grpo":
+        return grpo
+
+    if kind == "passk":
+        if passk is None or not 1 <= passk <= group_size:
+            raise ValueError("passk needs 1 <= k <= G")
+        n_wrong = group_size - rewards.sum(dim=1, keepdim=True)
+        log_total = math.lgamma(group_size) - math.lgamma(passk) - math.lgamma(group_size - passk + 1)
+        # Probability that the other k - 1 samples are all wrong.
+        f_pos = torch.exp(log_comb(n_wrong, passk - 1) - log_total)
+        f_neg = torch.exp(log_comb(n_wrong - 1, passk - 1) - log_total)
+        return torch.where(rewards == 1, f_pos, f_neg).to(rewards.dtype) * grpo
+
+    if kind == "maxrl":
+        num_correct = rewards.sum(dim=1, keepdim=True)
+        scaled = group_size * rewards / num_correct.clamp(min=1) - 1
+        return torch.where(num_correct > 0, scaled, torch.zeros_like(scaled))
+
+    if kind == "sign":
+        return 2 * rewards - 1
+
+    raise ValueError(f"kind must be one of {ADVANTAGES}")
 
 
 class Trainer:
@@ -63,11 +108,17 @@ class Trainer:
         beta=0.0,
         kl_direction="reverse",
         seed=0,
+        passk=None,
+        reward_noise=0.0,
     ):
         if group_size < 2:
             raise ValueError("group_size must be >= 2")
-        if advantage not in ("grpo", "mean", "rloo"):
+        if advantage not in ADVANTAGES:
             raise ValueError("Unknown advantage type")
+        if advantage == "passk" and not (passk and 1 <= passk <= group_size):
+            raise ValueError("passk needs 1 <= k <= group_size")
+        if not 0 <= reward_noise < 0.5:
+            raise ValueError("reward_noise must be in [0, 0.5)")
         if not np.isfinite(beta) or beta < 0:
             raise ValueError("beta must be finite and >= 0")
         if kl_direction not in ("reverse", "forward"):
@@ -79,6 +130,9 @@ class Trainer:
         self.advantage = advantage
         self.beta = beta
         self.kl_direction = kl_direction
+        self.passk = passk
+        # Probability that the verifier flips a reward (0 = exact verifier).
+        self.reward_noise = reward_noise
 
         self.device = next(policy.parameters()).device
 
@@ -90,6 +144,9 @@ class Trainer:
         self.rng = np.random.default_rng(seed)
         torch.manual_seed(seed)
 
+        # Per-prompt decreases of p within sampled batches, summed over steps.
+        self.decreases = 0
+
         self.steps = 0
         self.responses_sampled = 0
 
@@ -97,7 +154,7 @@ class Trainer:
         """Convert task arrays to tensors on the policy's device."""
         prompts = torch.as_tensor(
             prompts,
-            dtype=torch.float32,
+            dtype=next(self.policy.parameters()).dtype,
             device=self.device,
         )
         correct = torch.as_tensor(
@@ -128,24 +185,36 @@ class Trainer:
         )
         rewards = torch.as_tensor(
             reward_array,
-            dtype=torch.float32,
+            dtype=prompts.dtype,
             device=self.device,
         )
+        if self.reward_noise > 0:
+            flips = self.rng.random(reward_array.shape) < self.reward_noise
+            rewards = torch.where(
+                torch.as_tensor(flips, device=self.device),
+                1 - rewards,
+                rewards,
+            )
 
         advantages = calculate_advantages(
             rewards,
             kind=self.advantage,
+            passk=self.passk,
         ).detach()
 
         # Shape: (B, G). Token log-probabilities are already summed.
         log_probs = self.policy.log_prob(prompts, responses)
         policy_loss = -(advantages * log_probs).mean()
 
-        kl = self.policy.kl_divergence(
-            prompts,
-            self.reference,
-            direction=self.kl_direction,
-        ).mean()
+        if self.beta > 0:
+            kl = self.policy.kl_divergence(
+                prompts,
+                self.reference,
+                direction=self.kl_direction,
+            ).mean()
+        else:
+            # Skip the reference forward pass when it has no effect.
+            kl = torch.zeros((), dtype=prompts.dtype, device=self.device)
 
         loss = policy_loss + self.beta * kl
 
@@ -177,6 +246,12 @@ class Trainer:
         self.optimizer.zero_grad(set_to_none=True)
         loss.backward()
         self.optimizer.step()
+
+        with torch.no_grad():
+            success_after = self.policy.success_probability(prompts, correct)
+            decreases = int((success_after < success).sum().item())
+        self.decreases += decreases
+        metrics["decreases"] = decreases
 
         self.steps += 1
         self.responses_sampled += prompts.shape[0] * self.group_size

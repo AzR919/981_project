@@ -230,3 +230,7 @@ latex/*.synctex.gz
 latex/*.toc
 
 .DS_Store
+
+# Experiment outputs (large; fetched from the lab machines)
+results/
+jobs_*.jsonl

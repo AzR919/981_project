@@ -31,8 +31,16 @@ class Policy(nn.Module):
         num_tokens=4,
         response_length=2,
         hidden_size=128,
+        arch="mlp",
     ):
+        """arch "mlp": two ReLU layers of width hidden_size.
+        arch "linear": logits = W x with no bias, so one-hot prompts give a
+        tabular policy and no parameter is shared between them.
+        """
         super().__init__()
+
+        if arch not in ("mlp", "linear"):
+            raise ValueError("arch must be 'mlp' or 'linear'")
 
         if num_features < 1:
             raise ValueError("num_features must be >= 1")
@@ -46,23 +54,31 @@ class Policy(nn.Module):
         self.num_features = num_features
         self.num_tokens = num_tokens
         self.response_length = response_length
+        self.arch = arch
 
-        self.features = nn.Sequential(
-            nn.Linear(num_features, hidden_size),
-            nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
-            nn.ReLU(),
-        )
-
-        # Predict K token scores for each of the L positions.
-        self.output = nn.Linear(
-            hidden_size,
-            response_length * num_tokens,
-        )
+        if arch == "mlp":
+            self.features = nn.Sequential(
+                nn.Linear(num_features, hidden_size),
+                nn.ReLU(),
+                nn.Linear(hidden_size, hidden_size),
+                nn.ReLU(),
+            )
+            # Predict K token scores for each of the L positions.
+            self.output = nn.Linear(
+                hidden_size,
+                response_length * num_tokens,
+            )
+            nn.init.zeros_(self.output.bias)
+        else:
+            self.features = nn.Identity()
+            self.output = nn.Linear(
+                num_features,
+                response_length * num_tokens,
+                bias=False,
+            )
 
         # Equal initial logits give uniform token probabilities.
         nn.init.zeros_(self.output.weight)
-        nn.init.zeros_(self.output.bias)
 
     def forward(self, prompts):
         """Return unnormalized token scores shaped (B, L, K).
