@@ -218,8 +218,9 @@ def main():
         import bitsandbytes as bnb
 
         optimizer = bnb.optim.AdamW8bit(trainable, lr=args.lr, betas=(0.9, 0.999), weight_decay=0.0)
+    # Prompts are ~200 tokens and completions <= max_tokens; a short context keeps vLLM's KV reserve small.
     llm = LLM(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
-              enable_prefix_caching=True)
+              enable_prefix_caching=True, max_model_len=args.max_tokens + 1024)
 
     rng = np.random.default_rng(args.seed)
     step = 0

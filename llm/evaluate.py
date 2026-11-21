@@ -62,7 +62,8 @@ def main():
     if args.limit:
         problems = problems[: args.limit]
 
-    llm = LLM(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed)
+    llm = LLM(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
+              max_model_len=args.max_tokens + 1024)
     tokenizer = llm.get_tokenizer()
     t0 = time.time()
     counts, tokens = sample_counts(llm, tokenizer, problems, args.n, args.max_tokens, args.seed)
