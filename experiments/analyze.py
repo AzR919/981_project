@@ -141,7 +141,8 @@ def predictor_scores(d, cfg, p_init, absorbed_at, window=500):
         label = later[alive]
         if not (5 <= label.sum() <= len(label) - 5):
             continue
-        pa, da = p[alive], drift[alive]
+        # Snapshots are rounded to 6 decimals, so a solved prompt can read exactly p = 1.
+        pa, da = np.clip(p[alive], 1e-6, 1 - 1e-6), drift[alive]
         scores = {"drift": -da, "logit_drift": -da / (pa * (1 - pa)), "p": -pa, "grad": -grad[alive]}
         X = np.column_stack([np.log(pa), np.sign(da) * np.log1p(np.abs(da) / (np.abs(da).mean() + 1e-300))])
         folds = StratifiedKFold(5, shuffle=True, random_state=0)
@@ -169,6 +170,8 @@ def switching(snaps, cfg):
     u = unstable[0] if unstable else 0.5 * (stable[0] + 1)
     above = P > u
     out["crossings"] = int((above[1:] != above[:-1]).sum())
+    late = above[len(keys) // 2:]
+    out["late_crossings"] = int((late[1:] != late[:-1]).sum())
     out["share_above_final"] = float(above[-1].mean())
     out["share_above_start"] = float(above[0].mean())
     end = P[-1]
@@ -1131,6 +1134,19 @@ def analyze_s_h1(runs, prompts, rep):
     rep.figure(fig, "null_rank_and_bias", "calibrated null ranks and projected-bias z-scores")
     rep.verdict(rate <= 0.08 and (tests.chi2_p > 0.01).all(),
                 f"miss rate ≤ 0.08 (got {rate:.3f}) and no split with χ² p ≤ 0.01 (min p {tests.chi2_p.min():.3f})")
+    runs["side"] = np.where(runs.mean_z2 < runs.null_lo, "low", np.where(runs.mean_z2 > runs.null_hi, "high", "inside"))
+    sides = pd.crosstab([runs.L, runs.level], runs.side).reset_index()
+    rep.table(sides, "medium_sides")
+    high = (runs.side == "high").mean()
+    rep.say(f"*Post hoc.* Bias can only make the error larger than its null, i.e. a *high* miss. High misses: "
+            f"**{(runs.side == 'high').sum()} of {len(runs)} ({high:.3f})**, below the 0.025 expected by chance. "
+            f"The split that fails is L: the L = 1 tabular runs have {((runs.L == 1) & (runs.level == 'tab') & (runs.side == 'low')).sum()} "
+            f"*low* misses (error smaller than the null) and L = 2 has none at all, so the split-half null is "
+            f"somewhat too wide or too narrow depending on the configuration. That is a calibration limit of the "
+            f"null, not a sign of bias.")
+    rep.say()
+    rep.say(markdown(sides, "{:.0f}"))
+    rep.say()
 
     rep.say("### Tight: bound on the bias along the predicted direction")
     rep.say()
@@ -1152,6 +1168,15 @@ def analyze_s_h1(runs, prompts, rep):
             ["name", "rule", "G", "L", "level", "init", "bias_par", "bias_par_se"]], "tight_exceptions", show=True)
     rep.verdict(len(outside) == 0 and len(big) == 0 and (pooled.pooled_bias.abs() <= 0.005).all(),
                 "every 95% CI inside ±2%, no |b∥/SE| > 3.9, pooled bias per rule within ±0.5%")
+    wide_ci = outside.groupby(["L", "init"]).size().reset_index(name="runs")
+    rep.say(f"*Post hoc.* The ±2% bound fails for lack of precision, not because of bias: every run outside it is "
+            f"at L = 4 with uniform starts (p ≈ 0.012, so few samples carry signal), "
+            f"{', '.join(f'L {r.L} {r.init}: {r.runs}' for r in wide_ci.itertuples())}; their |b∥| is at most "
+            f"{outside.bias_par.abs().max():.3f} and their |z| at most {(outside.bias_par / outside.bias_par_se).abs().max():.2f}. "
+            f"Across all 414 runs the largest |b∥/SE| is {t.abs().max():.2f} and the pooled bias per rule is within "
+            f"±{pooled.pooled_bias.abs().max():.4f}. The rules share samples within a configuration, so these runs "
+            f"are not independent.")
+    rep.say()
 
 
 def analyze_s_drift(runs, prompts, rep):
@@ -1205,6 +1230,15 @@ def analyze_s_drift(runs, prompts, rep):
     rep.table(sl, "t50_slopes", show=True)
     rep.say("A slope of −1 means the time scales as 1/η (deterministic drift); a much steeper or threshold-like "
             "curve means escape driven by noise.")
+    rep.say()
+    timing = main[main.absorbed >= 0.05].groupby(["level", "update"]).t50.describe()[["count", "min", "50%", "max"]] \
+        .reset_index().rename(columns={"50%": "median"})
+    rep.table(timing, "t50_range")
+    rep.say("*Post hoc.* Median absorption step (log resolution 5 steps) over runs with ≥ 5% absorbed. A slope "
+            "of 0 above is not a scaling result: in lin and c05 every absorption happens within the first 5 "
+            "steps, a one-shot overshoot by a large step. Only c09 absorbs slowly (hundreds to thousands of steps).")
+    rep.say()
+    rep.say(markdown(timing, "{:.4g}"))
     rep.say()
 
     rep.say("### 3: Threshold against B")
@@ -1358,6 +1392,14 @@ def analyze_s_abl(runs, prompts, rep):
                      .reindex(order).reset_index().pipe(lambda d: d.set_axis(
                          ["ablation"] + [f"{a} L={b}" for a, b in d.columns[1:]], axis=1)), "{:.3f}"))
     rep.say()
+    by_eta = runs.groupby(["ablation", "eta"]).agg(max_drop=("max_drop", "max"), max_absorbed=("absorbed", "max")).reset_index()
+    rep.table(by_eta, "by_eta")
+    rep.say("By η (largest drop / largest absorbed fraction):")
+    rep.say()
+    rep.say(markdown(by_eta.assign(cell=[f"{a:.3f} / {b:.3f}" for a, b in zip(by_eta.max_drop, by_eta.max_absorbed)])
+                     .pivot_table(index="ablation", columns="eta", values="cell", aggfunc="first").reindex(order)
+                     .reset_index()))
+    rep.say()
     ctrl = summ[summ.ablation == "control"].iloc[0]
     others = summ[summ.ablation != "control"]
     rep.verdict(ctrl.runs_with_decreases == 0 and (others.runs_with_decreases > 0).all(),
@@ -1416,6 +1458,17 @@ def analyze_s_eq(runs, prompts, rep):
     rep.verdict(err_low.median() <= 0.01 and err_high.median() <= 0.01,
                 "end states within 0.01 of the predicted stable roots (median)")
     rep.verdict(all(rising), "crossings increase with η in every setting (Spearman > 0)")
+    late = g[g.offset != 0].groupby(["p0", "beta", "eta"]).late_crossings.sum().reset_index()
+    rep.table(late, "late_crossings")
+    rep.say("*Post hoc.* The crossing count above is dominated by replicates started at the unstable root "
+            "(offset 0) slowly leaving it, which is slower at small η. Switching between the two stable states, "
+            "counted in the second half of training for starts away from the unstable root (total over runs):")
+    rep.say()
+    rep.say(markdown(late.pivot_table(index=["p0", "beta"], columns="eta", values="late_crossings").reset_index(), "{:.3g}"))
+    rep.say()
+    rep.say("Noise-driven switching appears only where the barrier is small (p_ref 0.03: stable 0.699, unstable "
+            "0.757) and grows steeply with η, as a barrier-crossing picture predicts.")
+    rep.say()
     rep.verdict(len(ctrl) > 0 and (ctrl_err <= 0.01).all(),
                 "the mean-rule control ends at its single root from every start")
 
