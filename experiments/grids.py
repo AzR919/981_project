@@ -364,12 +364,32 @@ def v3_t4_edge():
                    level=level)
 
 
+PASSK_RULES = [("grpo", None), ("mean", None)] + [(r, k) for r in ("passk", "rloo_k") for k in (2, 4, 8)]
+
+
+def v3_t10():
+    """Shelf 2: pass@k training rules (biased GRPO_k, unbiased RLOO_k) against grpo and mean."""
+    levels = {
+        "tab": (dict(features="onehot", init="tabular", p0="spread"), (3, 30, 300)),
+        "lin": (dict(SHARING["lin"], **T5_SFT["lin"], init="sft_mixed", majority=1 / 3), (100, 300, 1000)),
+        "m64": (dict(SHARING["m64"], **T5_SFT["m64"], init="sft_mixed", majority=1 / 3), (0.3, 1, 3)),
+        "minority": (dict(arch="linear", features="correlated", rho=0.9, majority=0.9), (0.03, 0.3, 1)),
+    }
+    for (level, (setup, etas)), (rule, k), G, eta, seed in itertools.product(
+        levels.items(), PASSK_RULES, (8, 32), (0, 1, 2), range(10)
+    ):
+        unit = dict(seed=seed) if level == "tab" else dict(task_seed=seed, seed=0)
+        yield dict(setup, **unit, L=1, K=3, G=G, B=256 // G, rule=rule, passk=k, eta=etas[eta], steps=5000,
+                   log_every=250, snapshot_every=5000, track_every=5, diagnostics=False, level=level)
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
     "v3a": [("v3_t1", v3_t1), ("v3_t2", v3_t2), ("v3_t4", v3_t4), ("v3_t6", v3_t6), ("v3_t8", v3_t8)],
     "v3b": [("v3_t5", v3_t5), ("v3_t7", v3_t7), ("v3_t9", v3_t9), ("v3_t1s1", v3_t1_seed1),
             ("v3_t2g", v3_t2_groups), ("v3_t6kl", v3_t6_kl), ("v3_t4e", v3_t4_edge)],
+    "v3c": [("v3_t10", v3_t10)],
 }
 
 

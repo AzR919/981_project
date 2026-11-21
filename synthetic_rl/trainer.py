@@ -26,7 +26,7 @@ from .policy import Policy
 from .synthetic_task import SyntheticTask, verify
 
 
-ADVANTAGES = ("grpo", "mean", "rloo", "passk", "maxrl", "sign", "heckel", "virtual", "pm_alpha", "nsr")
+ADVANTAGES = ("grpo", "mean", "rloo", "passk", "rloo_k", "maxrl", "sign", "heckel", "virtual", "pm_alpha", "nsr")
 
 
 def log_comb(n, k):
@@ -47,7 +47,9 @@ def calculate_advantages(rewards, kind="grpo", epsilon=1e-5, passk=None, alpha=0
     mean:  r - mean (Dr. GRPO)
     rloo:  r - mean of the other G - 1 rewards
     passk: GRPO advantage reweighted for pass@k (Thrampoulidis et al.,
-           combinatorial form of their Eq. 14); needs passk = k <= G
+           combinatorial form of their Eq. 14; their GRPO_K, biased); needs passk = k <= G
+    rloo_k: the same leave-one-out Fail@(k-1) weights on the RLOO advantage
+           (their RLOO_K, Eq. 17): an unbiased estimate of grad pass@k
     maxrl: G r / K - 1 with K correct samples, 0 if K = 0 (MaxRL; equal to
            reward budgeting for binary rewards)
     sign:  2 r - 1, a fixed baseline (Nie et al.); not zero-sum
@@ -85,7 +87,7 @@ def calculate_advantages(rewards, kind="grpo", epsilon=1e-5, passk=None, alpha=0
     if kind == "grpo":
         return grpo
 
-    if kind == "passk":
+    if kind in ("passk", "rloo_k"):
         if passk is None or not 1 <= passk <= group_size:
             raise ValueError("passk needs 1 <= k <= G")
         n_wrong = group_size - rewards.sum(dim=1, keepdim=True)
@@ -93,7 +95,8 @@ def calculate_advantages(rewards, kind="grpo", epsilon=1e-5, passk=None, alpha=0
         # Probability that the other k - 1 samples are all wrong.
         f_pos = torch.exp(log_comb(n_wrong, passk - 1) - log_total)
         f_neg = torch.exp(log_comb(n_wrong - 1, passk - 1) - log_total)
-        return torch.where(rewards == 1, f_pos, f_neg).to(rewards.dtype) * grpo
+        base = grpo if kind == "passk" else rewards - (rewards.sum(dim=1, keepdim=True) - rewards) / (group_size - 1)
+        return torch.where(rewards == 1, f_pos, f_neg).to(rewards.dtype) * base
 
     if kind == "maxrl":
         num_correct = rewards.sum(dim=1, keepdim=True)
@@ -146,7 +149,7 @@ class Trainer:
             raise ValueError("group_size must be >= 2")
         if advantage not in ADVANTAGES:
             raise ValueError("Unknown advantage type")
-        if advantage == "passk" and not (passk and 1 <= passk <= group_size):
+        if advantage in ("passk", "rloo_k") and not (passk and 1 <= passk <= group_size):
             raise ValueError("passk needs 1 <= k <= group_size")
         if not 0 <= reward_noise < 0.5:
             raise ValueError("reward_noise must be in [0, 0.5)")
