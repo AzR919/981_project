@@ -37,8 +37,26 @@ def subset(counts, ids):
     return {i: counts[i] for i in ids if i in counts}
 
 
+def check_counts(name, counts, ids, n=256):
+    """Every expected problem present with exactly n samples (no partial or truncated evaluations)."""
+    missing = [i for i in ids if i not in counts]
+    wrong_n = [i for i in ids if i in counts and counts[i][2] != n]
+    if missing or wrong_n:
+        raise SystemExit(f"{name}: {len(missing)} problems missing, {len(wrong_n)} with n != {n}; refusing to score")
+
+
+def check_run(path, steps):
+    """The run finished its pre-registered number of steps; returns its seed."""
+    config = json.load(open(os.path.join(path, "run", "config.json")))
+    last = [json.loads(line) for line in open(os.path.join(path, "run", "log.jsonl"))][-1]["step"]
+    if config["steps"] != steps or last != steps:
+        raise SystemExit(f"{path}: configured {config['steps']} steps, logged {last}; expected {steps}")
+    return config["seed"]
+
+
 def run_row(label, path, base0, train, held, r0, n_train):
     after = load(os.path.join(path, "after_n256.json.gz"))
+    check_counts(path, after, train + held)
     tr = compare(subset(base0, train), subset(after, train), FDR)
     ho = compare(subset(base0, held), subset(after, held), FDR)
     gains = compare(subset(after, train), subset(base0, train), FDR)
@@ -72,10 +90,13 @@ def main():
     parser.add_argument("--primary", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--csv", required=True)
+    parser.add_argument("--steps", type=int, default=500)
     args = parser.parse_args()
 
     base0, base1 = load(args.base0), load(args.base1)
     train, held = json.load(open(args.train_ids)), json.load(open(args.heldout_ids))
+    check_counts(args.base0, base0, train + held)
+    check_counts(args.base1, base1, train + held)
     null = compare(subset(base0, train), subset(base1, train), FDR)
     L0, n = int(null.lost.sum()), len(null)
     r0 = (L0 + 1) / (n + 1)
@@ -83,7 +104,11 @@ def main():
     rows, tables = [], {}
     for item in args.arm:
         label, dirs = item.split("=", 1)
-        for path in [d for d in dirs.split(",") if d]:
+        paths = [d for d in dirs.split(",") if d]
+        seeds = [check_run(p, args.steps) for p in paths]
+        if len(set(seeds)) != len(seeds):
+            raise SystemExit(f"arm {label}: repeated seeds {seeds}")
+        for path in paths:
             row, tr = run_row(label, path, base0, train, held, r0, n)
             rows.append(row)
             tables[(label, row["run"])] = tr
@@ -100,11 +125,12 @@ def main():
              "## Runs", "", markdown(runs.drop(columns=["run"])), ""]
 
     primary = runs[runs.arm == args.primary].sort_values("p_binom")
-    p_family = float(primary.p_binom.iloc[1]) if len(primary) >= 2 else np.nan
+    p_family = float(primary.p_binom.iloc[1]) if len(primary) == 3 else np.nan
     lines += ["## P4 for this family", "",
               f"Primary arm `{args.primary}`: seed p-values {', '.join(f'{p:.3g}' for p in primary.p_binom)}; "
               f"p_family (second smallest) = {p_family:.3g}. "
-              f"**{'PASS' if p_family < 0.05 else 'FAIL'}** for this family (P4 needs both families).", ""]
+              + (f"**{'PASS' if p_family < 0.05 else 'FAIL'}** for this family (P4 needs both families)."
+                 if len(primary) == 3 else f"**UNTESTABLE**: {len(primary)} of 3 seeds available."), ""]
 
     # Secondary: base p-hat of lost problems, cross-seed overlap.
     lines += ["## Secondary (exploratory)", ""]

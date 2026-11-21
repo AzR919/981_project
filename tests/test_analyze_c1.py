@@ -35,7 +35,8 @@ class AnalyzeC1Tests(unittest.TestCase):
                 after = {i: ([0, 256, 256] if k < n_lost else [64, 256, 256]) for k, i in enumerate(ids + held)}
                 write_counts(f"{d}/after_n256.json.gz", after)
                 with open(f"{d}/run/log.jsonl", "w") as f:
-                    f.write(json.dumps({"step": 1, "reward": 0.5, "length": 200}) + "\n")
+                    f.write(json.dumps({"step": 500, "reward": 0.5, "length": 200}) + "\n")
+                json.dump({"steps": 500, "seed": seed}, open(f"{d}/run/config.json", "w"))
                 dirs.append(d)
             subprocess.run([sys.executable, f"{ROOT}/llm/analyze_c1.py", "--name", "t", "--base0", f"{tmp}/b0.json.gz",
                             "--base1", f"{tmp}/b1.json.gz", "--train-ids", f"{tmp}/train.json", "--heldout-ids",
@@ -46,6 +47,20 @@ class AnalyzeC1Tests(unittest.TestCase):
             self.assertEqual(runs.lost_heldout.tolist(), [0, 0, 0])
             text = open(f"{tmp}/out.md").read()
             self.assertIn("**PASS**", text)  # 2 of 3 seeds far above the null rate 1/201
+
+    def test_partial_inputs_are_refused(self):
+        ids = [f"train-{i}" for i in range(10)]
+        with tempfile.TemporaryDirectory() as tmp:
+            write_counts(f"{tmp}/b0.json.gz", {i: [5, 256, 256] for i in ids[:9]})  # one problem missing
+            write_counts(f"{tmp}/b1.json.gz", {i: [5, 256, 256] for i in ids})
+            json.dump(ids[:8], open(f"{tmp}/train.json", "w"))
+            json.dump(ids[8:], open(f"{tmp}/held.json", "w"))
+            r = subprocess.run([sys.executable, f"{ROOT}/llm/analyze_c1.py", "--name", "t", "--base0", f"{tmp}/b0.json.gz",
+                                "--base1", f"{tmp}/b1.json.gz", "--train-ids", f"{tmp}/train.json", "--heldout-ids",
+                                f"{tmp}/held.json", "--arm", "a=x", "--primary", "a", "--out", f"{tmp}/o.md",
+                                "--csv", f"{tmp}/r.csv"], capture_output=True, text=True)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("refusing to score", r.stderr + r.stdout)
 
 
 if __name__ == "__main__":
