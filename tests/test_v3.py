@@ -118,5 +118,25 @@ class AllWrongRuleTests(unittest.TestCase):
         np.testing.assert_allclose(advantage_gap(p, G, "nsr"), 1.1)
 
 
+class PassAtKRuleTests(unittest.TestCase):
+    def test_rloo_k_gap_is_the_pass_at_k_weight(self):
+        from synthetic_rl.theory import advantage_gap
+
+        p = np.array([0.01, 0.1, 0.5, 0.9])
+        for K, G in ((2, 8), (4, 8), (8, 32)):
+            np.testing.assert_allclose(advantage_gap(p, G, "rloo_k", passk=K), (1 - p) ** (K - 1), rtol=1e-9)
+
+    def test_rloo_k_matches_monte_carlo(self):
+        from synthetic_rl.theory import advantage_gap
+        from synthetic_rl.trainer import calculate_advantages
+
+        rng = np.random.default_rng(0)
+        r = torch.tensor((rng.random((100000, 8)) < 0.2).astype(float))
+        A = calculate_advantages(r, "rloo_k", passk=4).numpy()
+        r = r.numpy()
+        self.assertAlmostEqual(A[r == 1].mean() - A[r == 0].mean(),
+                               advantage_gap(np.array([0.2]), 8, "rloo_k", passk=4)[0], delta=0.01)
+
+
 if __name__ == "__main__":
     unittest.main()
