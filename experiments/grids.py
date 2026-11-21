@@ -284,10 +284,92 @@ def v3_t8():
                            offset=offset, eta=eta, seed=0)
 
 
+T9_RULES = ("grpo", "mean", "heckel", "virtual", "pm_alpha", "nsr")
+
+
+# T5 warm-starts chosen (before launch) so that p_init has sd >= 0.25 on task seeds 0-2.
+T5_SFT = {"lin": dict(sft_steps=1000, sft_lr=8.0), "c05": dict(sft_steps=1000, sft_lr=2.0),
+          "c09": dict(sft_steps=500, sft_lr=1.0), "m64": dict(sft_steps=200, sft_lr=0.5)}
+
+
+def v3_t5():
+    """P3: does the initial drift predict absorbed prompts on balanced tasks, beyond rarity and p_init?"""
+    for level, task_seed in itertools.product(("lin", "c05", "c09", "m64"), TASK_SEEDS):
+        for f in (0.3, 1, 3, 10, 30):
+            yield dict(SHARING[level], **T5_SFT[level], majority=1 / 3, L=1, K=3, init="sft_mixed", rule="grpo",
+                       G=8, B=32,
+                       eta=BASE_ETA_STAR[(level, 1)] * f, task_seed=task_seed, seed=0, steps=5000, log_every=250,
+                       snapshot_every=500, drift_every=500, track_every=1, diagnostics=False, level=level)
+
+
+def v3_t7():
+    """H1 medium tier: bootstrap null for mean z^2 (the identity is exact, so ranks should be uniform)."""
+    for cfg in h1():
+        if cfg["rule"] == "grpo" and cfg["L"] in (1, 2) and cfg["G"] in (4, 8):
+            for seed in range(10):
+                yield dict(cfg, boot=200, seed=seed)
+
+
+def v3_t9():
+    """All-wrong-group fixes on the absorbing configurations of T1 (minority), T2 (kick) and T6 (noisy verifier)."""
+    for rule, task_seed in itertools.product(T9_RULES, TASK_SEEDS):
+        minority = dict(arch="linear", width=64, features="correlated", rho=0.9, majority=0.9, L=1, K=3, G=8,
+                        B=32, rule=rule, task_seed=task_seed, seed=0, track_every=5, diagnostics=False,
+                        optimizer="sgd", level="t1-minority")
+        for eta, update in itertools.product((0.1, 1), ("expected_full", "sampled")):
+            steps = flow_steps(eta)
+            yield dict(minority, eta=eta, update=update, steps=steps, log_every=max(steps // 20, 1),
+                       snapshot_every=steps)
+        kick = dict(SHARING["lin"], L=2, G=8, B=8, rule=rule, eta=300, task_seed=task_seed, seed=0, steps=3000,
+                    log_every=50, snapshot_every=3000, track_every=5, diagnostics=False, level="t2-kick")
+        for update in ("expected", "sampled"):
+            yield dict(kick, update=update)
+        for eta in (30, 300):
+            yield dict(features="onehot", init="tabular", p0="spread", L=1, G=8, B=32, rule=rule, eta=eta,
+                       reward_noise=0.2, seed=task_seed, steps=5000, log_every=50, snapshot_every=5000,
+                       track_every=5, diagnostics=False, level="t6-flip20")
+
+
+def v3_t1_seed1():
+    """Follow-up (a): T1 MLP cells again with a second initialisation seed."""
+    for cfg in v3_t1():
+        if cfg["arch"] == "mlp":
+            yield dict(cfg, seed=1)
+
+
+def v3_t2_groups():
+    """Follow-up (b): T2 at B = 8 with G in {4, 16, 64}: does response noise shrink as G grows?"""
+    for cfg in v3_t2():
+        if cfg["B"] == 8 and cfg["update"] in ("expected", "sampled"):
+            for G in (4, 16, 64):
+                yield dict(cfg, G=G)
+
+
+def v3_t6_kl():
+    """Follow-up (c): T6 KL conditions with the decline above p_ref tracked (drop_above)."""
+    for cfg in v3_t6():
+        if cfg["ablation"] in ("kl01", "kl1", "control"):
+            yield dict(cfg, track_every=1)
+
+
+def v3_t4_edge():
+    """Follow-up (d): T4 with eta extended to 3000 and 10000, stopping at mean p = 0.5."""
+    for level, p0, G, rule, eta, seed in itertools.product(
+        ("tab", "lin"), (0.01, 0.03, 0.1), (2, 4, 8, 16, 32, 64, 128), ("mean", "grpo"), (3000, 10000), range(5)
+    ):
+        init = (dict(features="onehot", n_train=64, init="tabular", p0=p0) if level == "tab"
+                else dict(SHARING[level], init="sft_down", p0=p0))
+        yield dict(init, L=1, G=G, B=256 // G, rule=rule, eta=eta, seed=seed, task_seed=seed, steps=5000,
+                   log_every=250, snapshot_every=5000, track_every=1, stop_at_half=True, diagnostics=False,
+                   level=level)
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
     "v3a": [("v3_t1", v3_t1), ("v3_t2", v3_t2), ("v3_t4", v3_t4), ("v3_t6", v3_t6), ("v3_t8", v3_t8)],
+    "v3b": [("v3_t5", v3_t5), ("v3_t7", v3_t7), ("v3_t9", v3_t9), ("v3_t1s1", v3_t1_seed1),
+            ("v3_t2g", v3_t2_groups), ("v3_t6kl", v3_t6_kl), ("v3_t4e", v3_t4_edge)],
 }
 
 
