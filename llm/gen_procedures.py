@@ -24,6 +24,7 @@ import numpy as np
 RANGES = {
     "small": dict(a=(2, 9), b=(10, 30), c=(1, 9)),
     "medium": dict(a=(3, 19), b=(20, 99), c=(2, 19)),
+    "ml": dict(a=(5, 29), b=(30, 199), c=(3, 29)),  # between medium and large (C0 pilot: neither fits alone)
     "large": dict(a=(11, 49), b=(50, 299), c=(5, 49)),
     "xl": dict(a=(21, 99), b=(100, 999), c=(10, 99)),
 }
