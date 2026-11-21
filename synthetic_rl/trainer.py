@@ -110,6 +110,9 @@ class Trainer:
         seed=0,
         passk=None,
         reward_noise=0.0,
+        ppo_epochs=1,
+        clip_eps=None,
+        grad_clip=None,
     ):
         if group_size < 2:
             raise ValueError("group_size must be >= 2")
@@ -133,6 +136,14 @@ class Trainer:
         self.passk = passk
         # Probability that the verifier flips a reward (0 = exact verifier).
         self.reward_noise = reward_noise
+        # Realistic-training options (T6): several updates per sampled batch
+        # with the PPO clipped ratio, and gradient-norm clipping. The
+        # defaults give the plain on-policy update.
+        if ppo_epochs < 1:
+            raise ValueError("ppo_epochs must be >= 1")
+        self.ppo_epochs = ppo_epochs
+        self.clip_eps = clip_eps
+        self.grad_clip = grad_clip
 
         self.device = next(policy.parameters()).device
 
@@ -245,7 +256,26 @@ class Trainer:
 
         self.optimizer.zero_grad(set_to_none=True)
         loss.backward()
-        self.optimizer.step()
+        self._clip_and_step()
+
+        if self.ppo_epochs > 1:
+            old_log_probs = log_probs.detach()
+            for _ in range(self.ppo_epochs - 1):
+                log_probs = self.policy.log_prob(prompts, responses)
+                ratio = torch.exp(log_probs - old_log_probs)
+                if self.clip_eps is None:
+                    surrogate = ratio * advantages
+                else:
+                    clipped = ratio.clamp(1 - self.clip_eps, 1 + self.clip_eps)
+                    surrogate = torch.minimum(ratio * advantages, clipped * advantages)
+                loss = -surrogate.mean()
+                if self.beta > 0:
+                    loss = loss + self.beta * self.policy.kl_divergence(
+                        prompts, self.reference, direction=self.kl_direction
+                    ).mean()
+                self.optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                self._clip_and_step()
 
         with torch.no_grad():
             success_after = self.policy.success_probability(prompts, correct)
@@ -257,6 +287,11 @@ class Trainer:
         self.responses_sampled += prompts.shape[0] * self.group_size
 
         return metrics
+
+    def _clip_and_step(self):
+        if self.grad_clip is not None:
+            torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.grad_clip)
+        self.optimizer.step()
 
     @torch.no_grad()
     def evaluate(self, prompts, correct):

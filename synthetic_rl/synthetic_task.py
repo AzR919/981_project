@@ -36,6 +36,14 @@ class SyntheticTask:
         rule        argmax of a fixed linear score (default; generalizes)
         random      uniform per prompt and position, so similar features do
                     not imply similar answers (controlled conflict)
+
+    class_shares:
+        None, or K target frequencies for the answer classes (rule answers).
+        Answers become argmax(W x + b) with an offset b calibrated on a
+        separate random stream, so the prompts and the rule W are identical
+        for every choice of shares and only the class frequencies change.
+        A constant feature is appended to the prompts (and num_features
+        counts it), so a linear policy without bias can represent b.
     """
 
     def __init__(
@@ -47,6 +55,7 @@ class SyntheticTask:
         features="gaussian",
         rho=0.0,
         answers="rule",
+        class_shares=None,
     ):
         if features not in FEATURES:
             raise ValueError(f"features must be one of {FEATURES}")
@@ -79,6 +88,36 @@ class SyntheticTask:
         if features == "correlated":
             self.shared = self.rng.standard_normal(num_features)
 
+        self.class_shares = None
+        self.offset = np.zeros((response_length, num_tokens))
+        if class_shares is not None:
+            shares = np.asarray(class_shares, dtype=float)
+            if answers != "rule" or features == "onehot" or shares.shape != (num_tokens,):
+                raise ValueError("class_shares needs rule answers, non-onehot features and K shares")
+            self.class_shares = shares / shares.sum()
+            self.offset = self._calibrate_offset(seed)
+
+    def _features(self, rng, num_prompts):
+        """Raw feature vectors (without the constant column)."""
+        d = self.num_features - (1 if self.class_shares is not None else 0)
+        x = rng.standard_normal((num_prompts, d))
+        if self.features == "correlated":
+            x = np.sqrt(self.rho) * self.shared[:d] + np.sqrt(1 - self.rho) * x
+        return x
+
+    def _calibrate_offset(self, seed, samples=50_000, iters=3000, lr=0.5):
+        """Offset b with class frequencies of argmax(W x + b) equal to the shares."""
+        x = self._features(np.random.default_rng(seed + 7_919), samples)
+        x = np.concatenate([x, np.ones((samples, 1))], axis=1)
+        scores = np.einsum("nd,lkd->nlk", x, self.weights)
+        b = np.zeros((self.response_length, self.num_tokens))
+        target = np.log(self.class_shares)
+        for _ in range(iters):
+            pick = (scores + b).argmax(axis=-1)
+            freq = np.stack([np.bincount(pick[:, l], minlength=self.num_tokens) for l in range(self.response_length)])
+            b += lr * (target - np.log((freq + 1) / (samples + self.num_tokens)))
+        return b
+
     def generate_dataset(self, num_prompts):
         """Return prompt features and their correct token sequences.
 
@@ -92,6 +131,8 @@ class SyntheticTask:
             if num_prompts > self.num_features:
                 raise ValueError("onehot needs num_prompts <= num_features")
             prompts = np.eye(self.num_features)[:num_prompts]
+        elif self.class_shares is not None:
+            prompts = np.concatenate([self._features(self.rng, num_prompts), np.ones((num_prompts, 1))], axis=1)
         else:
             prompts = self.rng.standard_normal(
                 (num_prompts, self.num_features)
@@ -111,7 +152,7 @@ class SyntheticTask:
 
         # Score each possible token at each response position.
         # Shape: (num_prompts, L, K).
-        scores = np.einsum("nd,lkd->nlk", prompts, self.weights)
+        scores = np.einsum("nd,lkd->nlk", prompts, self.weights) + self.offset
 
         # The highest-scoring token is correct at each position.
         correct = scores.argmax(axis=-1)
