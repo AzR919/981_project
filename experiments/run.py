@@ -71,6 +71,8 @@ DEFAULTS = {
     "taus": [1e-3, 1e-2],        # T0: thresholds for ever- / persistent absorption
     "tail": 0.2,                 # T0: persistent = p < tau over the last 20% of steps
     "ppo_epochs": 1, "clip_eps": None, "grad_clip": None,   # T6
+    "stop_at_half": False,       # T4: end the run at the first observed mean p >= 0.5
+    "boot": 0,                   # T7: bootstrap draws of the mean z^2 null in gradcheck
     "seed": 0,
 }
 
@@ -249,11 +251,17 @@ def run_train(cfg):
     tail_start = int((1 - cfg["tail"]) * cfg["steps"])
     tail_max = np.zeros(n)
     half = {"step": None}  # first observed step with mean p >= 0.5 (T4)
+    # T6 KL: largest decline from a running maximum, split at p_init (= p_ref when the
+    # reference is the initial policy): the part above p_init and the part below it.
+    run_max = p_init.copy()
+    drop_above = np.zeros(n)
 
     def observe(step, p):
         if half["step"] is None and p.mean() >= 0.5:
             half["step"] = step
         np.minimum(min_p, p, out=min_p)
+        np.maximum(run_max, p, out=run_max)
+        np.maximum(drop_above, run_max - np.maximum(p, p_init), out=drop_above)
         newly = (absorbed_at < 0) & (p < ABSORBED) & (p_init >= ABSORBED)
         absorbed_at[newly] = step
         for tau, last in last_above.items():
@@ -310,6 +318,10 @@ def run_train(cfg):
             log(step)
         elif cfg["track_every"] and step % cfg["track_every"] == 0:
             observe(step, success(policy, train))
+        if cfg["stop_at_half"] and half["step"] is not None:
+            if step % cfg["log_every"]:
+                log(step)
+            break
 
     out.update({
         "history": history,
@@ -320,6 +332,7 @@ def run_train(cfg):
         "last_above": {str(t): v.tolist() for t, v in last_above.items()},
         "tail_max": tail_max.astype(np.float32).tolist(),
         "step_to_half": half["step"],
+        "drop_above": drop_above.astype(np.float32).tolist(),
     })
     if checkpoints:
         out["checkpoints"] = checkpoints
@@ -350,6 +363,7 @@ def run_gradcheck(cfg):
     chunk_sums = torch.zeros(C, predicted.numel(), dtype=predicted.dtype)
     # Projection of each sample on the predicted direction: an exactly 1-D statistic.
     proj = torch.zeros(R, dtype=predicted.dtype)
+    kept = torch.zeros(R, predicted.numel(), dtype=predicted.dtype) if cfg["boot"] else None
     for r in range(R):
         responses = policy.sample(prompts, cfg["G"])
         rewards = torch.as_tensor(verify(responses.numpy(), correct.numpy()), dtype=prompts.dtype)
@@ -360,6 +374,8 @@ def run_gradcheck(cfg):
         total_sq += g * g
         chunk_sums[r * C // R] += g
         proj[r] = g @ predicted
+        if kept is not None:
+            kept[r] = g
 
     mean = total / R
     se = ((total_sq / R - mean**2).clamp(min=0) / (R - 1)).sqrt()
@@ -384,6 +400,19 @@ def run_gradcheck(cfg):
             diff = chunk_means[half].mean(dim=0) - chunk_means[other].mean(dim=0)
             null.append(((diff[mask] / (2 * se[mask])) ** 2).mean().item())
         extra["mean_z2_null"] = null
+    if kept is not None:
+        # T7 null: resample the centred per-draw gradients, so the bootstrap mean is
+        # centred on the truth by construction; mean z^2 of each draw against its own se.
+        resid = kept - mean
+        rng = np.random.default_rng(cfg["seed"] + 3)
+        boot = []
+        for _ in range(cfg["boot"]):
+            draw = resid[torch.as_tensor(rng.integers(R, size=R))]
+            m_b = draw.mean(dim=0)
+            se_b = ((draw.pow(2).mean(dim=0) - m_b**2).clamp(min=0) / (R - 1)).sqrt()
+            ok = mask & (se_b > 0)
+            boot.append(((m_b[ok] / se_b[ok]) ** 2).mean().item())
+        extra["mean_z2_boot"] = boot
     return {
         **extra,
         "p_probe": p.numpy().astype(np.float32).tolist(),

@@ -26,7 +26,7 @@ from .policy import Policy
 from .synthetic_task import SyntheticTask, verify
 
 
-ADVANTAGES = ("grpo", "mean", "rloo", "passk", "maxrl", "sign")
+ADVANTAGES = ("grpo", "mean", "rloo", "passk", "maxrl", "sign", "heckel", "virtual", "pm_alpha", "nsr")
 
 
 def log_comb(n, k):
@@ -40,7 +40,7 @@ def log_comb(n, k):
     return torch.where(n >= k, value, torch.full_like(value, -torch.inf))
 
 
-def calculate_advantages(rewards, kind="grpo", epsilon=1e-5, passk=None):
+def calculate_advantages(rewards, kind="grpo", epsilon=1e-5, passk=None, alpha=0.1, lam=0.1):
     """Return advantages shaped (B, G) from binary rewards.
 
     grpo:  (r - mean) / sqrt(mean (1 - mean) + epsilon)
@@ -51,6 +51,16 @@ def calculate_advantages(rewards, kind="grpo", epsilon=1e-5, passk=None):
     maxrl: G r / K - 1 with K correct samples, 0 if K = 0 (MaxRL; equal to
            reward budgeting for binary rewards)
     sign:  2 r - 1, a fixed baseline (Nie et al.); not zero-sum
+
+    T9, rules that give all-wrong groups a gradient:
+    heckel:   Linear-R of Heckel et al. (2026): (r - mean) / mean, i.e. -1 for
+              every wrong sample (also when mean = 0), 1/mean - 1 if correct
+    virtual:  AVSPO with one virtual sample (He et al. 2026): a uniform group
+              gets one virtual opposite reward in its mean and std, so all-wrong
+              samples get -1/sqrt(G) and all-correct +1/sqrt(G); GRPO otherwise
+    pm_alpha: GRPO, plus -alpha on all-wrong and +alpha on all-correct groups
+              (RL-ZVP of Le et al. 2025 without its token-entropy factor)
+    nsr:      W-REINFORCE (Zhu et al. 2025): lam if correct, -1 if wrong
     """
     if rewards.ndim != 2 or rewards.shape[1] < 2:
         raise ValueError("rewards must have shape (B, G), with G >= 2")
@@ -92,6 +102,24 @@ def calculate_advantages(rewards, kind="grpo", epsilon=1e-5, passk=None):
 
     if kind == "sign":
         return 2 * rewards - 1
+
+    uniform = (group_mean == 0) | (group_mean == 1)
+
+    if kind == "heckel":
+        scaled = centered / group_mean.clamp(min=1.0 / group_size)
+        return torch.where(group_mean > 0, scaled, -torch.ones_like(scaled))
+
+    if kind == "virtual":
+        # The virtual reward is 1 - r on a uniform group; mean and std over G + 1 values.
+        mean_v = (group_size * group_mean + (1 - group_mean)) / (group_size + 1)
+        virtual = (rewards - mean_v) / torch.sqrt(mean_v * (1 - mean_v) + epsilon)
+        return torch.where(uniform, virtual, grpo)
+
+    if kind == "pm_alpha":
+        return torch.where(uniform, alpha * (2 * rewards - 1), grpo)
+
+    if kind == "nsr":
+        return torch.where(rewards == 1, lam * torch.ones_like(rewards), -torch.ones_like(rewards))
 
     raise ValueError(f"kind must be one of {ADVANTAGES}")
 
