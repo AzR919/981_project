@@ -57,8 +57,9 @@ def parse():
     p.add_argument("--beta", type=float, default=0.0)
     p.add_argument("--reward-flip", type=float, default=0.0)
     p.add_argument("--lora", type=int, default=0, help="LoRA rank; 0 = full fine-tuning")
-    p.add_argument("--quant", choices=("none", "nf4"), default="none",
-                   help="nf4: QLoRA (4-bit base for training, bitsandbytes 4-bit in vLLM); needs --lora")
+    p.add_argument("--quant", choices=("none", "int8"), default="none",
+                   help="int8: per-channel int8 base for training (bitsandbytes 8-bit) and sampling (vLLM "
+                        "int8_per_channel_weight_only); needs --lora. vLLM 0.34 has no bitsandbytes 4-bit.")
     p.add_argument("--sync", choices=("merged", "adapter"), default="merged",
                    help="merged: load merged bf16 weights into vLLM; adapter: vLLM LoRA, adapter saved each step")
     p.add_argument("--max-tokens", type=int, default=512)
@@ -73,8 +74,8 @@ def parse():
     p.add_argument("--out", required=True)
     p.add_argument("--work", required=True)
     args = p.parse_args()
-    if args.quant == "nf4" and not (args.lora and args.sync == "adapter"):
-        p.error("--quant nf4 needs --lora and --sync adapter (a quantized vLLM model cannot load merged weights)")
+    if args.quant != "none" and not (args.lora and args.sync == "adapter"):
+        p.error("--quant needs --lora and --sync adapter (a quantized vLLM model cannot load merged weights)")
     if args.sync == "adapter" and not args.lora:
         p.error("--sync adapter needs --lora")
     return args
@@ -89,12 +90,11 @@ def build_policy(args):
     if args.lora:
         from peft import LoraConfig, get_peft_model
 
-        if args.quant == "nf4":
+        if args.quant == "int8":
             from peft import prepare_model_for_kbit_training
             from transformers import BitsAndBytesConfig
 
-            quant = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
-                                       bnb_4bit_compute_dtype=torch.bfloat16)
+            quant = BitsAndBytesConfig(load_in_8bit=True)
             base = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=torch.bfloat16,
                                                         quantization_config=quant, device_map={"": 0})
             base = prepare_model_for_kbit_training(base, use_gradient_checkpointing=True)
@@ -166,8 +166,8 @@ class Sampler:
 
         kw = dict(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
                   enable_prefix_caching=True, max_model_len=args.max_tokens + 1024)
-        if args.quant == "nf4":
-            kw["quantization"] = "bitsandbytes"
+        if args.quant == "int8":
+            kw["quantization"] = "int8_per_channel_weight_only"
         if args.sync == "adapter":
             kw.update(enable_lora=True, max_lora_rank=args.lora, max_loras=1)
         # Prompts are ~200 tokens and completions <= max_tokens; a short context keeps vLLM's KV reserve small.
@@ -285,7 +285,7 @@ def export(model, tokenizer, path, args):
     """Save the current policy for evaluate.py; training state is untouched.
 
     merged sync: a bf16 model with LoRA merged in. adapter sync: the adapter only
-    (evaluate.py --adapter <path> --model <base> [--quant nf4]), so evaluation
+    (evaluate.py --adapter <path> --model <base> [--quant int8]), so evaluation
     uses the same quantized base the policy was trained and sampled on.
     """
     if args.sync == "adapter":

@@ -5,7 +5,7 @@ usage:
     python llm/analyze_probe.py results/llm/q_* --out analysis/llm/model_probe.md
 
 Per probe dir: probe.txt (model, mode), gpumem_{base,train}.txt (nvidia-smi MiB
-every 0.5 s), base.json.gz / base_nf4.json.gz / after.json.gz (64 problems x 8),
+every 0.5 s), base.json.gz / base_int8.json.gz / after.json.gz (64 problems x 8),
 run/log.jsonl (5 GRPO steps with sync checks). GPU-hours for one C1 arm are
 projected from the measured rates: calibration (2 x 3,000 x 32 base samples,
 4 pilots x 150 steps, 2 x 1,300 x 256 base samples) plus 3 seeds x (500 steps +
@@ -41,14 +41,14 @@ def row(d):
     out = dict(model=model.split("/")[-1], mode=mode, status="DONE" if os.path.exists(os.path.join(d, "DONE"))
                else "FAILED" if os.path.exists(os.path.join(d, "FAILED")) else "running")
     base, after = evaluation(os.path.join(d, "base.json.gz")), evaluation(os.path.join(d, "after.json.gz"))
-    nf4 = evaluation(os.path.join(d, "base_nf4.json.gz"))
+    int8 = evaluation(os.path.join(d, "base_int8.json.gz"))
     log_path = os.path.join(d, "run", "log.jsonl")
     log = [json.loads(line) for line in open(log_path)] if os.path.exists(log_path) else []
     out.update(gpu_eval_gb=peak(os.path.join(d, "gpumem_base.txt")), gpu_train_gb=peak(os.path.join(d, "gpumem_train.txt")),
                torch_peak_gb=max((r["peak_gb"] for r in log), default=np.nan),
                s_per_step=np.mean([r["t_step"] for r in log[1:]]) if len(log) > 1 else np.nan,
                base_p=base["p"] if base else np.nan, base_fmt_fail=base["fmt"] if base else np.nan,
-               nf4_base_p=nf4["p"] if nf4 else np.nan, after_p=after["p"] if after else np.nan,
+               int8_base_p=int8["p"] if int8 else np.nan, after_p=after["p"] if after else np.nan,
                eval_tok_s=base["tok_s"] if base else np.nan)
     gaps = [abs(r["sync_check"]["vllm_logp"] - r["sync_check"]["policy_logp"]) for r in log if "sync_check" in r]
     out["sync_gap_nats"] = max(gaps) if gaps else np.nan

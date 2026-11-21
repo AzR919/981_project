@@ -65,7 +65,7 @@ def main():
                         help="JSON list of problem dicts {id, question, answer} instead of GSM8K (C2)")
     parser.add_argument("--keep-answers", action="store_true")
     parser.add_argument("--adapter", default=None, help="LoRA adapter dir (train.py --sync adapter) on --model")
-    parser.add_argument("--quant", choices=("none", "nf4"), default="none", help="bitsandbytes 4-bit base in vLLM")
+    parser.add_argument("--quant", choices=("none", "int8"), default="none", help="vLLM per-channel int8 weights")
     parser.add_argument("--lora-rank", type=int, default=64)
     parser.add_argument("--keep-text", type=int, default=0)
     parser.add_argument("--out", required=True)
@@ -82,8 +82,8 @@ def main():
 
     kw = dict(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
               max_model_len=args.max_tokens + 1024)
-    if args.quant == "nf4":
-        kw["quantization"] = "bitsandbytes"
+    if args.quant == "int8":
+        kw["quantization"] = "int8_per_channel_weight_only"
     request = None
     if args.adapter:
         from vllm.lora.request import LoRARequest
