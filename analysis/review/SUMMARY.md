@@ -25,7 +25,7 @@
 |---|---|---|---|
 | 1 | **c09/c05 absorption is minority-answer collapse** (D-H1) | **verified** | I rebuilt the 5 c09 and 5 c05 tasks with `run.build`. Across all 10 tasks, 0 absorbed prompts have the majority answer. In c09 tasks 0, 2 and 3, every minority prompt is absorbed (178/178, 101/101, 54/54). The 0.197 plateau is task 2's minority share. |
 | 2 | **c09 has no step-size threshold:** absorption at a fixed flow time (D-M4) | **verified** | For η ≥ 0.0056, η·t50 = 3.70–4.00 in `expected_full`. Smaller η is cut off by the 5000-step budget, so the "η^−0.89" exponent is a censoring effect. |
-| 3 | **The "batch-composition noise" claim is confounded:** `expected` gives each sampled prompt an n/B = 16× larger step than `expected_full` (B-H1) | **verified** | `run.py:159` averages over the batch. The `expected_full` threshold is 17.8× (m64) and 10× (lin) the B = 32 `expected` threshold, close to 16. η* ∝ B^0.83 fits per-prompt step size equally well. The claim is **withdrawn**: m64 and lin absorption is most simply a large per-prompt step (overshoot). |
+| 3 | **The "batch-composition noise" claim is confounded:** `expected` gives each sampled prompt an n/B = 16× larger step than `expected_full` (B-H1) | **corrected, after the plan critique** | Measured as before: `run.py:159` averages over the batch, and the `expected_full` threshold is 17.8× (m64) and 10× (lin) the B = 32 `expected` threshold. **But at the same η the two modes have identical expected updates.** The gap therefore isolates *per-kick size* (each sampled prompt moves by η/B in one lump instead of η/n every step), which is what "batch composition" meant. The corrected claim: on m64 and lin, response sampling doesn't matter (`sampled` ≈ `expected`), and absorption is driven by how large each sampled prompt's kick is. The earlier wording "noise" is dropped. Tested directly by T2 in `NEXT_PLAN.md`. |
 | 4 | **The H5 best-G table is an arbitrary tie-break** (A-5, D-H2) | **verified** | Tabular GRPO ties at the minimum over G ∈ {32, 64, 128} (p₀ 0.01) and {16, …, 128} (p₀ 0.03); 128 is reported both times. The smallest G at the minimum gives 32, 16, 4, 2, so the trend survives but the table and verdict as computed don't. D also reports the best η at the top of the grid in 28/28 tabular cells (not re-checked). |
 | 5 | **The arcsin promise (H2) is testable from existing data** (A-3) | **corrected** | The trend is verified. GRPO's measured weight moves from constant (λ = 0 at G = 2) toward 1/√(p(1−p)) as G grows. My free-scale fit gives λ = 0, 0.015, 0.215, 0.627 at G = 2, 4, 16, 64 (A reported 0, 0.229, 0.626, 0.886; the values depend on the parameterization). The measured W matches exact W_G to within 1% (not A's 0.01–0.03%). |
 | 6 | **Bistability extends Mroueh** (C) | **verified** | Mroueh 2503.06639, p. 7: "the fixed points are not unique in general, and p* = 1 is almost always a fixed point". |
@@ -52,10 +52,11 @@
 - GRPO's weight moves toward the arcsin surrogate as G grows (H2 as promised; from existing data).
 
 **Must change:**
-- **H3: drop "three mechanisms" and "batch-composition noise".** The supported reading has two
+- **H3: drop "three mechanisms" and the word "noise".** The supported reading has two
   routes:
-  - **Large per-prompt steps** knock prompts out within a few steps. The threshold scales with η/B;
-    tested on MLP, linear and c05.
+  - **Large per-kick steps** (each sampled prompt moves by η/B in one lump) knock prompts out
+    within a few steps. The threshold scales with η/B; response sampling plays no role. Tested on
+    MLP, linear and c05.
   - **Answer imbalance under shared features.** The gradient flow itself, with no noise, collapses
     minority-answer prompts onto the majority answer at a fixed flow time (c09, partly c05). There
     is no step-size threshold, and supervised learning keeps the same prompts.
