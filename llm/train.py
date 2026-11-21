@@ -60,6 +60,10 @@ def parse():
     p.add_argument("--gpu-memory", type=float, default=0.2)
     p.add_argument("--save-minutes", type=float, default=30)
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--save-at", type=int, nargs="*", default=[],
+                   help="steps at which to export a bf16 model to <work>/step_<n> (for mid-run evaluation)")
+    p.add_argument("--check-sync", action="store_true",
+                   help="log vLLM and policy log-probs of one sampled answer after each of the first 3 syncs")
     p.add_argument("--out", required=True)
     p.add_argument("--work", required=True)
     return p.parse_args()
@@ -104,18 +108,41 @@ def reference_model(args, model):
 
 
 def vllm_weights(model, lora):
-    """(name, bf16 tensor) pairs in the base model's naming, LoRA merged in."""
+    """(name, bf16 tensor) pairs in the base model's naming, LoRA merged in.
+
+    The merge is computed out of place in fp32 and every tensor is a fresh copy.
+    (An earlier version merged in place and returned bf16 base tensors uncopied,
+    so unmerge_adapter() reverted them before vLLM loaded them and vLLM kept
+    sampling from the base model.)
+    """
     if lora:
-        model.merge_adapter()
-        state = {}
+        deltas = {name + ".base_layer.weight": module.get_delta_weight("default")
+                  for name, module in model.named_modules()
+                  if hasattr(module, "get_delta_weight") and "default" in getattr(module, "lora_A", {})}
+        state = []
         for name, tensor in model.state_dict().items():
             if "lora_" in name:
                 continue
-            name = name.replace("base_model.model.", "").replace(".base_layer", "")
-            state[name] = tensor.to(torch.bfloat16)
-        model.unmerge_adapter()
-        return list(state.items())
-    return [(n, t.to(torch.bfloat16)) for n, t in model.state_dict().items()]
+            if name in deltas:
+                tensor = tensor.float() + deltas[name].float()
+            state.append((name.replace("base_model.model.", "").replace(".base_layer", ""),
+                          tensor.to(torch.bfloat16, copy=True)))
+        return state
+    return [(n, t.to(torch.bfloat16, copy=True)) for n, t in model.state_dict().items()]
+
+
+def sync_check(llm, model, tokenizer, problem, pad, seed):
+    """Sum of completion log-probs of one sampled answer under vLLM and under the policy."""
+    from vllm import SamplingParams
+
+    params = SamplingParams(n=1, temperature=1.0, max_tokens=64, logprobs=0, seed=seed)
+    out = llm.generate([prompt_text(tokenizer, problem)], params, use_tqdm=False)[0]
+    c = out.outputs[0]
+    vllm_sum = float(sum(lp[t].logprob for lp, t in zip(c.logprobs, c.token_ids)))
+    with torch.no_grad():
+        hf_sum, _ = completion_logprobs(model, [list(out.prompt_token_ids) + list(c.token_ids)],
+                                        [len(out.prompt_token_ids)], pad)
+    return {"vllm_logp": vllm_sum, "policy_logp": float(hf_sum[0]), "tokens": len(c.token_ids)}
 
 
 def sync_to_vllm(llm, weights):
@@ -194,6 +221,13 @@ def load_checkpoint(path, model, optimizer, lora):
     return state["step"], state["rng"]
 
 
+def export(model, tokenizer, path, lora):
+    """Save a bf16 copy of the current policy (LoRA merged) that vLLM can load; training state is untouched."""
+    inner = model.base_model.model if lora else model
+    inner.save_pretrained(path, state_dict=dict(vllm_weights(model, lora)))
+    tokenizer.save_pretrained(path)
+
+
 # ---------------------------------------------------------------- main
 
 def main():
@@ -230,11 +264,14 @@ def main():
         rng.bit_generator.state = rng_state
         print(f"resumed at step {step}", flush=True)
     sync_to_vllm(llm, vllm_weights(model, args.lora))
+    pad = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
+    if args.check_sync:
+        print(json.dumps({"step": step, "sync_check": sync_check(llm, model, tokenizer, problems[0], pad, 0)}),
+              flush=True)
 
     log_path = os.path.join(args.out, "log.jsonl")
     with open(os.path.join(args.out, "config.json"), "w") as f:
         json.dump(vars(args), f, indent=1)
-    pad = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
     last_save = time.time()
 
     while step < args.steps:
@@ -289,19 +326,20 @@ def main():
                   "length": float(np.mean(lengths)), "active": len(active), "grad_norm": grad_norm,
                   "kl": kl_sum / n_total, "t_sample": t_sample, "t_step": time.time() - t0,
                   "peak_gb": torch.cuda.max_memory_allocated() / 2**30}
+        if args.check_sync and step <= 3:
+            record["sync_check"] = sync_check(llm, model, tokenizer, problems[0], pad, 0)
         with open(log_path, "a") as f:
             f.write(json.dumps(record) + "\n")
         print(json.dumps(record), flush=True)
+        if step in args.save_at:
+            export(model, tokenizer, os.path.join(args.work, f"step_{step}"), args.lora)
 
         if time.time() - last_save > 60 * args.save_minutes or step == args.steps:
             save_checkpoint(ckpt, model, optimizer, step, rng.bit_generator.state, args.lora)
             last_save = time.time()
 
     final = os.path.join(args.work, "final")
-    if args.lora:
-        model = model.merge_and_unload()
-    model.to(torch.bfloat16).save_pretrained(final)
-    tokenizer.save_pretrained(final)
+    export(model, tokenizer, final, args.lora)
     # The resume checkpoint (~6 GB for 0.5B with fp32 Adam) lives on the shared home disk.
     shutil.rmtree(ckpt, ignore_errors=True)
     print(f"saved {final}", flush=True)
