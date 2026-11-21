@@ -1,0 +1,12 @@
+ablation,runs,material_share,max_drop,mean_persist,max_persist,prediction,consistent
+adam,180,0.0,0.0,0.0,0.0,no drops,True
+control,240,0.0,0.0,0.0,0.0,no drops,True
+flip05,240,0.7375,0.7959848456084728,0.01533203125,0.16015625,drops,True
+flip20,240,0.8958333333333334,0.945758283137248,0.041097005208333336,0.3828125,drops,True
+gradclip,240,0.0,0.0,0.0,0.0,no drops,True
+kl01,240,0.0,0.0,0.0,0.0,below p_ref,True
+kl1,240,0.2791666666666667,0.4832191467285156,0.00859375,0.12890625,below p_ref,True
+momentum,240,0.0,0.0,0.0,0.0,no drops,True
+multi4,240,0.0,0.0,0.0,0.0,drops,False
+ppo4,240,0.0,0.0,0.0,0.0,drops,False
+sign,240,0.6791666666666667,0.598856034137043,0.023486328125,0.26171875,drops,True
