@@ -54,7 +54,7 @@ def main():
     parser.add_argument("--name", required=True)
     parser.add_argument("--base", nargs=2, required=True)
     parser.add_argument("--test", required=True)
-    parser.add_argument("--pilot", nargs="+", required=True, help="lr=run_dir")
+    parser.add_argument("--pilot", nargs="*", default=[], help="lr=run_dir")
     parser.add_argument("--fdr", type=float, default=0.1)
     parser.add_argument("--out", required=True)
     parser.add_argument("--pool", required=True)
@@ -119,10 +119,13 @@ def main():
         details += [f"### lr {lr}", "", f"Training reward by 25-step block: {blocks}.", "",
                     "p̂ transitions on the 1,000 training problems (rows: base seed 0; columns: after):", "",
                     transitions(df), ""]
-    lines += ["## Learning-rate pilots (150 steps on train problems 0–999, G = 8, 64 prompts per step)", "",
-              "Declines, losses and gains are per-problem Fisher tests at FDR 10% against the seed-0 base "
-              "evaluation (32 samples each). Lost: a significant decline that ends at p̂ ≤ 0.05.", "",
-              markdown(pd.DataFrame(summary)), ""] + details
+    if not summary:
+        lines += ["No learning-rate pilots given.", ""]
+    else:
+        lines += ["## Learning-rate pilots (150 steps on train problems 0–999, G = 8, 64 prompts per step)", "",
+                  "Declines, losses and gains are per-problem Fisher tests at FDR 10% against the seed-0 base "
+                  "evaluation (32 samples each). Lost: a significant decline that ends at p̂ ≤ 0.05.", "",
+                  markdown(pd.DataFrame(summary)), ""] + details
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     with open(args.out, "w") as f:
         f.write("\n".join(lines) + "\n")
