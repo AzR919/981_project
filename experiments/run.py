@@ -188,6 +188,15 @@ def draw(rng, n, cfg):
     return rng.choice(n, size=cfg["B"], replace=False)
 
 
+def supervised_step(policy, optimizer, prompts, correct):
+    """T1 control: one step of cross-entropy on the correct answers (full batch)."""
+    loss = -policy.log_prob(prompts, correct[:, None, :]).mean()
+    optimizer.zero_grad(set_to_none=True)
+    loss.backward()
+    optimizer.step()
+    return 0
+
+
 def summarize(p, p_init):
     started_alive = p_init >= ABSORBED
     return {
@@ -239,8 +248,11 @@ def run_train(cfg):
     last_above = {tau: np.full(n, -1, dtype=np.int64) for tau in cfg["taus"]}
     tail_start = int((1 - cfg["tail"]) * cfg["steps"])
     tail_max = np.zeros(n)
+    half = {"step": None}  # first observed step with mean p >= 0.5 (T4)
 
     def observe(step, p):
+        if half["step"] is None and p.mean() >= 0.5:
+            half["step"] = step
         np.minimum(min_p, p, out=min_p)
         newly = (absorbed_at < 0) & (p < ABSORBED) & (p_init >= ABSORBED)
         absorbed_at[newly] = step
@@ -286,11 +298,14 @@ def run_train(cfg):
             if cfg["update"] == "expected":
                 idx = draw(trainer.rng, n, cfg)
                 batch = (prompts_t[idx], correct_t[idx])
-            elif cfg["update"] == "expected_full":
+            elif cfg["update"] in ("expected_full", "supervised"):
                 batch = (prompts_t, correct_t)
             else:
                 raise ValueError(f"unknown update {cfg['update']}")
-            trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg, reference=trainer.reference)
+            if cfg["update"] == "supervised":
+                supervised_step(policy, trainer.optimizer, *batch)
+            else:
+                trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg, reference=trainer.reference)
         if step % cfg["log_every"] == 0 or step == cfg["steps"]:
             log(step)
         elif cfg["track_every"] and step % cfg["track_every"] == 0:
@@ -304,6 +319,7 @@ def run_train(cfg):
         "decreases_total": trainer.decreases,
         "last_above": {str(t): v.tolist() for t, v in last_above.items()},
         "tail_max": tail_max.astype(np.float32).tolist(),
+        "step_to_half": half["step"],
     })
     if checkpoints:
         out["checkpoints"] = checkpoints
