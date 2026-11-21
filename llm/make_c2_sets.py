@@ -11,8 +11,9 @@ usage:
 3. Per procedure: 1,000 problems form the training universe and 300 are held out.
 4. For each m in {0.5, 0.8, 0.95}, majority procedure in {each, total} and seed
    in {0, 1, 2}: a 1,000-problem training mix drawn from the universe
-   (gen_procedures.make_mix), written as a problem file; its evaluation ids are
-   the mix plus all 600 held-out problems.
+   (gen_procedures.make_mix), written as id lists: train with --problems-file
+   all.json --problems <mix>_train_ids.json; evaluate the mix plus all 600
+   held-out problems with --ids <mix>_eval_ids.json.
 """
 
 import argparse
@@ -76,7 +77,6 @@ def main():
             for seed in range(3):
                 mix = make_mix(universe, major, m, UNIVERSE, seed)
                 stem = os.path.join(args.out, f"mix_m{m}_{major}_s{seed}")
-                json.dump(mix + held, open(stem + "_problems.json", "w"))
                 json.dump([q["id"] for q in mix], open(stem + "_train_ids.json", "w"))
                 json.dump([q["id"] for q in mix + held], open(stem + "_eval_ids.json", "w"))
     json.dump(summary, open(os.path.join(args.out, "summary.json"), "w"), indent=1)
