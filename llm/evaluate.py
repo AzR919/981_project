@@ -6,7 +6,10 @@ usage:
         --n 32 --out results/llm/base_qwen05.json.gz
 
 Writes per-problem counts {id: [correct, parsed, n]} plus the config, the
-sampling settings, tokens generated and wall time. Sampling uses the
+sampling settings, tokens generated and wall time. --keep-answers adds a
+histogram of parsed answers per problem (C2: did a lost problem switch to the
+other procedure's answer?); --keep-text K keeps K raw completions per problem
+(C3 strategy clusters). Sampling uses the
 training distribution (temperature 1, top_p 1), so p-hat is the p that
 GRPO sees.
 """
@@ -20,24 +23,32 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from llm.data import load_gsm8k, prompt_text, reward  # noqa: E402
+from llm.data import extract_answer, load_gsm8k, prompt_text, reward  # noqa: E402
 
 
-def sample_counts(llm, tokenizer, problems, n, max_tokens, seed):
+def sample_counts(llm, tokenizer, problems, n, max_tokens, seed, keep_answers=False, keep_text=0):
     from vllm import SamplingParams
 
     params = SamplingParams(n=n, temperature=1.0, top_p=1.0, max_tokens=max_tokens, seed=seed)
     outputs = llm.generate([prompt_text(tokenizer, p) for p in problems], params)
-    counts, tokens = {}, 0
+    counts, answers, texts, tokens = {}, {}, {}, 0
     for problem, out in zip(problems, outputs):
         correct = parsed = 0
+        hist = {}
         for c in out.outputs:
             r, ok = reward(c.text, problem["answer"])
             correct += int(r)
             parsed += int(ok)
             tokens += len(c.token_ids)
+            if keep_answers:
+                key = extract_answer(c.text) or "unparsed"
+                hist[key] = hist.get(key, 0) + 1
         counts[problem["id"]] = [correct, parsed, n]
-    return counts, tokens
+        if keep_answers:
+            answers[problem["id"]] = hist
+        if keep_text:
+            texts[problem["id"]] = [c.text for c in out.outputs[:keep_text]]
+    return counts, answers, texts, tokens
 
 
 def main():
@@ -50,12 +61,16 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=512)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--gpu-memory", type=float, default=0.85)
+    parser.add_argument("--problems-file", default=None,
+                        help="JSON list of problem dicts {id, question, answer} instead of GSM8K (C2)")
+    parser.add_argument("--keep-answers", action="store_true")
+    parser.add_argument("--keep-text", type=int, default=0)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
     from vllm import LLM
 
-    problems = load_gsm8k(args.split)
+    problems = json.load(open(args.problems_file)) if args.problems_file else load_gsm8k(args.split)
     if args.ids:
         keep = set(json.load(open(args.ids)))
         problems = [p for p in problems if p["id"] in keep]
@@ -66,11 +81,16 @@ def main():
               max_model_len=args.max_tokens + 1024)
     tokenizer = llm.get_tokenizer()
     t0 = time.time()
-    counts, tokens = sample_counts(llm, tokenizer, problems, args.n, args.max_tokens, args.seed)
+    counts, answers, texts, tokens = sample_counts(llm, tokenizer, problems, args.n, args.max_tokens, args.seed,
+                                                   args.keep_answers, args.keep_text)
     seconds = time.time() - t0
 
     out = {"config": vars(args), "counts": counts, "tokens": tokens, "seconds": seconds,
            "tokens_per_second": tokens / seconds}
+    if args.keep_answers:
+        out["answers"] = answers
+    if args.keep_text:
+        out["texts"] = texts
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     with gzip.open(args.out, "wt") as f:
         json.dump(out, f)
