@@ -31,6 +31,7 @@ echo $COMMIT > \$OUT/COMMIT
 source /tmp/asa715/llmenv/bin/activate
 cp /tmp/asa715/llmenv/freeze.txt \$OUT/
 export HF_HOME=/tmp/asa715/hf
+[ -s \$HOME/.hf_token ] && export HF_TOKEN=\$(cat \$HOME/.hf_token)  # gated models (Llama); file is mode 600
 export VLLM_CACHE_ROOT=/tmp/asa715/vllm-cache
 cd /tmp/asa715/code_$TAG
 ( $CMD ) > \$OUT/job.log 2>&1 && touch \$OUT/DONE || touch \$OUT/FAILED
