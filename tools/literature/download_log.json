@@ -1,0 +1,527 @@
+{
+ "2602.02710": {
+  "file": "tierA_top_venue/2026_Tajwar_MaxRL_2602.02710.pdf",
+  "ok": true,
+  "size": 2269145,
+  "title_hits": "4/4",
+  "pages": "60"
+ },
+ "2611.05942": {
+  "file": "tierA_top_venue/2026_Jia_Reward-Budgeting_2611.05942.pdf",
+  "ok": true,
+  "size": 2920290,
+  "title_hits": "6/6",
+  "pages": "24"
+ },
+ "2607.01490": {
+  "file": "tierA_top_venue/2026_Decugis_FADE-PG-Weights_2607.01490.pdf",
+  "ok": true,
+  "size": 2013390,
+  "title_hits": "6/6",
+  "pages": "33"
+ },
+ "2605.24331": {
+  "file": "tierA_top_venue/2026_Sun_CurveRL_2605.24331.pdf",
+  "ok": true,
+  "size": 1684872,
+  "title_hits": "6/6",
+  "pages": "40"
+ },
+ "2505.12366": {
+  "file": "tierA_top_venue/2025_Li_DisCO_2505.12366.pdf",
+  "ok": true,
+  "size": 1087649,
+  "title_hits": "6/6",
+  "pages": "21"
+ },
+ "2505.15201": {
+  "file": "tierA_top_venue/2025_Walder_PKPO-Pass-at-K_2505.15201.pdf",
+  "ok": true,
+  "size": 1437199,
+  "title_hits": "6/6",
+  "pages": "30"
+ },
+ "2503.19595": {
+  "file": "tierA_top_venue/2025_Tang_Inference-Time-Objectives_2503.19595.pdf",
+  "ok": true,
+  "size": 4569822,
+  "title_hits": "6/6",
+  "pages": "20"
+ },
+ "2601.08521": {
+  "file": "tierA_top_venue/2026_Yang_Group-Relative-Advantage-Biased_2601.08521.pdf",
+  "ok": true,
+  "size": 2298236,
+  "title_hits": "5/5",
+  "pages": "49"
+ },
+ "2509.24203": {
+  "file": "tierA_top_venue/2025_Yao_Group-Relative-REINFORCE-Off-Policy_2509.24203.pdf",
+  "ok": true,
+  "size": 1593091,
+  "title_hits": "5/6",
+  "pages": "25"
+ },
+ "2602.21189": {
+  "file": "tierA_top_venue/2026_Barakat_Prompt-Interference-Pass-at-k_2602.21189.pdf",
+  "ok": true,
+  "size": 2369970,
+  "title_hits": "6/6",
+  "pages": "26"
+ },
+ "0000.baudry": {
+  "file": "tierA_top_venue/2025_Baudry_Does-SG-Really-Succeed-for-Bandits_NeurIPS2025.pdf",
+  "ok": true,
+  "size": 1315297,
+  "title_hits": "6/6",
+  "pages": "68"
+ },
+ "2502.07141": {
+  "file": "tierA_top_venue/2025_Mei_Small-Steps-No-More_2502.07141.pdf",
+  "ok": true,
+  "size": 736246,
+  "title_hits": "6/6",
+  "pages": "34"
+ },
+ "2508.02833": {
+  "file": "tierA_top_venue/2025_Pang_TIC-GRPO_2508.02833.pdf",
+  "ok": true,
+  "size": 503925,
+  "title_hits": "6/6",
+  "pages": "29"
+ },
+ "2606.05800": {
+  "file": "tierA_top_venue/2026_Chang_SALT-More-Rollouts-Dont-Help_2606.05800.pdf",
+  "ok": true,
+  "size": 5643815,
+  "title_hits": "6/6",
+  "pages": "40"
+ },
+ "2603.11682": {
+  "file": "tierA_top_venue/2026_Petrenko_Entropy-Preserving-RL_2603.11682.pdf",
+  "ok": true,
+  "size": 1102093,
+  "title_hits": "4/4",
+  "pages": "30"
+ },
+ "2510.20817": {
+  "file": "tierA_top_venue/2025_GX-Chen_KL-Regularized-RL-Mode-Collapse_2510.20817.pdf",
+  "ok": true,
+  "size": 911724,
+  "title_hits": "5/6",
+  "pages": "26"
+ },
+ "2505.22257": {
+  "file": "tierA_top_venue/2025_Mroueh_Revisiting-GRPO-On-Off-Policy_2505.22257.pdf",
+  "ok": true,
+  "size": 917220,
+  "title_hits": "6/6",
+  "pages": "17"
+ },
+ "2509.07430": {
+  "file": "tierA_top_venue/2025_Li_DPH-RL-Choice-of-Divergence_2509.07430.pdf",
+  "ok": true,
+  "size": 1304206,
+  "title_hits": "3/6",
+  "pages": "27"
+ },
+ "2505.24864": {
+  "file": "tierA_top_venue/2025_Liu_ProRL_2505.24864.pdf",
+  "ok": true,
+  "size": 4000399,
+  "title_hits": "6/6",
+  "pages": "26"
+ },
+ "2510.15020": {
+  "file": "tierA_top_venue/2025_Chen_Coverage-Principle_2510.15020.pdf",
+  "ok": true,
+  "size": 1574275,
+  "title_hits": "6/6",
+  "pages": "68"
+ },
+ "2602.11523": {
+  "file": "tierA_top_venue/2026_He_Unifying-Stable-Opt-and-Reference-Reg_2602.11523.pdf",
+  "ok": true,
+  "size": 1207624,
+  "title_hits": "5/6",
+  "pages": "31"
+ },
+ "2504.19599": {
+  "file": "tierA_top_venue/2025_Zhang_GVPO_2504.19599.pdf",
+  "ok": true,
+  "size": 516441,
+  "title_hits": "6/6",
+  "pages": "16"
+ },
+ "2605.21125": {
+  "file": "tierA_top_venue/2026_He_Advantage-Collapse-GRPO_2605.21125.pdf",
+  "ok": true,
+  "size": 3760805,
+  "title_hits": "6/6",
+  "pages": "26"
+ },
+ "2509.21880": {
+  "file": "tierA_top_venue/2025_Le_RL-ZVP-Zero-Variance-Prompts_2509.21880.pdf",
+  "ok": true,
+  "size": 963425,
+  "title_hits": "4/6",
+  "pages": "27"
+ },
+ "2602.05548": {
+  "file": "tierA_top_venue/2026_Yu_Implicit-Advantage-Symmetry_2602.05548.pdf",
+  "ok": true,
+  "size": 7634402,
+  "title_hits": "6/6",
+  "pages": "26"
+ },
+ "2506.01347": {
+  "file": "tierA_top_venue/2025_Zhu_Negative-Reinforcement_2506.01347.pdf",
+  "ok": true,
+  "size": 1318050,
+  "title_hits": "5/5",
+  "pages": "21"
+ },
+ "2511.03710": {
+  "file": "tierA_top_venue/2025_Zeng_Shrinkage-Baselines_2511.03710.pdf",
+  "ok": true,
+  "size": 1118162,
+  "title_hits": "6/6",
+  "pages": "29"
+ },
+ "2602.01601": {
+  "file": "tierA_top_venue/2026_Nguyen_VIP-Adaptive-Rollout-Allocation_2602.01601.pdf",
+  "ok": true,
+  "size": 860531,
+  "title_hits": "5/6",
+  "pages": "33"
+ },
+ "2601.15158": {
+  "file": "tierA_top_venue/2026_Ran-Milo_Outcome-Based-RL-Transformers_2601.15158.pdf",
+  "ok": true,
+  "size": 1512639,
+  "title_hits": "6/6",
+  "pages": "96"
+ },
+ "2510.11495": {
+  "file": "tierA_top_venue/2025_Tsilivis_RL-After-Next-Token-Prediction_2510.11495.pdf",
+  "ok": true,
+  "size": 6551145,
+  "title_hits": "6/6",
+  "pages": "81"
+ },
+ "2510.13786": {
+  "file": "tierA_top_venue/2025_Khatri_Art-of-Scaling-RL-Compute_2510.13786.pdf",
+  "ok": true,
+  "size": 4092502,
+  "title_hits": "5/5",
+  "pages": "28"
+ },
+ "2503.14476": {
+  "file": "tierA_top_venue/2025_Yu_DAPO_2503.14476.pdf",
+  "ok": true,
+  "size": 826801,
+  "title_hits": "6/6",
+  "pages": "16"
+ },
+ "2606.30789": {
+  "file": "tierB_preprints/2026_Ghosh_Predictable-GRPO-Closed-Form-Dynamics_2606.30789.pdf",
+  "ok": true,
+  "size": 1240989,
+  "title_hits": "6/6",
+  "pages": "33"
+ },
+ "2511.23310": {
+  "file": "tierB_preprints/2025_Huang_Variance-Aware-Baselines-Adaptive-LR_2511.23310.pdf",
+  "ok": true,
+  "size": 826093,
+  "title_hits": "6/6",
+  "pages": "28"
+ },
+ "2605.30154": {
+  "file": "tierB_preprints/2026_Zheng_RL2ML-Finite-Rollout-Surrogates_2605.30154.pdf",
+  "ok": true,
+  "size": 1302520,
+  "title_hits": "6/6",
+  "pages": "22"
+ },
+ "2610.18853": {
+  "file": "tierB_preprints/2026_Li_Two-Clocks-Rollout-Batches_2610.18853.pdf",
+  "ok": true,
+  "size": 866920,
+  "title_hits": "6/6",
+  "pages": "19"
+ },
+ "2606.16154": {
+  "file": "tierB_preprints/2026_YSS_Gradient-Perspective-RLVR-Stability-WAPO_2606.16154.pdf",
+  "ok": true,
+  "size": 1628057,
+  "title_hits": "6/6",
+  "pages": "20"
+ },
+ "2502.18548": {
+  "file": "tierB_preprints/2025_Vojnovic_Alignment-Objective-of-GRPO_2502.18548.pdf",
+  "ok": true,
+  "size": 754533,
+  "title_hits": "4/4",
+  "pages": "19"
+ },
+ "2512.21852": {
+  "file": "tierB_preprints/2025_Shah_Comedy-of-Estimators-KL_2512.21852.pdf",
+  "ok": true,
+  "size": 697211,
+  "title_hits": "5/5",
+  "pages": "23"
+ },
+ "2506.09477": {
+  "file": "tierB_preprints/2025_Tang_Pitfalls-KL-Gradient-Estimation_2506.09477.pdf",
+  "ok": true,
+  "size": 800292,
+  "title_hits": "4/4",
+  "pages": "11"
+ },
+ "2602.04417": {
+  "file": "tierB_preprints/2026_Zhang_EMA-Policy-Gradient_2602.04417.pdf",
+  "ok": true,
+  "size": 1879187,
+  "title_hits": "6/6",
+  "pages": "42"
+ },
+ "2510.08696": {
+  "file": "tierB_preprints/2025_Feng_LENS-Dont-Waste-Mistakes_2510.08696.pdf",
+  "ok": true,
+  "size": 2816294,
+  "title_hits": "6/6",
+  "pages": "19"
+ },
+ "2603.15001": {
+  "file": "tierB_preprints/2026_Cesani_Log-Barrier-Exploration_2603.15001.pdf",
+  "ok": true,
+  "size": 2726591,
+  "title_hits": "5/5",
+  "pages": "40"
+ },
+ "2507.14843": {
+  "file": "tierB_preprints/2025_Wu_Invisible-Leash_2507.14843.pdf",
+  "ok": true,
+  "size": 528498,
+  "title_hits": "5/5",
+  "pages": "22"
+ },
+ "2503.06639": {
+  "file": "cited_core/2025_Mroueh_GRPO-Effective-Loss-Dynamics_2503.06639.pdf",
+  "ok": true,
+  "size": 870175,
+  "title_hits": "6/6",
+  "pages": "23"
+ },
+ "2510.08539": {
+  "file": "cited_core/2025_Suk_RLVR-Gradient-Gap-Step-Size_2510.08539.pdf",
+  "ok": true,
+  "size": 4040900,
+  "title_hits": "6/6",
+  "pages": "40"
+ },
+ "2510.23049": {
+  "file": "cited_core/2025_Thrampoulidis_Advantage-Shaping-Pass-at-K_2510.23049.pdf",
+  "ok": true,
+  "size": 1178741,
+  "title_hits": "6/6",
+  "pages": "35"
+ },
+ "2510.13651": {
+  "file": "cited_core/2025_Davis_Objective-of-Reasoning-with-RL_2510.13651.pdf",
+  "ok": true,
+  "size": 334449,
+  "title_hits": "6/6",
+  "pages": "10"
+ },
+ "2602.11128": {
+  "file": "cited_core/2026_Heckel_Asymmetric-Prompt-Weighting_2602.11128.pdf",
+  "ok": true,
+  "size": 562063,
+  "title_hits": "6/6",
+  "pages": "30"
+ },
+ "2611.14467": {
+  "file": "cited_core/2026_Huang_Coverage-Collapse-Reference-Resets_2611.14467.pdf",
+  "ok": true,
+  "size": 3247253,
+  "title_hits": "6/6",
+  "pages": "141"
+ },
+ "2505.17508": {
+  "file": "cited_core/2025_Zhang_KL-Regularized-PG-Design_2505.17508.pdf",
+  "ok": true,
+  "size": 1649663,
+  "title_hits": "6/6",
+  "pages": "39"
+ },
+ "2610.12161": {
+  "file": "cited_core/2026_Ding_KL-Regularization-Misfires_2610.12161.pdf",
+  "ok": true,
+  "size": 2629398,
+  "title_hits": "5/6",
+  "pages": "27"
+ },
+ "2601.23135": {
+  "file": "cited_core/2026_Ge_Why-GRPO-Needs-Normalization_2601.23135.pdf",
+  "ok": true,
+  "size": 1737585,
+  "title_hits": "6/6",
+  "pages": "26"
+ },
+ "2607.23364": {
+  "file": "cited_core/2026_Ding_Unbiased-Length-Invariant-Impossibility_2607.23364.pdf",
+  "ok": true,
+  "size": 371322,
+  "title_hits": "6/6",
+  "pages": "7"
+ },
+ "2601.04411": {
+  "file": "cited_core/2026_Rad_Rate-or-Fate-Noisy-Rewards_2601.04411.pdf",
+  "ok": true,
+  "size": 3971856,
+  "title_hits": "5/6",
+  "pages": "62"
+ },
+ "2607.00152": {
+  "file": "cited_core/2026_Bay_Group-Std-Identity_2607.00152.pdf",
+  "ok": true,
+  "size": 474208,
+  "title_hits": "6/6",
+  "pages": "18"
+ },
+ "2605.07689": {
+  "file": "cited_core/2026_Nie_Gradient-Starvation_2605.07689.pdf",
+  "ok": true,
+  "size": 424536,
+  "title_hits": "6/6",
+  "pages": "14"
+ },
+ "2603.01162": {
+  "file": "cited_core/2026_Zhou_GRPO-U-Statistic_2603.01162.pdf",
+  "ok": true,
+  "size": 2685784,
+  "title_hits": "6/6",
+  "pages": "53"
+ },
+ "2510.00977": {
+  "file": "cited_core/2025_Wu_It-Takes-Two-GRPO-DPO_2510.00977.pdf",
+  "ok": true,
+  "size": 947058,
+  "title_hits": "4/4",
+  "pages": "22"
+ },
+ "2510.01180": {
+  "file": "cited_core/2025_Hu_BroRL_2510.01180.pdf",
+  "ok": true,
+  "size": 611898,
+  "title_hits": "5/6",
+  "pages": "16"
+ },
+ "2602.06717": {
+  "file": "cited_core/2026_Plyusov_F-GRPO_2602.06717.pdf",
+  "ok": true,
+  "size": 1208605,
+  "title_hits": "6/6",
+  "pages": "27"
+ },
+ "2505.22617": {
+  "file": "cited_core/2025_Cui_Entropy-Mechanism_2505.22617.pdf",
+  "ok": true,
+  "size": 2983364,
+  "title_hits": "6/6",
+  "pages": "22"
+ },
+ "2606.15455": {
+  "file": "cited_core/2026_Yuan_Diversity-Collapse-Overtraining_2606.15455.pdf",
+  "ok": true,
+  "size": 812472,
+  "title_hits": "6/6",
+  "pages": "21"
+ },
+ "2504.13837": {
+  "file": "cited_core/2025_Yue_Does-RL-Incentivize-Reasoning_2504.13837.pdf",
+  "ok": true,
+  "size": 2191668,
+  "title_hits": "6/6",
+  "pages": "31"
+ },
+ "2503.20783": {
+  "file": "cited_core/2025_Liu_Dr-GRPO-R1-Zero-Like-Training_2503.20783.pdf",
+  "ok": true,
+  "size": 1620055,
+  "title_hits": "6/6",
+  "pages": "20"
+ },
+ "2402.14740": {
+  "file": "cited_core/2024_Ahmadian_RLOO-Back-to-Basics_2402.14740.pdf",
+  "ok": true,
+  "size": 989314,
+  "title_hits": "6/6",
+  "pages": "28"
+ },
+ "2402.03300": {
+  "file": "cited_core/2024_Shao_DeepSeekMath-GRPO_2402.03300.pdf",
+  "ok": true,
+  "size": 1844642,
+  "title_hits": "6/6",
+  "pages": "30"
+ },
+ "2501.12948": {
+  "file": "cited_core/2025_Guo_DeepSeek-R1_2501.12948.pdf",
+  "ok": true,
+  "size": 5034998,
+  "title_hits": "6/6",
+  "pages": "86"
+ },
+ "2609.09075": {
+  "file": "cited_core/2026_Sha_ThinkPrior_2609.09075.pdf",
+  "ok": true,
+  "size": 489027,
+  "title_hits": "6/6",
+  "pages": "12"
+ },
+ "2609.38018": {
+  "file": "cited_core/2026_Okonkwo_ARCUS-Prompts-on-an-Arc_2609.38018.pdf",
+  "ok": true,
+  "size": 1395711,
+  "title_hits": "6/6",
+  "pages": "23"
+ },
+ "2506.10947": {
+  "file": "cited_core/2025_Shao_Spurious-Rewards_2506.10947.pdf",
+  "ok": true,
+  "size": 4286133,
+  "title_hits": "6/6",
+  "pages": "41"
+ },
+ "2509.25300": {
+  "file": "cited_core/2025_Tan_Scaling-Behaviors-RL-Post-Training_2509.25300.pdf",
+  "ok": true,
+  "size": 1489087,
+  "title_hits": "6/6",
+  "pages": "20"
+ },
+ "2203.02155": {
+  "file": "cited_core/2022_Ouyang_InstructGPT_2203.02155.pdf",
+  "ok": true,
+  "size": 1797405,
+  "title_hits": "6/6",
+  "pages": "68"
+ },
+ "2110.14168": {
+  "file": "cited_core/2021_Cobbe_GSM8K_2110.14168.pdf",
+  "ok": true,
+  "size": 2935719,
+  "title_hits": "6/6",
+  "pages": "22"
+ },
+ "2607.01083": {
+  "file": "tierB_preprints/2026_Song_Scaling-Laws-Collapse-Async-GRPO_2607.01083.pdf",
+  "ok": true,
+  "size": 1291885,
+  "title_hits": "checked by hand",
+  "pages": "29"
+ }
+}
