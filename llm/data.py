@@ -7,6 +7,7 @@ lenient parser; an answer with no parsable number is a *format failure*,
 counted separately from a wrong answer (plan v3, C0).
 """
 
+import math
 import re
 
 INSTRUCTION = "Solve the problem step by step. End with the final answer on its own line as: #### <number>"
@@ -21,6 +22,8 @@ def normalize(number):
         value = float(text)
     except ValueError:
         return None
+    if not math.isfinite(value):
+        return None  # e.g. a runaway 400-digit "number": unparsable, not a crash
     return str(int(value)) if value == int(value) else repr(value)
 
 
