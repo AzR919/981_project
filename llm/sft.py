@@ -29,6 +29,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
     p.add_argument("--problems-file", required=True)
+    p.add_argument("--problems", default=None, help="JSON list of ids to train on (default: all)")
     p.add_argument("--epochs", type=int, default=2)
     p.add_argument("--lr", type=float, default=1e-5)
     p.add_argument("--batch", type=int, default=16)
@@ -43,6 +44,9 @@ def main():
     rng = np.random.default_rng(args.seed)
 
     problems = json.load(open(args.problems_file))
+    if args.problems:
+        keep = set(json.load(open(args.problems)))
+        problems = [q for q in problems if q["id"] in keep]
     model, tokenizer = build_policy(args)
     trainable = [q for q in model.parameters() if q.requires_grad]
     if args.lora:
