@@ -57,6 +57,10 @@ def parse():
     p.add_argument("--beta", type=float, default=0.0)
     p.add_argument("--reward-flip", type=float, default=0.0)
     p.add_argument("--lora", type=int, default=0, help="LoRA rank; 0 = full fine-tuning")
+    p.add_argument("--quant", choices=("none", "nf4"), default="none",
+                   help="nf4: QLoRA (4-bit base for training, bitsandbytes 4-bit in vLLM); needs --lora")
+    p.add_argument("--sync", choices=("merged", "adapter"), default="merged",
+                   help="merged: load merged bf16 weights into vLLM; adapter: vLLM LoRA, adapter saved each step")
     p.add_argument("--max-tokens", type=int, default=512)
     p.add_argument("--micro-batch", type=int, default=2)
     p.add_argument("--gpu-memory", type=float, default=0.2)
@@ -68,7 +72,12 @@ def parse():
                    help="log vLLM and policy log-probs of one sampled answer after each of the first 3 syncs")
     p.add_argument("--out", required=True)
     p.add_argument("--work", required=True)
-    return p.parse_args()
+    args = p.parse_args()
+    if args.quant == "nf4" and not (args.lora and args.sync == "adapter"):
+        p.error("--quant nf4 needs --lora and --sync adapter (a quantized vLLM model cannot load merged weights)")
+    if args.sync == "adapter" and not args.lora:
+        p.error("--sync adapter needs --lora")
+    return args
 
 
 # ---------------------------------------------------------------- model
@@ -80,7 +89,17 @@ def build_policy(args):
     if args.lora:
         from peft import LoraConfig, get_peft_model
 
-        base = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=torch.bfloat16).cuda()
+        if args.quant == "nf4":
+            from peft import prepare_model_for_kbit_training
+            from transformers import BitsAndBytesConfig
+
+            quant = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
+                                       bnb_4bit_compute_dtype=torch.bfloat16)
+            base = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=torch.bfloat16,
+                                                        quantization_config=quant, device_map={"": 0})
+            base = prepare_model_for_kbit_training(base, use_gradient_checkpointing=True)
+        else:
+            base = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=torch.bfloat16).cuda()
         config = LoraConfig(r=args.lora, lora_alpha=2 * args.lora, lora_dropout=0.0,
                             target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"])
         model = get_peft_model(base, config)
@@ -133,12 +152,51 @@ def vllm_weights(model, lora):
     return [(n, t.to(torch.bfloat16, copy=True)) for n, t in model.state_dict().items()]
 
 
-def sync_check(llm, model, tokenizer, problem, pad, seed):
+class Sampler:
+    """vLLM in this process, kept in step with the policy.
+
+    merged:  the merged bf16 weights are loaded into vLLM after every update.
+    adapter: vLLM serves the base model with LoRA enabled; after every update the
+             adapter is saved and the next generate() uses it (needed with a
+             bitsandbytes-quantized vLLM model, which cannot load merged weights).
+    """
+
+    def __init__(self, args):
+        from vllm import LLM
+
+        kw = dict(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
+                  enable_prefix_caching=True, max_model_len=args.max_tokens + 1024)
+        if args.quant == "nf4":
+            kw["quantization"] = "bitsandbytes"
+        if args.sync == "adapter":
+            kw.update(enable_lora=True, max_lora_rank=args.lora, max_loras=1)
+        # Prompts are ~200 tokens and completions <= max_tokens; a short context keeps vLLM's KV reserve small.
+        self.llm = LLM(**kw)
+        self.args, self.version, self.request = args, 0, None
+        self.adapters = os.path.join(args.work, "adapters")
+
+    def sync(self, model):
+        if self.args.sync == "merged":
+            sync_to_vllm(self.llm, vllm_weights(model, self.args.lora))
+            return
+        from vllm.lora.request import LoRARequest
+
+        self.version += 1
+        path = os.path.join(self.adapters, f"v{self.version}")
+        model.save_pretrained(path)
+        self.request = LoRARequest(f"v{self.version}", self.version, path)
+        shutil.rmtree(os.path.join(self.adapters, f"v{self.version - 2}"), ignore_errors=True)
+
+    def generate(self, prompts, params):
+        return self.llm.generate(prompts, params, use_tqdm=False, lora_request=self.request)
+
+
+def sync_check(sampler, model, tokenizer, problem, pad, seed):
     """Sum of completion log-probs of one sampled answer under vLLM and under the policy."""
     from vllm import SamplingParams
 
     params = SamplingParams(n=1, temperature=1.0, max_tokens=64, logprobs=0, seed=seed)
-    out = llm.generate([prompt_text(tokenizer, problem)], params, use_tqdm=False)[0]
+    out = sampler.generate([prompt_text(tokenizer, problem)], params)[0]
     c = out.outputs[0]
     vllm_sum = float(sum(lp[t].logprob for lp, t in zip(c.logprobs, c.token_ids)))
     with torch.no_grad():
@@ -223,10 +281,18 @@ def load_checkpoint(path, model, optimizer, lora):
     return state["step"], state["rng"]
 
 
-def export(model, tokenizer, path, lora):
-    """Save a bf16 copy of the current policy (LoRA merged) that vLLM can load; training state is untouched."""
-    inner = model.base_model.model if lora else model
-    inner.save_pretrained(path, state_dict=dict(vllm_weights(model, lora)))
+def export(model, tokenizer, path, args):
+    """Save the current policy for evaluate.py; training state is untouched.
+
+    merged sync: a bf16 model with LoRA merged in. adapter sync: the adapter only
+    (evaluate.py --adapter <path> --model <base> [--quant nf4]), so evaluation
+    uses the same quantized base the policy was trained and sampled on.
+    """
+    if args.sync == "adapter":
+        model.save_pretrained(path)
+    else:
+        inner = model.base_model.model if args.lora else model
+        inner.save_pretrained(path, state_dict=dict(vllm_weights(model, args.lora)))
     tokenizer.save_pretrained(path)
 
 
@@ -240,7 +306,7 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    from vllm import LLM, SamplingParams
+    from vllm import SamplingParams
 
     problems = json.load(open(args.problems_file)) if args.problems_file else load_gsm8k(args.split)
     if args.problems:
@@ -256,9 +322,7 @@ def main():
         import bitsandbytes as bnb
 
         optimizer = bnb.optim.AdamW8bit(trainable, lr=args.lr, betas=(0.9, 0.999), weight_decay=0.0)
-    # Prompts are ~200 tokens and completions <= max_tokens; a short context keeps vLLM's KV reserve small.
-    llm = LLM(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
-              enable_prefix_caching=True, max_model_len=args.max_tokens + 1024)
+    sampler = Sampler(args)
 
     rng = np.random.default_rng(args.seed)
     step = 0
@@ -267,10 +331,10 @@ def main():
         step, rng_state = load_checkpoint(ckpt, model, optimizer, args.lora)
         rng.bit_generator.state = rng_state
         print(f"resumed at step {step}", flush=True)
-    sync_to_vllm(llm, vllm_weights(model, args.lora))
+    sampler.sync(model)
     pad = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
     if args.check_sync:
-        print(json.dumps({"step": step, "sync_check": sync_check(llm, model, tokenizer, problems[0], pad, 0)}),
+        print(json.dumps({"step": step, "sync_check": sync_check(sampler, model, tokenizer, problems[0], pad, 0)}),
               flush=True)
 
     log_path = os.path.join(args.out, "log.jsonl")
@@ -284,7 +348,7 @@ def main():
         prompts = [prompt_text(tokenizer, p) for p in batch]
         params = SamplingParams(n=args.G, temperature=1.0, top_p=1.0, max_tokens=args.max_tokens,
                                 seed=int(rng.integers(2**31)))
-        outputs = llm.generate(prompts, params, use_tqdm=False)
+        outputs = sampler.generate(prompts, params)
         t_sample = time.time() - t0
 
         rewards = np.zeros((len(batch), args.G))
@@ -321,7 +385,7 @@ def main():
         grad_norm = float(sum(p.grad.float().norm() ** 2 for p in model.parameters()
                               if p.requires_grad and p.grad is not None) ** 0.5)
         optimizer.step()
-        sync_to_vllm(llm, vllm_weights(model, args.lora))
+        sampler.sync(model)
         step += 1
 
         group = clean.mean(axis=1)
@@ -331,19 +395,19 @@ def main():
                   "kl": kl_sum / n_total, "t_sample": t_sample, "t_step": time.time() - t0,
                   "peak_gb": torch.cuda.max_memory_allocated() / 2**30}
         if args.check_sync and step <= 3:
-            record["sync_check"] = sync_check(llm, model, tokenizer, problems[0], pad, 0)
+            record["sync_check"] = sync_check(sampler, model, tokenizer, problems[0], pad, 0)
         with open(log_path, "a") as f:
             f.write(json.dumps(record) + "\n")
         print(json.dumps(record), flush=True)
         if step in args.save_at:
-            export(model, tokenizer, os.path.join(args.work, f"step_{step}"), args.lora)
+            export(model, tokenizer, os.path.join(args.work, f"step_{step}"), args)
 
         if time.time() - last_save > 60 * args.save_minutes or step == args.steps:
             save_checkpoint(ckpt, model, optimizer, step, rng.bit_generator.state, args.lora)
             last_save = time.time()
 
     final = os.path.join(args.work, "final")
-    export(model, tokenizer, final, args.lora)
+    export(model, tokenizer, final, args)
     # The checkpoint (~3 GB for 0.5B) stays on the home disk until the job's evaluations are done, so a
     # job interrupted after training (03:00 /tmp wipe) resumes at the last step and only re-exports.
     # Job lines delete it at the end (llm/jobs/*.txt).

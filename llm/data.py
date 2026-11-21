@@ -57,4 +57,7 @@ def load_gsm8k(split):
 def prompt_text(tokenizer, problem):
     """Chat-formatted prompt for one problem."""
     messages = [{"role": "user", "content": f"{problem['question']}\n\n{INSTRUCTION}"}]
-    return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    # enable_thinking=False turns off the reasoning mode of hybrid models (SmolLM3, Qwen3); templates
+    # without the flag ignore it.
+    return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True,
+                                         enable_thinking=False)

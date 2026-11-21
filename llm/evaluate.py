@@ -26,11 +26,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from llm.data import extract_answer, load_gsm8k, prompt_text, reward  # noqa: E402
 
 
-def sample_counts(llm, tokenizer, problems, n, max_tokens, seed, keep_answers=False, keep_text=0):
+def sample_counts(llm, tokenizer, problems, n, max_tokens, seed, keep_answers=False, keep_text=0, lora_request=None):
     from vllm import SamplingParams
 
     params = SamplingParams(n=n, temperature=1.0, top_p=1.0, max_tokens=max_tokens, seed=seed)
-    outputs = llm.generate([prompt_text(tokenizer, p) for p in problems], params)
+    outputs = llm.generate([prompt_text(tokenizer, p) for p in problems], params, lora_request=lora_request)
     counts, answers, texts, tokens = {}, {}, {}, 0
     for problem, out in zip(problems, outputs):
         correct = parsed = 0
@@ -64,6 +64,9 @@ def main():
     parser.add_argument("--problems-file", default=None,
                         help="JSON list of problem dicts {id, question, answer} instead of GSM8K (C2)")
     parser.add_argument("--keep-answers", action="store_true")
+    parser.add_argument("--adapter", default=None, help="LoRA adapter dir (train.py --sync adapter) on --model")
+    parser.add_argument("--quant", choices=("none", "nf4"), default="none", help="bitsandbytes 4-bit base in vLLM")
+    parser.add_argument("--lora-rank", type=int, default=64)
     parser.add_argument("--keep-text", type=int, default=0)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
@@ -77,12 +80,21 @@ def main():
     if args.limit:
         problems = problems[: args.limit]
 
-    llm = LLM(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
+    kw = dict(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
               max_model_len=args.max_tokens + 1024)
+    if args.quant == "nf4":
+        kw["quantization"] = "bitsandbytes"
+    request = None
+    if args.adapter:
+        from vllm.lora.request import LoRARequest
+
+        kw.update(enable_lora=True, max_lora_rank=args.lora_rank, max_loras=1)
+        request = LoRARequest("eval", 1, args.adapter)
+    llm = LLM(**kw)
     tokenizer = llm.get_tokenizer()
     t0 = time.time()
     counts, answers, texts, tokens = sample_counts(llm, tokenizer, problems, args.n, args.max_tokens, args.seed,
-                                                   args.keep_answers, args.keep_text)
+                                                   args.keep_answers, args.keep_text, request)
     seconds = time.time() - t0
 
     out = {"config": vars(args), "counts": counts, "tokens": tokens, "seconds": seconds,
