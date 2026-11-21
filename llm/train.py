@@ -30,6 +30,7 @@ import sys
 import time
 
 os.environ.setdefault("VLLM_ENABLE_V1_MULTIPROCESSING", "0")  # keep vLLM in-process for weight sync
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 import numpy as np
 import torch
@@ -55,8 +56,8 @@ def parse():
     p.add_argument("--reward-flip", type=float, default=0.0)
     p.add_argument("--lora", type=int, default=0, help="LoRA rank; 0 = full fine-tuning")
     p.add_argument("--max-tokens", type=int, default=512)
-    p.add_argument("--micro-batch", type=int, default=16)
-    p.add_argument("--gpu-memory", type=float, default=0.3)
+    p.add_argument("--micro-batch", type=int, default=2)
+    p.add_argument("--gpu-memory", type=float, default=0.2)
     p.add_argument("--save-minutes", type=float, default=30)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--out", required=True)
@@ -130,6 +131,12 @@ def sync_to_vllm(llm, weights):
 
 # ---------------------------------------------------------------- loss
 
+def token_logprobs(logits, targets):
+    """log softmax(logits)[target] in fp32, without materialising a second vocabulary-sized tensor."""
+    logits = logits.float()
+    return logits.gather(-1, targets[..., None]).squeeze(-1) - torch.logsumexp(logits, dim=-1)
+
+
 def completion_logprobs(model, sequences, prompt_lens, pad_id, ref=None, adapter_off=False):
     """Per-sequence sum of completion token log-probs (and per-token KL k3 vs ref)."""
     lengths = [len(s) for s in sequences]
@@ -141,21 +148,21 @@ def completion_logprobs(model, sequences, prompt_lens, pad_id, ref=None, adapter
         mask[i, prompt_lens[i]: len(s)] = True
     attention = torch.arange(width, device="cuda")[None, :] < torch.tensor(lengths, device="cuda")[:, None]
     with torch.autocast("cuda", dtype=torch.bfloat16):
-        logits = model(input_ids=ids, attention_mask=attention).logits[:, :-1].float()
+        logits = model(input_ids=ids, attention_mask=attention).logits[:, :-1]
     targets = ids[:, 1:]
     token_mask = mask[:, 1:]
-    logp = torch.log_softmax(logits, dim=-1).gather(-1, targets[..., None]).squeeze(-1)
+    logp = token_logprobs(logits, targets)
     seq_logp = (logp * token_mask).sum(dim=1)
     kl = None
     if ref is not None:
         with torch.no_grad():
             if adapter_off:
                 with model.disable_adapter(), torch.autocast("cuda", dtype=torch.bfloat16):
-                    ref_logits = model(input_ids=ids, attention_mask=attention).logits[:, :-1].float()
+                    ref_logits = model(input_ids=ids, attention_mask=attention).logits[:, :-1]
             else:
                 with torch.autocast("cuda", dtype=torch.bfloat16):
-                    ref_logits = ref(input_ids=ids, attention_mask=attention).logits[:, :-1].float()
-            ref_logp = torch.log_softmax(ref_logits, dim=-1).gather(-1, targets[..., None]).squeeze(-1)
+                    ref_logits = ref(input_ids=ids, attention_mask=attention).logits[:, :-1]
+            ref_logp = token_logprobs(ref_logits, targets)
         delta = ref_logp - logp
         kl = ((torch.exp(delta) - delta - 1) * token_mask).sum(dim=1)  # k3, summed over the completion
     return seq_logp, kl
@@ -203,8 +210,14 @@ def main():
     problems = [p for p in load_gsm8k(args.split) if p["id"] in keep]
     model, tokenizer = build_policy(args)
     ref = reference_model(args, model)
-    optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=args.lr,
-                                  betas=(0.9, 0.999), weight_decay=0.0)
+    trainable = [p for p in model.parameters() if p.requires_grad]
+    if args.lora:
+        optimizer = torch.optim.AdamW(trainable, lr=args.lr, betas=(0.9, 0.999), weight_decay=0.0)
+    else:
+        # 8-bit Adam state (1 GB instead of 4 GB for 0.5B) so training fits beside vLLM on 24 GB.
+        import bitsandbytes as bnb
+
+        optimizer = bnb.optim.AdamW8bit(trainable, lr=args.lr, betas=(0.9, 0.999), weight_decay=0.0)
     llm = LLM(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
               enable_prefix_caching=True)
 
@@ -273,7 +286,8 @@ def main():
         record = {"step": step, "reward": float(clean.mean()), "reward_used": float(rewards.mean()),
                   "informative": float(((group > 0) & (group < 1)).mean()), "parsed": float(parsed.mean()),
                   "length": float(np.mean(lengths)), "active": len(active), "grad_norm": grad_norm,
-                  "kl": kl_sum / n_total, "t_sample": t_sample, "t_step": time.time() - t0}
+                  "kl": kl_sum / n_total, "t_sample": t_sample, "t_step": time.time() - t0,
+                  "peak_gb": torch.cuda.max_memory_allocated() / 2**30}
         with open(log_path, "a") as f:
             f.write(json.dumps(record) + "\n")
         print(json.dumps(record), flush=True)
@@ -287,6 +301,8 @@ def main():
         model = model.merge_and_unload()
     model.to(torch.bfloat16).save_pretrained(final)
     tokenizer.save_pretrained(final)
+    # The resume checkpoint (~6 GB for 0.5B with fp32 Adam) lives on the shared home disk.
+    shutil.rmtree(ckpt, ignore_errors=True)
     print(f"saved {final}", flush=True)
 
 
