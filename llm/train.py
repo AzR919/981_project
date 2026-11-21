@@ -44,7 +44,9 @@ from synthetic_rl.trainer import calculate_advantages  # noqa: E402
 def parse():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
-    p.add_argument("--problems", required=True, help="JSON list of GSM8K problem ids to train on")
+    p.add_argument("--problems", default=None, help="JSON list of problem ids to train on (default: all)")
+    p.add_argument("--problems-file", default=None,
+                   help="JSON list of problem dicts {id, question, answer} instead of GSM8K (C2)")
     p.add_argument("--split", default="train")
     p.add_argument("--rule", default="grpo")
     p.add_argument("--passk", type=int, default=None)
@@ -240,8 +242,10 @@ def main():
 
     from vllm import LLM, SamplingParams
 
-    keep = set(json.load(open(args.problems)))
-    problems = [p for p in load_gsm8k(args.split) if p["id"] in keep]
+    problems = json.load(open(args.problems_file)) if args.problems_file else load_gsm8k(args.split)
+    if args.problems:
+        keep = set(json.load(open(args.problems)))
+        problems = [p for p in problems if p["id"] in keep]
     model, tokenizer = build_policy(args)
     ref = reference_model(args, model)
     trainable = [p for p in model.parameters() if p.requires_grad]
@@ -340,8 +344,9 @@ def main():
 
     final = os.path.join(args.work, "final")
     export(model, tokenizer, final, args.lora)
-    # The resume checkpoint (~6 GB for 0.5B with fp32 Adam) lives on the shared home disk.
-    shutil.rmtree(ckpt, ignore_errors=True)
+    # The checkpoint (~3 GB for 0.5B) stays on the home disk until the job's evaluations are done, so a
+    # job interrupted after training (03:00 /tmp wipe) resumes at the last step and only re-exports.
+    # Job lines delete it at the end (llm/jobs/*.txt).
     print(f"saved {final}", flush=True)
 
 
