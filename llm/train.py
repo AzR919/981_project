@@ -55,6 +55,11 @@ def parse():
     p.add_argument("--steps", type=int, default=300)
     p.add_argument("--lr", type=float, default=1e-6)
     p.add_argument("--beta", type=float, default=0.0)
+    p.add_argument("--kl", choices=("reverse", "forward"), default="reverse",
+                   help="KL direction of the penalty gradient: reverse KL(pi||ref) or forward KL(ref||pi)")
+    p.add_argument("--agg", choices=("sequence", "token"), default="sequence",
+                   help="sequence: sum_i A_i log pi(y_i) / n; token: / total completion tokens (DAPO), rescaled "
+                        "by the step-1 mean length so only the length weighting changes")
     p.add_argument("--reward-flip", type=float, default=0.0)
     p.add_argument("--lora", type=int, default=0, help="LoRA rank; 0 = full fine-tuning")
     p.add_argument("--quant", choices=("none", "int8"), default="none",
@@ -224,8 +229,19 @@ def token_logprobs(logits, targets):
     return logits.gather(-1, targets[..., None]).squeeze(-1) - torch.logsumexp(logits, dim=-1)
 
 
-def completion_logprobs(model, sequences, prompt_lens, pad_id, ref=None, adapter_off=False):
-    """Per-sequence sum of completion token log-probs (and per-token KL k3 vs ref)."""
+def kl_terms(logp, ref_logp, direction):
+    """Per-token KL loss term and value. Samples come from pi, so only log pi carries gradient:
+    differentiating k2 = (log pi - log ref)^2 / 2 gives the reverse-KL gradient, differentiating
+    k3 = rho - log rho - 1 (rho = ref / pi) gives the forward-KL gradient (tested in
+    tests/test_llm_kl.py). The value logged is k3, an unbiased estimate of the reverse KL."""
+    delta = ref_logp - logp
+    value = (torch.exp(delta) - delta - 1).detach()
+    loss = 0.5 * delta**2 if direction == "reverse" else torch.exp(delta) - delta - 1
+    return loss, value
+
+
+def completion_logprobs(model, sequences, prompt_lens, pad_id, ref=None, adapter_off=False, kl="reverse"):
+    """Per-sequence sum of completion token log-probs, and (with ref) the summed KL loss term and value."""
     lengths = [len(s) for s in sequences]
     width = max(lengths)
     ids = torch.full((len(sequences), width), pad_id, dtype=torch.long, device="cuda")
@@ -250,9 +266,9 @@ def completion_logprobs(model, sequences, prompt_lens, pad_id, ref=None, adapter
                 with torch.autocast("cuda", dtype=torch.bfloat16):
                     ref_logits = ref(input_ids=ids, attention_mask=attention).logits[:, :-1]
             ref_logp = token_logprobs(ref_logits, targets)
-        delta = ref_logp - logp
-        kl = ((torch.exp(delta) - delta - 1) * token_mask).sum(dim=1)  # k3, summed over the completion
-    return seq_logp, kl
+        loss, value = kl_terms(logp, ref_logp, kl)
+        return seq_logp, ((loss * token_mask).sum(dim=1), (value * token_mask).sum(dim=1))
+    return seq_logp, None
 
 
 # ---------------------------------------------------------------- checkpoints
@@ -341,6 +357,8 @@ def main():
     with open(os.path.join(args.out, "config.json"), "w") as f:
         json.dump(vars(args), f, indent=1)
     last_save = time.time()
+    scale_path = os.path.join(args.out, "agg_scale.txt")
+    agg_scale = float(open(scale_path).read()) if os.path.exists(scale_path) else None
 
     while step < args.steps:
         t0 = time.time()
@@ -369,17 +387,25 @@ def main():
         # Samples with zero advantage contribute nothing to the policy term; skip them unless KL needs them.
         active = torch.nonzero((A != 0) | torch.tensor(args.beta > 0, device="cuda")).flatten().tolist()
         n_total = len(sequences)
+        norm = n_total
+        if args.agg == "token":
+            if agg_scale is None:
+                agg_scale = float(np.mean(lengths))
+                with open(os.path.join(args.out, "agg_scale.txt"), "w") as f:
+                    f.write(f"{agg_scale}\n")
+            norm = sum(lengths) / agg_scale
         optimizer.zero_grad(set_to_none=True)
         kl_sum = 0.0
         for start in range(0, len(active), args.micro_batch):
             idx = active[start: start + args.micro_batch]
             seq_logp, kl = completion_logprobs(model, [sequences[i] for i in idx], [prompt_lens[i] for i in idx],
                                                pad, ref=None if args.beta <= 0 else (model if args.lora else ref),
-                                               adapter_off=bool(args.lora))
-            loss = -(A[idx] * seq_logp).sum() / n_total
+                                               adapter_off=bool(args.lora), kl=args.kl)
+            loss = -(A[idx] * seq_logp).sum() / norm
             if kl is not None:
-                loss = loss + args.beta * kl.sum() / n_total
-                kl_sum += kl.sum().item()
+                kl_loss, kl_value = kl
+                loss = loss + args.beta * kl_loss.sum() / n_total
+                kl_sum += kl_value.sum().item()
             loss.backward()
         torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 1e9)  # norm only, no clipping
         grad_norm = float(sum(p.grad.float().norm() ** 2 for p in model.parameters()
