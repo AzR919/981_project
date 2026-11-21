@@ -34,10 +34,10 @@ export HF_HOME=/tmp/asa715/hf
 cd /tmp/asa715/code_$TAG
 ( $CMD ) > \$OUT/job.log 2>&1 && touch \$OUT/DONE || touch \$OUT/FAILED
 EOT
-  ssh -o ConnectTimeout=20 "$H" "rm -rf /tmp/asa715/code_$TAG && mkdir -p /tmp/asa715"
-  scp -q -r "$STAGE/code" "$H:/tmp/asa715/code_$TAG"
-  scp -q "$STAGE/run_$i.sh" "$H:/tmp/asa715/run_$TAG.sh"
-  ssh "$H" "chmod +x /tmp/asa715/run_$TAG.sh && tmux new -d -s llm_$TAG /tmp/asa715/run_$TAG.sh"
+  ssh -n -o ConnectTimeout=20 "$H" "rm -rf /tmp/asa715/code_$TAG && mkdir -p /tmp/asa715"
+  scp -q -o BatchMode=yes -r "$STAGE/code" "$H:/tmp/asa715/code_$TAG"
+  scp -q -o BatchMode=yes "$STAGE/run_$i.sh" "$H:/tmp/asa715/run_$TAG.sh"
+  ssh -n "$H" "chmod +x /tmp/asa715/run_$TAG.sh && tmux new -d -s llm_$TAG /tmp/asa715/run_$TAG.sh"
   echo "$H: started job $i"
 done < "$JOBS"
 rm -rf "$STAGE"
