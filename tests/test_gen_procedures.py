@@ -18,6 +18,13 @@ class GeneratorTests(unittest.TestCase):
                     self.assertGreater(int(q["answer"]), 0)
                     self.assertEqual(q["answer"], str(solve(proc, q["a"], q["b"], q["c"])))
 
+    def test_worked_solution_ends_with_the_answer(self):
+        from llm.data import reward
+
+        for proc in PROCEDURES:
+            for q in generate(proc, 50, "ml", seed=0):
+                self.assertEqual(reward(q["solution"], q["answer"]), (1.0, True))
+
     def test_deterministic_and_seeded(self):
         self.assertEqual(generate("each", 20, "medium", 3), generate("each", 20, "medium", 3))
         self.assertNotEqual(generate("each", 20, "medium", 3), generate("each", 20, "medium", 4))

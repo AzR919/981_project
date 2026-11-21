@@ -66,6 +66,14 @@ def solve(procedure, a, b, c):
     return a * (b - c) if procedure == "each" else a * b - c
 
 
+def worked(procedure, a, b, c):
+    """A short correct solution in the answer format the prompt asks for (SFT control)."""
+    answer = solve(procedure, a, b, c)
+    if procedure == "each":
+        return f"Each unit keeps {b} - {c} = {b - c}. Over {a} units: {a} * {b - c} = {answer}.\n#### {answer}"
+    return f"Before the reduction: {a} * {b} = {a * b}. After it: {a * b} - {c} = {answer}.\n#### {answer}"
+
+
 def generate(procedure, count, range_name, seed, start=0):
     """count problems of one procedure; ids are c2-<range>-<procedure>-<seed>-<i>."""
     rng = np.random.default_rng([seed, PROCEDURES.index(procedure), list(RANGES).index(range_name)])
@@ -83,6 +91,7 @@ def generate(procedure, count, range_name, seed, start=0):
         other = PROCEDURES[1 - PROCEDURES.index(procedure)]
         out.append({"id": f"c2-{range_name}-{procedure}-{seed}-{i}", "question": text,
                     "answer": str(solve(procedure, a, b, c)), "other_answer": str(solve(other, a, b, c)),
+                    "solution": worked(procedure, a, b, c),
                     "procedure": procedure, "template": t, "a": a, "b": b, "c": c})
     return out
 
