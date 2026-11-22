@@ -1,0 +1,13 @@
+level,update,count,min,median,max
+c05,expected,33.0,5.0,5.0,5.0
+c05,expected_full,33.0,5.0,5.0,5.0
+c05,sampled,37.0,5.0,5.0,10.0
+c09,expected,48.0,5.0,307.5,4392.5
+c09,expected_full,48.0,5.0,316.25,4405.0
+c09,sampled,48.0,5.0,327.5,4387.5
+lin,expected,48.0,5.0,5.0,10.0
+lin,expected_full,27.0,5.0,5.0,5.0
+lin,sampled,49.0,5.0,5.0,5.0
+m64,expected,39.0,5.0,15.0,350.0
+m64,expected_full,15.0,5.0,5.0,5.0
+m64,sampled,40.0,5.0,12.5,250.0

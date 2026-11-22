@@ -17,10 +17,43 @@ Run a quick check:
 import numpy as np
 
 
-class SyntheticTask:
-    """Generate prompts and correct responses using a fixed hidden rule."""
+FEATURES = ("gaussian", "onehot", "correlated")
 
-    def __init__(self, num_tokens=4, response_length=2, num_features=16, seed=0):
+
+class SyntheticTask:
+    """Generate prompts and correct responses using a fixed hidden rule.
+
+    features:
+        gaussian    independent standard normal features (default)
+        onehot      prompt i is the i-th basis vector, so a linear policy
+                    without bias is tabular; num_features is the number of
+                    distinct prompts and every dataset reuses them
+        correlated  sqrt(rho) * c + sqrt(1 - rho) * g with one shared random
+                    vector c, so every pair of prompts has feature cosine
+                    about rho
+
+    answers:
+        rule        argmax of a fixed linear score (default; generalizes)
+        random      uniform per prompt and position, so similar features do
+                    not imply similar answers (controlled conflict)
+    """
+
+    def __init__(
+        self,
+        num_tokens=4,
+        response_length=2,
+        num_features=16,
+        seed=0,
+        features="gaussian",
+        rho=0.0,
+        answers="rule",
+    ):
+        if features not in FEATURES:
+            raise ValueError(f"features must be one of {FEATURES}")
+        if answers not in ("rule", "random"):
+            raise ValueError("answers must be 'rule' or 'random'")
+        if not 0 <= rho < 1:
+            raise ValueError("rho must be in [0, 1)")
         if num_tokens < 2:
             raise ValueError("num_tokens must be >= 2")
         if response_length < 1:
@@ -31,6 +64,9 @@ class SyntheticTask:
         self.num_tokens = num_tokens          # K
         self.response_length = response_length  # L
         self.num_features = num_features     # d
+        self.features = features
+        self.rho = rho
+        self.answers = answers
         self.rng = np.random.default_rng(seed)
 
         # One fixed rule per response position.
@@ -38,6 +74,10 @@ class SyntheticTask:
         self.weights = self.rng.standard_normal(
             (response_length, num_tokens, num_features)
         )
+
+        # Drawn after the rule so the gaussian datasets match earlier runs.
+        if features == "correlated":
+            self.shared = self.rng.standard_normal(num_features)
 
     def generate_dataset(self, num_prompts):
         """Return prompt features and their correct token sequences.
@@ -48,9 +88,26 @@ class SyntheticTask:
         if num_prompts < 1:
             raise ValueError("num_prompts must be >= 1")
 
-        prompts = self.rng.standard_normal(
-            (num_prompts, self.num_features)
-        )
+        if self.features == "onehot":
+            if num_prompts > self.num_features:
+                raise ValueError("onehot needs num_prompts <= num_features")
+            prompts = np.eye(self.num_features)[:num_prompts]
+        else:
+            prompts = self.rng.standard_normal(
+                (num_prompts, self.num_features)
+            )
+            if self.features == "correlated":
+                prompts = (
+                    np.sqrt(self.rho) * self.shared
+                    + np.sqrt(1 - self.rho) * prompts
+                )
+
+        if self.answers == "random":
+            correct = self.rng.integers(
+                self.num_tokens,
+                size=(num_prompts, self.response_length),
+            )
+            return prompts, correct
 
         # Score each possible token at each response position.
         # Shape: (num_prompts, L, K).

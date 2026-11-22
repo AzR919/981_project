@@ -33,8 +33,17 @@ class Policy(nn.Module):
         response_length=2,
         hidden_size=128,
         architecture="mlp",
+        arch=None,
     ):
+        """architecture "mlp": two ReLU layers of width hidden_size.
+        architecture "linear": logits = W x with no bias, so one-hot prompts give a
+        tabular policy and no parameter is shared between them.
+        arch is an alias for architecture (the simulator in experiments/ uses it).
+        """
         super().__init__()
+
+        if arch is not None:
+            architecture = arch
 
         if num_features < 1:
             raise ValueError("num_features must be >= 1")
@@ -49,6 +58,7 @@ class Policy(nn.Module):
         self.num_tokens = num_tokens
         self.response_length = response_length
 
+        self.architecture = self.arch = architecture
         num_logits = response_length * num_tokens
 
         if architecture == "mlp":
