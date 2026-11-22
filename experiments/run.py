@@ -64,6 +64,15 @@ DEFAULTS = {
     "R": 2000, "probe": 32, "chunks": 1,
     "update": "sampled", "p_start": None, "drift_every": 0,
     "mix": 0.5, "sft_steps": 200,
+    # v3 additions; the defaults reproduce earlier runs.
+    "majority": None,            # T1: share of answer class 0 (others equal); adds a constant feature
+    "replace": True,             # T2: False draws each batch without replacement
+    "track_every": 0,            # T0: also observe every prompt's p every k steps (0: log points only)
+    "taus": [1e-3, 1e-2],        # T0: thresholds for ever- / persistent absorption
+    "tail": 0.2,                 # T0: persistent = p < tau over the last 20% of steps
+    "ppo_epochs": 1, "clip_eps": None, "grad_clip": None,   # T6
+    "stop_at_half": False,       # T4: end the run at the first observed mean p >= 0.5
+    "boot": 0,                   # T7: bootstrap draws of the mean z^2 null in gradcheck
     "seed": 0,
 }
 
@@ -76,11 +85,16 @@ def build(cfg):
     tabular = cfg["features"] == "onehot"
     d = cfg["n_train"] if tabular else cfg["d"]
     answers = "random" if tabular else cfg["answers"]
+    shares = None
+    if cfg["majority"] is not None:
+        m = float(cfg["majority"])
+        shares = [m] + [(1 - m) / (cfg["K"] - 1)] * (cfg["K"] - 1)
+        d += 1  # the constant feature
 
     task = SyntheticTask(
         num_tokens=cfg["K"], response_length=cfg["L"], num_features=d,
         seed=cfg.get("task_seed", seed), features=cfg["features"],
-        rho=cfg["rho"], answers=answers,
+        rho=cfg["rho"], answers=answers, class_shares=shares,
     )
     train = task.generate_dataset(cfg["n_train"])
     test = None if tabular else task.generate_dataset(cfg["n_test"])
@@ -148,21 +162,41 @@ def make_optimizer(cfg, policy):
     raise ValueError(f"unknown optimizer {cfg['optimizer']}")
 
 
-def expected_step(policy, optimizer, prompts, correct, cfg):
+def expected_step(policy, optimizer, prompts, correct, cfg, reference=None):
     """One step on the exact expected GRPO update, -mean_x W_G(p_x) grad p_x.
 
     Same normalization as the sampled loss -(A * log pi).mean() over (B, G),
-    whose expected gradient is exactly this (H1).
+    whose expected gradient is exactly this (H1). With beta > 0 the exact
+    KL term the sampled trainer uses is added (T8), so the two modes differ
+    only in sampling noise.
     """
     p = policy.success_probability(prompts, correct)
     W = torch.as_tensor(advantage_gap(p.detach().numpy(), cfg["G"], cfg["rule"], passk=cfg["passk"]), dtype=p.dtype)
     loss = -(W * p).mean()
+    if cfg["beta"] > 0:
+        loss = loss + cfg["beta"] * policy.kl_divergence(prompts, reference, direction=cfg["kl"]).mean()
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
     optimizer.step()
     with torch.no_grad():
         after = policy.success_probability(prompts, correct)
     return int((after < p.detach()).sum().item())
+
+
+def draw(rng, n, cfg):
+    """Batch indices; with replacement keeps the earlier random stream."""
+    if cfg["replace"]:
+        return rng.integers(n, size=cfg["B"])
+    return rng.choice(n, size=cfg["B"], replace=False)
+
+
+def supervised_step(policy, optimizer, prompts, correct):
+    """T1 control: one step of cross-entropy on the correct answers (full batch)."""
+    loss = -policy.log_prob(prompts, correct[:, None, :]).mean()
+    optimizer.zero_grad(set_to_none=True)
+    loss.backward()
+    optimizer.step()
+    return 0
 
 
 def summarize(p, p_init):
@@ -194,15 +228,16 @@ def run_train(cfg):
         policy=policy, optimizer=make_optimizer(cfg, policy),
         group_size=cfg["G"], advantage=cfg["rule"], beta=cfg["beta"],
         kl_direction=cfg["kl"], seed=cfg["seed"], passk=cfg["passk"],
-        reward_noise=cfg["reward_noise"],
+        reward_noise=cfg["reward_noise"], ppo_epochs=cfg["ppo_epochs"],
+        clip_eps=cfg["clip_eps"], grad_clip=cfg["grad_clip"],
     )
     if cfg["p_start"] is not None:
         # The trainer has frozen the reference at p_ref; start the policy elsewhere.
         set_tabular_success(policy, train[1], float(cfg["p_start"]))
         p_init = success(policy, train)
         out["p_init"] = p_init.astype(np.float32).tolist()
-    if cfg["update"] != "sampled" and (cfg["beta"] > 0 or cfg["reward_noise"] > 0):
-        raise ValueError("expected updates support beta = 0 and an exact verifier only")
+    if cfg["update"] != "sampled" and (cfg["reward_noise"] > 0 or cfg["ppo_epochs"] > 1):
+        raise ValueError("expected updates need an exact verifier and one update per batch")
 
     n = len(train[0])
     checkpoints = {}
@@ -210,12 +245,33 @@ def run_train(cfg):
     min_p = p_init.copy()
     history, snapshots = [], {}
     informative, expected = [], []
+    # T0: last observed step with p >= tau (persistent absorption starts right
+    # after it), and the largest p over the last `tail` share of training.
+    last_above = {tau: np.full(n, -1, dtype=np.int64) for tau in cfg["taus"]}
+    tail_start = int((1 - cfg["tail"]) * cfg["steps"])
+    tail_max = np.zeros(n)
+    half = {"step": None}  # first observed step with mean p >= 0.5 (T4)
+    # T6 KL: largest decline from a running maximum, split at p_init (= p_ref when the
+    # reference is the initial policy): the part above p_init and the part below it.
+    run_max = p_init.copy()
+    drop_above = np.zeros(n)
+
+    def observe(step, p):
+        if half["step"] is None and p.mean() >= 0.5:
+            half["step"] = step
+        np.minimum(min_p, p, out=min_p)
+        np.maximum(run_max, p, out=run_max)
+        np.maximum(drop_above, run_max - np.maximum(p, p_init), out=drop_above)
+        newly = (absorbed_at < 0) & (p < ABSORBED) & (p_init >= ABSORBED)
+        absorbed_at[newly] = step
+        for tau, last in last_above.items():
+            last[p >= tau] = step
+        if step >= tail_start:
+            np.maximum(tail_max, p, out=tail_max)
 
     def log(step):
         p = success(policy, train)
-        np.minimum(min_p, p, out=min_p)
-        newly = (absorbed_at < 0) & (p < ABSORBED) & (p_init >= ABSORBED)
-        absorbed_at[newly] = step
+        observe(step, p)
         record = {"step": step, "train": summarize(p, p_init), "decreases": trainer.decreases}
         if test is not None:
             record["test_mean"] = float(success(policy, test).mean())
@@ -229,7 +285,7 @@ def run_train(cfg):
             record["entropy"], record["kl"] = ev["entropy"], ev["kl"]
         history.append(record)
         if step % cfg["snapshot_every"] == 0 or step == cfg["steps"]:
-            snapshots[str(step)] = np.round(p, 6).astype(np.float32).tolist()
+            snapshots[str(step)] = p.astype(np.float32).tolist()
         if cfg["drift_every"] and step % cfg["drift_every"] == 0 and step < cfg["steps"]:
             d = predicted_drift(policy, prompts_t, correct_t, cfg["rule"], cfg["G"], cfg["eta"], passk=cfg["passk"])
             W = advantage_gap(p, cfg["G"], cfg["rule"], passk=cfg["passk"])
@@ -242,21 +298,30 @@ def run_train(cfg):
     log(0)
     for step in range(1, cfg["steps"] + 1):
         if cfg["update"] == "sampled":
-            idx = trainer.rng.integers(n, size=cfg["B"])
+            idx = draw(trainer.rng, n, cfg)
             metrics = trainer.train_step(train[0][idx], train[1][idx])
             informative.append(metrics["informative_before"])
             expected.append(metrics["expected_informative_before"])
         else:
             if cfg["update"] == "expected":
-                idx = trainer.rng.integers(n, size=cfg["B"])
+                idx = draw(trainer.rng, n, cfg)
                 batch = (prompts_t[idx], correct_t[idx])
-            elif cfg["update"] == "expected_full":
+            elif cfg["update"] in ("expected_full", "supervised"):
                 batch = (prompts_t, correct_t)
             else:
                 raise ValueError(f"unknown update {cfg['update']}")
-            trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg)
+            if cfg["update"] == "supervised":
+                supervised_step(policy, trainer.optimizer, *batch)
+            else:
+                trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg, reference=trainer.reference)
         if step % cfg["log_every"] == 0 or step == cfg["steps"]:
             log(step)
+        elif cfg["track_every"] and step % cfg["track_every"] == 0:
+            observe(step, success(policy, train))
+        if cfg["stop_at_half"] and half["step"] is not None:
+            if step % cfg["log_every"]:
+                log(step)
+            break
 
     out.update({
         "history": history,
@@ -264,6 +329,10 @@ def run_train(cfg):
         "absorbed_at": absorbed_at.tolist(),
         "min_p": min_p.astype(np.float32).tolist(),
         "decreases_total": trainer.decreases,
+        "last_above": {str(t): v.tolist() for t, v in last_above.items()},
+        "tail_max": tail_max.astype(np.float32).tolist(),
+        "step_to_half": half["step"],
+        "drop_above": drop_above.astype(np.float32).tolist(),
     })
     if checkpoints:
         out["checkpoints"] = checkpoints
@@ -294,6 +363,7 @@ def run_gradcheck(cfg):
     chunk_sums = torch.zeros(C, predicted.numel(), dtype=predicted.dtype)
     # Projection of each sample on the predicted direction: an exactly 1-D statistic.
     proj = torch.zeros(R, dtype=predicted.dtype)
+    kept = torch.zeros(R, predicted.numel(), dtype=predicted.dtype) if cfg["boot"] else None
     for r in range(R):
         responses = policy.sample(prompts, cfg["G"])
         rewards = torch.as_tensor(verify(responses.numpy(), correct.numpy()), dtype=prompts.dtype)
@@ -304,6 +374,8 @@ def run_gradcheck(cfg):
         total_sq += g * g
         chunk_sums[r * C // R] += g
         proj[r] = g @ predicted
+        if kept is not None:
+            kept[r] = g
 
     mean = total / R
     se = ((total_sq / R - mean**2).clamp(min=0) / (R - 1)).sqrt()
@@ -328,6 +400,19 @@ def run_gradcheck(cfg):
             diff = chunk_means[half].mean(dim=0) - chunk_means[other].mean(dim=0)
             null.append(((diff[mask] / (2 * se[mask])) ** 2).mean().item())
         extra["mean_z2_null"] = null
+    if kept is not None:
+        # T7 null: resample the centred per-draw gradients, so the bootstrap mean is
+        # centred on the truth by construction; mean z^2 of each draw against its own se.
+        resid = kept - mean
+        rng = np.random.default_rng(cfg["seed"] + 3)
+        boot = []
+        for _ in range(cfg["boot"]):
+            draw = resid[torch.as_tensor(rng.integers(R, size=R))]
+            m_b = draw.mean(dim=0)
+            se_b = ((draw.pow(2).mean(dim=0) - m_b**2).clamp(min=0) / (R - 1)).sqrt()
+            ok = mask & (se_b > 0)
+            boot.append(((m_b[ok] / se_b[ok]) ** 2).mean().item())
+        extra["mean_z2_boot"] = boot
     return {
         **extra,
         "p_probe": p.numpy().astype(np.float32).tolist(),

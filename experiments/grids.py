@@ -190,9 +190,206 @@ def s_eq():
                            eta=1.0, seed=seed)
 
 
+# ---------------------------------------------------------------- v3 batch 1 (plan v3, T1 T2 T4 T6 T8)
+
+TASK_SEEDS = list(range(10))
+MAJORITY = [1 / 3, 0.5, 0.7, 0.9]
+
+
+def flow_steps(eta, flow=100.0, low=1000, high=20000):
+    """Steps for a fixed flow time eta * t, clipped to a practical range."""
+    return int(min(max(flow / eta, low), high))
+
+
+def v3_t1():
+    """P1: absorption against majority share at fixed feature geometry."""
+    for arch, rho, m, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), MAJORITY, TASK_SEEDS):
+        base = dict(arch=arch, width=64, features="correlated", rho=rho, majority=m, L=1, K=3, G=8, B=32,
+                    rule="grpo", task_seed=task_seed, seed=0, track_every=5, diagnostics=False,
+                    level=f"{arch}-rho{rho}")
+        for eta in (0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30):
+            steps = flow_steps(eta)
+            for update in ("expected_full", "sampled"):
+                yield dict(base, update=update, eta=eta, steps=steps, log_every=max(steps // 20, 1),
+                           snapshot_every=steps, optimizer="sgd")
+        for eta in (1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2):
+            for update in ("expected_full", "sampled"):
+                yield dict(base, update=update, eta=eta, steps=5000, log_every=250, snapshot_every=5000,
+                           optimizer="adam")
+        yield dict(base, update="supervised", eta=1.0, steps=2000, log_every=100, snapshot_every=2000,
+                   optimizer="sgd")
+
+
+def v3_t2():
+    """P2: per-kick size eta/B against response noise, at fixed eta (equal mean drift)."""
+    cells = [("lin", dict(SHARING["lin"], L=2), (300, 1000)),
+             ("c05", dict(SHARING["c05"], L=2), (10, 30)),
+             ("m64", dict(SHARING["m64"], L=2), (0.3, 1)),
+             ("bal", dict(arch="linear", features="correlated", rho=0.9, majority=1 / 3, L=1, K=3), (3, 10))]
+    for (level, setup, etas), eta, task_seed in itertools.product(cells, (0, 1), TASK_SEEDS):
+        base = dict(setup, G=8, rule="grpo", eta=etas[eta], task_seed=task_seed, seed=0, steps=3000, log_every=50,
+                    snapshot_every=3000, track_every=5, diagnostics=False, level=level)
+        yield dict(base, update="expected_full", B=32)
+        for update, B in itertools.product(("expected", "sampled"), (8, 32, 128, 512)):
+            yield dict(base, update=update, B=B, replace=B < 512)
+
+
+def v3_t4():
+    """H5 rerun: wider eta grid, exact step to mean p = 0.5, 5 seeds."""
+    for level, p0, G, rule, eta, seed in itertools.product(
+        ("tab", "lin", "m64"), (0.01, 0.03, 0.1, 0.3), (2, 4, 8, 16, 32, 64, 128), ("mean", "grpo"),
+        (0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000), range(5)
+    ):
+        init = (dict(features="onehot", n_train=64, init="tabular", p0=p0) if level == "tab"
+                else dict(SHARING[level], init="sft_down", p0=p0))
+        yield dict(init, L=1, G=G, B=256 // G, rule=rule, eta=eta, seed=seed, task_seed=seed, steps=5000,
+                   log_every=250, snapshot_every=5000, track_every=1, diagnostics=False, level=level)
+
+
+T6_CONDITIONS = {
+    "control": {}, "flip05": {"reward_noise": 0.05}, "flip20": {"reward_noise": 0.2},
+    "momentum": {"momentum": 0.9}, "kl01": {"beta": 0.1}, "kl1": {"beta": 1.0}, "sign": {"rule": "sign"},
+    "ppo4": {"ppo_epochs": 4, "clip_eps": 0.2}, "multi4": {"ppo_epochs": 4}, "gradclip": {"grad_clip": 1.0},
+}
+
+
+def v3_t6():
+    """Ablations of the tabular proposition, including realistic-training conditions."""
+    common = dict(features="onehot", init="tabular", p0="spread", B=32, rule="grpo", steps=5000, log_every=50,
+                  snapshot_every=5000, track_every=5, diagnostics=False, level="tab")
+    for L, G, seed in itertools.product((1, 2, 4), (4, 8), range(10)):
+        for name, change in T6_CONDITIONS.items():
+            for eta in (0.3, 3, 30, 300):
+                yield dict(common, **change, ablation=name, L=L, G=G, eta=eta, seed=seed)
+        for eta in (1e-3, 1e-2, 1e-1):
+            yield dict(common, ablation="adam", optimizer="adam", L=L, G=G, eta=eta, seed=seed)
+
+
+def v3_t8():
+    """KL bistability without noise: the exact expected update with the KL term."""
+    import math
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from synthetic_rl.theory import fixed_points
+
+    common = dict(features="onehot", n_train=64, init="tabular", L=1, G=64, B=64, kl="reverse", rule="grpo",
+                  steps=10000, log_every=100, snapshot_every=100, diagnostics=False, level="tab",
+                  update="expected_full")
+    for p_ref, beta in ((0.01, 0.5), (0.03, 0.5), (0.2, 1.0)):
+        unstable = [p for p, stable in fixed_points(p_ref, beta, 64, "grpo") if not stable][0]
+        z_u = math.log(unstable / (1 - unstable))
+        for offset in (-3, -2, -1, -0.5, -0.25, 0, 0.25, 0.5, 1, 2, 3):
+            for eta in (1, 3, 10):
+                yield dict(common, p0=p_ref, beta=beta, p_start=1 / (1 + math.exp(-(z_u + offset))),
+                           offset=offset, eta=eta, seed=0)
+
+
+T9_RULES = ("grpo", "mean", "heckel", "virtual", "pm_alpha", "nsr")
+
+
+# T5 warm-starts chosen (before launch) so that p_init has sd >= 0.25 on task seeds 0-2.
+T5_SFT = {"lin": dict(sft_steps=1000, sft_lr=8.0), "c05": dict(sft_steps=1000, sft_lr=2.0),
+          "c09": dict(sft_steps=500, sft_lr=1.0), "m64": dict(sft_steps=200, sft_lr=0.5)}
+
+
+def v3_t5():
+    """P3: does the initial drift predict absorbed prompts on balanced tasks, beyond rarity and p_init?"""
+    for level, task_seed in itertools.product(("lin", "c05", "c09", "m64"), TASK_SEEDS):
+        for f in (0.3, 1, 3, 10, 30):
+            yield dict(SHARING[level], **T5_SFT[level], majority=1 / 3, L=1, K=3, init="sft_mixed", rule="grpo",
+                       G=8, B=32,
+                       eta=BASE_ETA_STAR[(level, 1)] * f, task_seed=task_seed, seed=0, steps=5000, log_every=250,
+                       snapshot_every=500, drift_every=500, track_every=1, diagnostics=False, level=level)
+
+
+def v3_t7():
+    """H1 medium tier: bootstrap null for mean z^2 (the identity is exact, so ranks should be uniform)."""
+    for cfg in h1():
+        if cfg["rule"] == "grpo" and cfg["L"] in (1, 2) and cfg["G"] in (4, 8):
+            for seed in range(10):
+                yield dict(cfg, boot=200, seed=seed)
+
+
+def v3_t9():
+    """All-wrong-group fixes on the absorbing configurations of T1 (minority), T2 (kick) and T6 (noisy verifier)."""
+    for rule, task_seed in itertools.product(T9_RULES, TASK_SEEDS):
+        minority = dict(arch="linear", width=64, features="correlated", rho=0.9, majority=0.9, L=1, K=3, G=8,
+                        B=32, rule=rule, task_seed=task_seed, seed=0, track_every=5, diagnostics=False,
+                        optimizer="sgd", level="t1-minority")
+        for eta, update in itertools.product((0.1, 1), ("expected_full", "sampled")):
+            steps = flow_steps(eta)
+            yield dict(minority, eta=eta, update=update, steps=steps, log_every=max(steps // 20, 1),
+                       snapshot_every=steps)
+        kick = dict(SHARING["lin"], L=2, G=8, B=8, rule=rule, eta=300, task_seed=task_seed, seed=0, steps=3000,
+                    log_every=50, snapshot_every=3000, track_every=5, diagnostics=False, level="t2-kick")
+        for update in ("expected", "sampled"):
+            yield dict(kick, update=update)
+        for eta in (30, 300):
+            yield dict(features="onehot", init="tabular", p0="spread", L=1, G=8, B=32, rule=rule, eta=eta,
+                       reward_noise=0.2, seed=task_seed, steps=5000, log_every=50, snapshot_every=5000,
+                       track_every=5, diagnostics=False, level="t6-flip20")
+
+
+def v3_t1_seed1():
+    """Follow-up (a): T1 MLP cells again with a second initialisation seed."""
+    for cfg in v3_t1():
+        if cfg["arch"] == "mlp":
+            yield dict(cfg, seed=1)
+
+
+def v3_t2_groups():
+    """Follow-up (b): T2 at B = 8 with G in {4, 16, 64}: does response noise shrink as G grows?"""
+    for cfg in v3_t2():
+        if cfg["B"] == 8 and cfg["update"] in ("expected", "sampled"):
+            for G in (4, 16, 64):
+                yield dict(cfg, G=G)
+
+
+def v3_t6_kl():
+    """Follow-up (c): T6 KL conditions with the decline above p_ref tracked (drop_above)."""
+    for cfg in v3_t6():
+        if cfg["ablation"] in ("kl01", "kl1", "control"):
+            yield dict(cfg, track_every=1)
+
+
+def v3_t4_edge():
+    """Follow-up (d): T4 with eta extended to 3000 and 10000, stopping at mean p = 0.5."""
+    for level, p0, G, rule, eta, seed in itertools.product(
+        ("tab", "lin"), (0.01, 0.03, 0.1), (2, 4, 8, 16, 32, 64, 128), ("mean", "grpo"), (3000, 10000), range(5)
+    ):
+        init = (dict(features="onehot", n_train=64, init="tabular", p0=p0) if level == "tab"
+                else dict(SHARING[level], init="sft_down", p0=p0))
+        yield dict(init, L=1, G=G, B=256 // G, rule=rule, eta=eta, seed=seed, task_seed=seed, steps=5000,
+                   log_every=250, snapshot_every=5000, track_every=1, stop_at_half=True, diagnostics=False,
+                   level=level)
+
+
+PASSK_RULES = [("grpo", None), ("mean", None)] + [(r, k) for r in ("passk", "rloo_k") for k in (2, 4, 8)]
+
+
+def v3_t10():
+    """Shelf 2: pass@k training rules (biased GRPO_k, unbiased RLOO_k) against grpo and mean."""
+    levels = {
+        "tab": (dict(features="onehot", init="tabular", p0="spread"), (3, 30, 300)),
+        "lin": (dict(SHARING["lin"], **T5_SFT["lin"], init="sft_mixed", majority=1 / 3), (100, 300, 1000)),
+        "m64": (dict(SHARING["m64"], **T5_SFT["m64"], init="sft_mixed", majority=1 / 3), (0.3, 1, 3)),
+        "minority": (dict(arch="linear", features="correlated", rho=0.9, majority=0.9), (0.03, 0.3, 1)),
+    }
+    for (level, (setup, etas)), (rule, k), G, eta, seed in itertools.product(
+        levels.items(), PASSK_RULES, (8, 32), (0, 1, 2), range(10)
+    ):
+        unit = dict(seed=seed) if level == "tab" else dict(task_seed=seed, seed=0)
+        yield dict(setup, **unit, L=1, K=3, G=G, B=256 // G, rule=rule, passk=k, eta=etas[eta], steps=5000,
+                   log_every=250, snapshot_every=5000, track_every=5, diagnostics=False, level=level)
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
+    "v3a": [("v3_t1", v3_t1), ("v3_t2", v3_t2), ("v3_t4", v3_t4), ("v3_t6", v3_t6), ("v3_t8", v3_t8)],
+    "v3b": [("v3_t5", v3_t5), ("v3_t7", v3_t7), ("v3_t9", v3_t9), ("v3_t1s1", v3_t1_seed1),
+            ("v3_t2g", v3_t2_groups), ("v3_t6kl", v3_t6_kl), ("v3_t4e", v3_t4_edge)],
+    "v3c": [("v3_t10", v3_t10)],
 }
 
 
