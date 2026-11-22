@@ -1,5 +1,4 @@
-"""
-Shared neural-network (MLP) policy for the synthetic GRPO task.
+"""Factorized token policy for the synthetic GRPO task.
 
 Shapes:
     prompts:       (B, d)
@@ -8,11 +7,9 @@ Shapes:
     responses:     (B, G, L)
     log_probs:     (B, G)
 
-B = number of prompts
-d = number of prompt features
-L = response length
-K = number of possible tokens
-G = responses sampled per prompt
+B is the number of prompts, d is the number of prompt features,
+L is the response length, K is the number of possible tokens,
+and G is the number of responses sampled per prompt.
 """
 
 from copy import deepcopy
@@ -23,7 +20,11 @@ from torch.distributions import Categorical
 
 
 class Policy(nn.Module):
-    """Predict a token distribution for each response position."""
+    """Predict a categorical distribution for each response position.
+
+    The linear architecture acts as a tabular policy on one-hot prompts.
+    Each prompt has its own logits because the layer has no shared bias.
+    """
 
     def __init__(
         self,
@@ -31,16 +32,18 @@ class Policy(nn.Module):
         num_tokens=4,
         response_length=2,
         hidden_size=128,
-        arch="mlp",
+        architecture="mlp",
+        arch=None,
     ):
-        """arch "mlp": two ReLU layers of width hidden_size.
-        arch "linear": logits = W x with no bias, so one-hot prompts give a
+        """architecture "mlp": two ReLU layers of width hidden_size.
+        architecture "linear": logits = W x with no bias, so one-hot prompts give a
         tabular policy and no parameter is shared between them.
+        arch is an alias for architecture (the simulator in experiments/ uses it).
         """
         super().__init__()
 
-        if arch not in ("mlp", "linear"):
-            raise ValueError("arch must be 'mlp' or 'linear'")
+        if arch is not None:
+            architecture = arch
 
         if num_features < 1:
             raise ValueError("num_features must be >= 1")
@@ -54,47 +57,38 @@ class Policy(nn.Module):
         self.num_features = num_features
         self.num_tokens = num_tokens
         self.response_length = response_length
-        self.arch = arch
 
-        if arch == "mlp":
+        self.architecture = self.arch = architecture
+        num_logits = response_length * num_tokens
+
+        if architecture == "mlp":
             self.features = nn.Sequential(
                 nn.Linear(num_features, hidden_size),
                 nn.ReLU(),
                 nn.Linear(hidden_size, hidden_size),
                 nn.ReLU(),
             )
-            # Predict K token scores for each of the L positions.
-            self.output = nn.Linear(
-                hidden_size,
-                response_length * num_tokens,
-            )
-            nn.init.zeros_(self.output.bias)
-        else:
+            self.output = nn.Linear(hidden_size, num_logits)
+        elif architecture == "linear":
             self.features = nn.Identity()
-            self.output = nn.Linear(
-                num_features,
-                response_length * num_tokens,
-                bias=False,
-            )
+            self.output = nn.Linear(num_features, num_logits, bias=False)
+        else:
+            raise ValueError("architecture must be 'mlp' or 'linear'")
 
         # Equal initial logits give uniform token probabilities.
         nn.init.zeros_(self.output.weight)
+        if self.output.bias is not None:
+            nn.init.zeros_(self.output.bias)
 
     def forward(self, prompts):
-        """Return unnormalized token scores shaped (B, L, K).
-
-        prompts must be a floating-point tensor shaped (B, d).
-        """
+        """Return unnormalized token scores shaped (B, L, K)."""
         if prompts.ndim != 2:
             raise ValueError("prompts must have shape (B, d)")
         if prompts.shape[1] != self.num_features:
-            raise ValueError(
-                f"Expected {self.num_features} features per prompt"
-            )
+            raise ValueError(f"Expected {self.num_features} features per prompt")
 
-        hidden = self.features(prompts)
-        logits = self.output(hidden)
-
+        features = self.features(prompts)
+        logits = self.output(features)
         return logits.reshape(
             prompts.shape[0],
             self.response_length,
@@ -111,28 +105,16 @@ class Policy(nn.Module):
 
     @torch.no_grad()
     def sample(self, prompts, group_size):
-        """Sample responses shaped (B, G, L).
-
-        Sampling does not build a gradient graph. The trainer calls
-        log_prob() afterward to calculate differentiable log-probabilities.
-        """
+        """Sample responses shaped (B, G, L)."""
         if group_size < 1:
             raise ValueError("group_size must be >= 1")
 
         distribution = self.distribution(prompts)
-
-        # PyTorch puts the sample dimension first: (G, B, L).
         responses = distribution.sample((group_size,))
-
-        # The verifier expects the prompt dimension first: (B, G, L).
         return responses.permute(1, 0, 2).contiguous()
 
     def log_prob(self, prompts, responses):
-        """Return sequence log-probabilities shaped (B, G).
-
-        responses must be an integer tensor shaped (B, G, L).
-        Token log-probabilities are summed across response positions.
-        """
+        """Return sequence log-probabilities shaped (B, G)."""
         if responses.ndim != 3:
             raise ValueError("responses must have shape (B, G, L)")
         if responses.shape[0] != prompts.shape[0]:
@@ -142,57 +124,37 @@ class Policy(nn.Module):
 
         distribution = self.distribution(prompts)
 
-        # Match PyTorch's sample-first convention: (G, B, L).
-        tokens = responses.permute(1, 0, 2)
-        token_log_probs = distribution.log_prob(tokens)
-
-        # Sum over L, then return to prompt-first order.
-        return token_log_probs.sum(dim=-1).transpose(0, 1)
+        # Categorical expects the sample dimension first.
+        response_samples = responses.permute(1, 0, 2)
+        token_log_probs = distribution.log_prob(response_samples)
+        sequence_log_probs = token_log_probs.sum(dim=-1)
+        return sequence_log_probs.transpose(0, 1)
 
     def success_probability(self, prompts, correct):
-        """Return exact success probabilities shaped (B,).
-
-        correct must be an integer tensor shaped (B, L).
-        This calculation assumes one correct sequence per prompt.
-        """
-        expected_shape = (
-            prompts.shape[0],
-            self.response_length,
-        )
-        if correct.shape != expected_shape:
+        """Return the exact success probability for each prompt."""
+        if correct.shape != (prompts.shape[0], self.response_length):
             raise ValueError("correct must have shape (B, L)")
 
         distribution = self.distribution(prompts)
         token_log_probs = distribution.log_prob(correct)
-
-        # Product of correct-token probabilities, calculated in log space.
         return token_log_probs.sum(dim=-1).exp()
 
     def entropy(self, prompts):
-        """Return sequence entropy shaped (B,).
-
-        Independent token positions have additive entropies.
-        """
+        """Return sequence entropy shaped (B,)."""
         return self.distribution(prompts).entropy().sum(dim=-1)
 
     def frozen_reference(self):
-        """Copy this policy for use as the fixed KL reference.
-
-        Call after any supervised warm-start and before RL training.
-        The copy has independent parameters and does not track gradients.
-        """
+        """Copy the current policy for use as the fixed KL reference."""
         reference = deepcopy(self)
         reference.requires_grad_(False)
         reference.eval()
         return reference
 
     def kl_divergence(self, prompts, reference, direction="reverse"):
-        """Return exact sequence KL per prompt, shaped (B,).
+        """Return exact sequence KL for each prompt.
 
-        reverse: KL(self || reference), the default training penalty.
-        forward: KL(reference || self), for the E2 comparison.
-        Sum over tokens and positions; the trainer averages over prompts.
-        Gradients flow only through this policy, never the reference.
+        Reverse KL is KL(policy || reference). Forward KL swaps the policies.
+        Gradients flow only through the current policy.
         """
         if direction not in ("reverse", "forward"):
             raise ValueError("direction must be 'reverse' or 'forward'")
@@ -215,64 +177,84 @@ class Policy(nn.Module):
             token_kl = log_probs.exp() * (log_probs - reference_log_probs)
         else:
             token_kl = reference_log_probs.exp() * (reference_log_probs - log_probs)
+
         return token_kl.sum(dim=(-1, -2))
 
 
-# Optional demonstration: generate a small example dataset to check that the
-# policy, sampling shapes, and verifier work together. This does not train the
-# policy
 def main():
-    """Check that the policy connects to the existing synthetic task."""
-    from .synthetic_task import SyntheticTask, verify
+    """Check both policies on the same synthetic prompts and answers."""
+    from .synthetic_task import SyntheticTask
 
     torch.manual_seed(0)
-
+    num_prompts = 32
     task = SyntheticTask(
         num_features=16,
         num_tokens=4,
-        response_length=2,
+        response_length=1,
         seed=0,
     )
 
-    prompts, correct = task.generate_dataset(8)
+    features, answers = task.generate_dataset(num_prompts)
+    shared_prompts = torch.as_tensor(features, dtype=torch.float32)
+    tabular_prompts = torch.eye(num_prompts, dtype=torch.float32)
+    correct = torch.as_tensor(answers, dtype=torch.long)
 
-    # The task uses NumPy; the neural network uses PyTorch.
-    prompts = torch.as_tensor(prompts, dtype=torch.float32)
-    correct = torch.as_tensor(correct, dtype=torch.long)
-
-    policy = Policy(
+    shared_policy = Policy(
         num_features=task.num_features,
         num_tokens=task.num_tokens,
         response_length=task.response_length,
     )
-
-    responses = policy.sample(prompts, group_size=4)
-    log_probs = policy.log_prob(prompts, responses)
-
-    # The existing verifier accepts NumPy arrays.
-    rewards = verify(
-        responses.cpu().numpy(),
-        correct.cpu().numpy(),
+    tabular_policy = Policy(
+        num_features=num_prompts,
+        num_tokens=task.num_tokens,
+        response_length=task.response_length,
+        architecture="linear",
     )
 
-    with torch.no_grad():
-        probabilities = policy.probabilities(prompts)
+    expected_p = task.num_tokens ** (-task.response_length)
+    group_size = 8
+    policy_examples = (
+        ("MLP", shared_policy, shared_prompts),
+        ("Tabular", tabular_policy, tabular_prompts),
+    )
+
+    for name, policy, prompts in policy_examples:
         success = policy.success_probability(prompts, correct)
+        torch.testing.assert_close(success, torch.full_like(success, expected_p))
 
-    print("Probabilities:", tuple(probabilities.shape))
-    print("Responses:    ", tuple(responses.shape))
-    print("Rewards:      ", rewards.shape)
-    print("Log-probs:    ", tuple(log_probs.shape))
-    print("Mean success: ", success.mean().item())
+        responses = policy.sample(prompts, group_size=group_size)
+        log_probs = policy.log_prob(prompts, responses)
+        assert responses.shape == (num_prompts, group_size, task.response_length)
+        assert log_probs.shape == (num_prompts, group_size)
 
-    # Uniform policy: each correct token has probability 1/K.
-    expected_success = task.num_tokens ** (-task.response_length)
-    assert torch.allclose(
-        success,
-        torch.full_like(success, expected_success),
+        print(f"{name} check passed. Initial success = {expected_p:.2f}")
+
+    check_tabular_prompt_isolation(tabular_policy, tabular_prompts, correct)
+    print("Tabular prompt isolation check passed.")
+
+
+def check_tabular_prompt_isolation(policy, prompts, correct):
+    """Check that updating the first prompt leaves the other logits unchanged."""
+    optimizer = torch.optim.SGD(policy.parameters(), lr=0.1)
+    logits_before = policy(prompts).detach()
+
+    first_prompt_success = policy.success_probability(prompts[:1], correct[:1])
+    loss = -first_prompt_success.mean()
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    logits_after = policy(prompts).detach()
+    assert not torch.equal(logits_before[0], logits_after[0]), (
+        "The updated prompt's logits did not change"
     )
-
-    print("\nPolicy check passed.")
+    torch.testing.assert_close(
+        logits_after[1:],
+        logits_before[1:],
+        rtol=0,
+        atol=0,
+    )
 
 
 if __name__ == "__main__":
