@@ -1,0 +1,13 @@
+level,p0,rule,best_G_old,best_G_new,min_samples,still_edge
+lin,0.01,grpo,4,4,2304.0,
+lin,0.01,mean,4,4,3072.0,
+lin,0.03,grpo,2,2,768.0,128
+lin,0.03,mean,2,2,512.0,"2,4,128"
+lin,0.1,grpo,2,2,256.0,
+lin,0.1,mean,2,2,256.0,
+tab,0.01,grpo,2,2,3584.0,
+tab,0.01,mean,4,2,3584.0,2
+tab,0.03,grpo,2,2,1536.0,
+tab,0.03,mean,4,2,1536.0,
+tab,0.1,grpo,2,2,512.0,
+tab,0.1,mean,2,2,512.0,

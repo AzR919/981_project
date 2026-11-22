@@ -1,0 +1,7 @@
+m,optimizer,mean_ratio
+0.5,adam,1.0
+0.5,sgd,1.0
+0.7,adam,1.0
+0.7,sgd,1.0
+0.9,adam,1.0
+0.9,sgd,1.0
