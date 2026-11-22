@@ -1,0 +1,31 @@
+{
+    "lengths": [
+        1,
+        2,
+        4
+    ],
+    "group_sizes": [
+        2,
+        4,
+        8,
+        16
+    ],
+    "target_success_rates": [
+        0.05,
+        0.25,
+        0.75
+    ],
+    "num_gradient_prompts": 8,
+    "num_groups": 50000,
+    "trajectory_steps": 25,
+    "quick": {
+        "group_sizes": [
+            2,
+            4
+        ],
+        "num_gradient_prompts": 2,
+        "num_groups": 5000,
+        "trajectory_steps": 5,
+        "num_seeds": 1
+    }
+}
