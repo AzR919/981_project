@@ -56,8 +56,16 @@ Mean share of minority prompts absorbed, over the 7 collapsing cells:
 | Forward KL prevents absorption | yes, from β = 0.01 | yes, fully at β = 0.3, mostly at 0.03 |
 | Reverse KL at small β does not | yes | yes |
 | pass@k weighting prevents absorption | yes (SGD) | with Adam only |
-| Sampled updates block recovery that the exact update allows | not tested this way | yes (parity task) |
+| With Adam, sampled updates block recovery that the exact update allows; with SGD neither recovers | T12 at ρ = 0.9: 24 of 80 exact Adam runs recover, none under sampling or SGD | yes (parity task) |
 
 ## Deviations
 
 None. Predictions 1 and 4 are reported as partly failing.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+1. **Reference.** The anchor is to the base model, which gives every class string 0.3. The result
+   is "an anchor to a reference that still solves the minority"; see `analysis/v3g/SUMMARY.md`,
+   corrections 1 and 3.
+2. **Threshold.** The counts above use 1e-3. The 1e-2 sensitivity counts were not computed for
+   this batch.

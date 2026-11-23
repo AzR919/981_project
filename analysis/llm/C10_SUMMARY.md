@@ -29,7 +29,7 @@ Every interval excludes zero on the positive side, in all 18 runs and at both st
 
 - **This is the "positive transfer" outcome named in the pre-registration.** Training only on the
   majority procedure improves the minority procedure, by about 0.8 of what the minority's own
-  training gives. In the toy the same ratio is +4 to +17 the other way at this imbalance: the
+  training gives. In the toy the ratio is +4 to +17 the other way at shares 0.7–0.9, and would be about 22–36 at C10's share of 0.95 (not directly comparable, see the corrections): the
   majority's step undoes the minority's.
 - **It works in both directions.** Four minority prompts per step also raise the majority panel, by
   +0.15 and +0.23.
@@ -56,3 +56,13 @@ Every interval excludes zero on the positive side, in all 18 runs and at both st
 
 The composition is 76 + 4 at denominator 80, not the plan's 61 + 3; this is stated in the
 pre-registration.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+1. **The arms are not the two parts of the mixed update.** Training uses 8-bit AdamW, which
+   normalises each step, so the 4-prompt arm moves its own panel almost as much as the 76-prompt arm
+   moves its own (+0.31 to +0.33 against +0.38 to +0.40). Additivity was therefore not to be
+   expected, and R = −0.79 is not comparable in size with the toy's ratio under SGD. **The sign
+   result stands:** all 18 intervals are above zero.
+2. **"c has the other sign" is one reading.** The other is that the base model already separates
+   the procedures (see `C2_SUMMARY.md`, correction 1).

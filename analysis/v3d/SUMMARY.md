@@ -48,7 +48,7 @@ From copies of one state, one step along the majority's part, the minority's par
   minority is below its start in every task, under both SGD and Adam. Adam is gentler at that point
   in the linear task (minority mean 0.25–0.27, against 0.003–0.011 under SGD).
 
-## T13: projection control (prediction 1 holds where it can be tested; predictions 2 and 3 fail)
+## T13: projection control (prediction 1 holds in 8 of 16 cells and is a tie at zero in the other 8; predictions 2 and 3 fail)
 
 Share of minority prompts absorbed (mean over 10 tasks; η ∈ {0.01, 0.1} agree):
 
@@ -112,3 +112,10 @@ Which class a prompt belongs to decides whether it is absorbed; its margin does 
 
 - **T12 prediction 2** was stated for both m values, and is reported per cell.
 - **T13** is interpreted because T11 prediction 1 holds, as pre-registered.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+- **Recovery and the optimizer.** At ρ = 0.9, 24 of 80 runs with the exact update and Adam recover
+  within 10× the horizon; none of the sampled Adam runs and none of the 240 SGD runs do
+  (`tables/t12_cells.csv`). The wording for the report is "for the whole training horizon, and for
+  at least 10× longer under SGD or with sampled updates when features are strongly correlated".

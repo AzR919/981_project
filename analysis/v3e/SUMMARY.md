@@ -24,7 +24,7 @@ start; SGD at η = 0.01 with the exact expected update.
 - **The push is proportional to the odds.** R(m) = c · m/(1 − m), with c set by the task: c = R at
   m = 1/K times (K − 1), and R at 1/K is 0.55–1.01. The mixed step starts to lower the other classes
   where R = 1.
-- **The step-0 threshold is just above 1/K.** It is exactly 1/K for two classes, and 0.02–0.05 above
+- **The step-0 threshold is just above 1/K.** It is 0.498–0.529 for two classes (within 0.03 of 1/K), and 0.02–0.05 above
   for K = 3 and 5 in most cells (0.11 for the linear task at ρ = 0.5 and K = 5). This is close to the
   reading of Li et al.'s leading-order result, with a task-dependent correction that shrinks as
   feature correlation grows.
@@ -48,3 +48,8 @@ So the statement for the report has two parts:
 ## Deviations
 
 None. Prediction 1 is reported as failing for K = 2.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+- `absorption_from` here is "median minority absorption above 0.5"; v3g uses "mean ≥ 0.05". The two
+  give different values for the same configuration; the report should use one.

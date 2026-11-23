@@ -27,7 +27,7 @@
 - **Secondary arm (lr 3e-6):** 12–15 training problems are lost in two seeds, and 1 in the third.
   - **One repeated wrong answer.** Lost problems end with 61–79% of their 256 completions on a single
     wrong answer, against 2–4% for other problems. That answer is the base model's most frequent
-    wrong answer only 17–27% of the time.
+    wrong answer only 17–27% of the time in the two seeds with 12 and 15 losses (the third seed has one lost problem).
   - **Low base success.** Lost problems had lower base success (median 0.23 against 0.50; p = 2e-5).
   - **No overlap between seeds** (0 shared problems). Which problems are lost is not a property of
     the problem. This is unlike the toy's minority collapse, where the lost set is fixed by the task.
@@ -83,4 +83,12 @@
 - **P4 fails in both families** (partial-conjunction p = 1 in each): at a learning rate that learns
   well, GRPO loses no training problem.
 - **The held-out declines replicate.** In both families a few percent of unseen problems decline,
-  and 1–3% end at success ≤ 0.05, while every training problem improves.
+  and 0.3–3% end at success ≤ 0.05 (Qwen 1–5 of 300; Llama 4–9), while every training problem improves.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+- **Scope.** "No training problem is lost" is the result at lr 1e-6. At lr 3e-6 Qwen loses 15, 12
+  and 1 training problems.
+- **The held-out declines repeat in number, not in identity.** Between pairs of Qwen seeds, 1, 2
+  and 2 declined problems are shared (0.2–0.4 expected by chance): slightly more than chance, but
+  mostly different problems in each seed.

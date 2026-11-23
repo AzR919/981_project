@@ -31,7 +31,7 @@ below 1e-3 while class 0 does not.
 
 | Step rule | Share ≥ 0.875 (40 runs each) | Balanced classes (20 runs each) |
 |---|---|---|
-| Adam, lr 1e-3 | minority absorbed in 39; class 0 never | neither class absorbed in 18 |
+| Adam, lr 1e-3 | minority absorbed in 39; class 0 never | no class loses half its prompts in 18, but every run absorbs 18–20% of each class's prompts (see the corrections) |
 | Adam, lr 3e-3 | minority absorbed in 40; class 0 never | neither in 9; one class absorbed in 9 |
 | SGD, lr 0.3 | minority absorbed in 39; class 0 in 2 | one class absorbed in 15, either one |
 | SGD, lr 1 | **both classes absorbed in 27** | both or one absorbed in all 20 |
@@ -73,11 +73,11 @@ use the parity.
 - **The mechanism carries over** from feature-vector prompts and a linear or MLP policy to token
   prompts and a transformer: a majority class drives a correct minority class to near zero, only
   when parameters are shared, and the first step follows the odds law with no fitted quantity.
-- **New: balance is a knife edge when prompts carry no class information.** The law gives R = 1 at
+- **Balance is a knife edge when prompts carry no class information** (not new: see the corrections)**.** The law gives R = 1 at
   m = 1/K in that case, so neither class is protected, and with plain SGD one class takes over at
   random. In our toy the features carry class information (c < K − 1), R is below 1 at balance, and
   nothing is absorbed there. So "no collapse at balance" depends on c, as the law says.
-- **New: recovery depends on having a signal at low success.** On the parity task the exact update
+- **Recovery depends on having a signal at low success, and on the optimizer** (see the corrections)**.** On the parity task the exact update
   with Adam brings the minority back from 0.003 to 1.00 in every run. Sampled GRPO does not: once
   every sampled group is all wrong, there is nothing to learn from. This is the cleanest
   demonstration so far of the second ingredient of the collapse: the push starts it, and the loss
@@ -91,3 +91,35 @@ use the parity.
 
 1. Prediction 4 for K = 3 cannot be computed as registered (no crossing on the grid).
 2. The interpretation of prediction 1a departs from its registered statistic, as explained above.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+1. **Only Adam at lr 1e-3 isolates the effect of the class share.** Per prompt (the registered
+   measure), the share of the non-zero classes' prompts absorbed under the exact update is:
+
+   | Step rule | Balanced classes | Share ≥ 0.875 | Class 0 prompts absorbed at share ≥ 0.875 |
+   |---|---|---|---|
+   | Adam, lr 1e-3 | 0.18 (and 0.20 for class 0) | 0.94 | 0.00 |
+   | Adam, lr 3e-3 | 0.42 | 0.99 | 0.00 |
+   | SGD, lr 0.3 | 0.48 | 0.98 | 0.08 (in 11 of 40 runs) |
+   | SGD, lr 1 | 0.50 | 0.91 | 0.76 |
+   | SGD, lr 3 | 0.76 | 0.99 | 0.93 |
+
+   SGD at lr 0.3 loses a class at balance too, so its high-share collapse cannot be attributed to
+   the share. "118 of 120 clean runs" should not be cited. The statement the data support: under
+   Adam at lr 1e-3 the per-prompt rate rises from about 0.2 at balance to 0.94 at high share, with
+   class 0 untouched.
+2. **Prediction 1a:** passed as registered, but the registered cells (SGD lr 1 and 3) break the
+   majority too; the cell that isolates the effect was not named in advance.
+3. **"Neither class absorbed"** in the table uses a class-level rule (at least half of a class's
+   prompts). Prediction 1b is per prompt and fails in every cell, Adam included.
+4. **Not new.** Zero first-order drift at m = 1/K and its dependence on the step size are in Li,
+   Pandey and Chen (Prop. 2, section 6.1); the "knife edge" reading was also made after prediction
+   1b failed, and the cleanest cell does not fit it neatly (both classes lose a fifth). That
+   recovery needs a signal at low success is Schaul et al.'s f(0) = 0.
+5. **Recovery on the parity task needs Adam as well as the exact update:** with Adam the exact
+   update recovers (20 of 20) and sampling blocks it; with SGD at lr 0.3 neither recovers (1 of 10
+   each).
+6. **By construction:** c = K − 1 here because classes are assigned at random, so this environment
+   checks the odds factor, not the correction c. The tabular control cannot fail (a tabular correct
+   logit cannot be lowered by its own prompt's update); the per-prompt-copies control ran in 9 runs.

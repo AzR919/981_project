@@ -17,10 +17,10 @@ measured on the same 300 held-out problems of the minority procedure (256 sample
 
 P5 needs p < 0.05 in both roles. The larger p is 0.0536, so **P5 fails as registered.**
 
-The failure is not a near miss in substance either:
+P5 fails narrowly on the registered test, and both correlations are positive. The exploratory evidence against an effect of the majority is in the level of the outcome and in the matched-minority arm (6 runs per role):
 
 - **The minority procedure gets much better, not worse.** Its mean held-out success rises by
-  0.36–0.45 in 15 of 16 runs (from about 0.52–0.55 to 0.92–0.97), including at m = 0.95, where it
+  0.36–0.45 in 15 of 16 runs (from about 0.52–0.55 to 0.91–0.97), including at m = 0.95, where it
   gets about 3 prompts per step. The remaining run (majority `each`, m = 0.95, seed 1) rises by 0.13.
 - **Declines are few.** 2–9% of the 300 problems decline significantly (null: 0), against 100%
   absorption in the toy at the same share. One run has 28%.
@@ -66,7 +66,7 @@ After Holm's correction only P1 holds at 0.05.
 - **The toy's collapse does not transfer to this LLM setting.** With a pretrained model, two
   procedures that share most of their steps help each other: training almost only on one raises the
   other. In the toy the two classes compete for the same output from an equal start.
-- **This is the decision gate "a controlled mechanism and its boundary".** The report states the
+- **This is the decision gate "a controlled mechanism and its boundary"** (see the corrections: why the boundary is where it is remains a hypothesis)**.** The report states the
   mechanism and its law in the toy, and the LLM result as the boundary: the collapse needs classes
   whose updates oppose each other, and these two procedures do not.
 - **The odds law gives the language for the boundary.** The push is R = c·m/(1 − m), and c carries
@@ -82,3 +82,16 @@ After Holm's correction only P1 holds at 0.05.
   free a machine for another user, and its hint evaluations were run afterwards from the same model.
 - Two runs (`r2_26`, `r2_27`) were cut off by a reboot at 03:00 and restarted from their
   checkpoints by the queue.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+1. **Why there is no collapse is not settled.** Two candidate reasons fit the data: the procedures
+   share most of their skills, so their updates are aligned; and the base model already separates
+   them, giving the other procedure's answer on only 0.6% and 5.4% of samples, where the toy starts
+   with 1/K. By the first-step algebra the second alone predicts a weak push. No LLM pair with
+   opposing updates was tested. T22 tests the second reason in the toy; an LLM pair told apart by
+   one token is in the to-do.
+2. **Holm input for P2.** The table enters P2 with p = 1; the registered input is its largest
+   kick-size p-value, 0.0027. With that, P1's adjusted p is 0.039 instead of 0.049. P1 holds either
+   way, and P2 still fails its registered rule.
+3. **Scope.** One model, 500 steps, lr 1e-6.

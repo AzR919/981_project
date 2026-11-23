@@ -32,7 +32,8 @@ Task: K = 3 answer classes, uniform start, majority share m; the KL reference is
 | 5. Forward protects at least as well as reverse at equal β | 48 of 48 |
 
 **Reading.**
-- **The direction of the KL term decides.** Forward KL prevents absorption at every strength tried,
+- **The direction of the KL term matters (corrected below: "prevents" holds at the 1e-3 threshold only).**
+  Forward KL prevents absorption at every strength tried,
   including β = 0.01, where the majority still ends at 0.99. Reverse KL does nothing up to β = 0.1
   and works only in a narrow window (β = 0.3 to 1) before it caps the majority.
 - **Why:** the forward-KL pull on a prompt does not shrink as its success goes to zero; the
@@ -62,7 +63,7 @@ Task: K = 3 answer classes, uniform start, majority share m; the KL reference is
 | Prediction | Result |
 |---|---|
 | 1. Control: no return | 2 of 2 architectures |
-| 2. No KL: return depends on depth; none at step 5,000; time to return rises with 1/p at release | holds (Spearman 0.81 over 35 returning runs) |
+| 2. No KL: return depends on depth; none at step 5,000; time to return rises with 1/p at release | holds for the first two parts; the correlation is 0.81 pooled over release steps but 0.38 and 0.47 within a step (p = 0.10 and 0.07), so it mainly separates the two release steps |
 | 3. Reverse KL: no return at release steps 1,000 and 5,000 | **2 of 8: fails.** Reverse KL does bring the minority back, slowly; only β = 0.01 at step 5,000 does not return in time |
 | 4. Forward KL at β = 0.1 returns at every release step | 6 of 6 |
 
@@ -111,13 +112,13 @@ Smallest share with absorption (mean minority absorption ≥ 0.05), exact update
 | Lever | Minority absorbed | Majority reaches 0.80 | Minority at that point | Final majority / minority |
 |---|---|---|---|---|
 | plain GRPO | 100% | step 100 | 0.0001 | 1.00 / 0.00 |
-| group size (H5) | 100% at every G | | | no protection |
+| group size (H5; T19 at its largest share, 0.883) | 91–100% across G | | | no protection |
 | reverse KL, β ≤ 0.1 (H4) | 100% | step 100 | 0.000 | 1.00 / 0.00 |
 | reverse KL, β = 0.3 | 3–29% | step 100 | 0.001 | 0.99 / 0.5–0.9 |
 | forward KL, β = 0.03 (H4) | ≤ 0.2% | step 100 | 0.005 | 0.98 / 0.57 |
 | pass@2 (v3f) | 0–12% | step 100 | 0.03–0.08 | 0.98 / 0.79–0.87 |
 | pass@4 (v3f) | 0% | steps 350–3,900 | 0.31–0.42 | 0.92–0.95 / 0.67–0.72 |
-| projecting out the harmful direction (v3d) | 0% in 16 of 16 cells | not measured at the matched point | | see `analysis/v3d/SUMMARY.md` |
+| projecting out the harmful direction (v3d) | 0–1% at m = 0.9 | not measured at the matched point | | see `analysis/v3d/SUMMARY.md` |
 
 Only pass@4 and the projection keep the minority up *while* the majority is learned. Forward KL and
 pass@2 let it fall and bring it back at almost no cost to the majority. Reverse KL at usual
@@ -140,3 +141,23 @@ strengths and group size do not help.
    the predictions; `FINDINGS.md` shows both. The conclusions are the same under either.
 2. **T18 predictions** were changed from the plan before launch (one resting point, not two); this
    is recorded in the pre-registration itself.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+1. **Forward KL keeps the minority above a floor; it does not remove the collapse at small β.** The
+   table above uses the 1e-3 threshold. At the registered sensitivity threshold 1e-2, the share of
+   minority prompts absorbed under forward KL is 34% at β = 0.01 and 11% at β = 0.03 (0 from
+   β = 0.1). The worst cells: linear at η = 0.1 and β = 0.01 (0.89 exact, 0.85 sampled); MLP,
+   sampled, η = 1, β = 0.03 (0.66). 58 of 320 forward-KL runs at β ≤ 0.3 end with the minority below
+   0.05. The floor is about β·p_ref/c, as the pre-registration's heuristic said.
+2. **"With the MLP under forward KL every prompt ends at the resting point" holds for the exact
+   update.** In the MLP sampled cell at η = 1 the minority ends at 0.005–0.05.
+3. **The result is about anchoring to a reference that still gives the minority's answer 1/3.** The
+   forward pull β(π_ref − π) on the correct answer stays near β/3 as success goes to zero because
+   the reference solves the minority. This is the kind of non-vanishing pull Schaul et al. (2019)
+   describe. An anchor to a reference that had already lost the minority would hold it down.
+4. **Thresholds.** `absorption_from` here is "mean ≥ 0.05"; v3e uses "median > 0.5". The two give
+   different values for the same configuration (for example 0.45 against 0.53 for linear, ρ = 0.9);
+   the conclusions hold under either.
+5. **By construction:** that m\* does not depend on G at a uniform start is a sanity check, not a
+   finding.

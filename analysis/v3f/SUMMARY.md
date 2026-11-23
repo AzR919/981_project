@@ -11,7 +11,7 @@ exploratory. `experiments/analyze_v3f.py` regenerates `FINDINGS.md`.
 |---|---|---|---|---|
 | grpo, mean | by step 100 | 0.0001–0.0004 | 1.00 / 0.000 | 100% |
 | pass@2 (both forms) | by step 100 | **0.03–0.08** | 0.98 / 0.79–0.87 | 0–12% |
-| pass@4 (both forms) | steps 350–3,900 (not at η = 0.03) | **0.31–0.42** | 0.92–0.95 / 0.67–0.72 | 0% |
+| pass@4 (both forms) | steps 350–3,900 (at η = 0.03 the biased form reaches 0.80 in 3 and 6 of 10 tasks, the unbiased form in none) | **0.31–0.42** | 0.92–0.95 / 0.67–0.72 | 0% |
 | pass@8, biased form | steps 8,000–12,000 at η = 1 only (7–8 of 10 tasks) | 0.46–0.48 | 0.80–0.81 / 0.54–0.56 | 0% |
 | pass@8, unbiased form | never within 20,000 steps | – | 0.75 / 0.50 | 0% |
 

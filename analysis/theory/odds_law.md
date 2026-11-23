@@ -89,5 +89,17 @@ with the step-0 changes the simulator measured in the v3e runs (K ∈ {2, 3, 5},
 - Schaul et al. (2019) derive interference through a shared bias in a two-context bandit.
 - Li, Pandey and Chen (2026) state the decomposition behind step 2 for wrong strings that a
   verifier accepts, and its leading-order sign.
-- New here: the closed form for a *correct* minority class with the kernel correction, the odds law
+- Ours: the closed form for a *correct* minority class with the kernel correction, the odds law
   as an identity, and a parameter-free check against exact simulation.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+- **What kind of statement this is.** A first-order identity for the first step from a uniform
+  start. The factor m/(1 − m) is n_A/n_B, which any first-order model has; the content is c. The
+  1,080-run check compares the first-order expansion with a finite step of the simulator and
+  verifies the algebra and the code; it is not evidence about the course of training.
+- **Threshold.** "m\* = 1/(1 + c)" needs c at the threshold. Using c at m = 1/K gives 0.340 where
+  0.354 is measured (K = 3, linear, ρ = 0.9); solving m = 1/(1 + c(m)) gives the measured value.
+- **Generalisation used in T22.** Away from a uniform start, the class factor between a majority
+  prompt x and a minority prompt y is π_x·π_y − π_x(b) − π_y(a): the overlap of their response
+  distributions minus the mass each puts on the other's answer.

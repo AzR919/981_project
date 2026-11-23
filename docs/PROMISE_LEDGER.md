@@ -8,10 +8,10 @@ in the report as failed.
 
 | | Promised in the milestone | Result | Already published? | Place in the report |
 |---|---|---|---|---|
-| **H1** | The identity E[ĝ] = W_G(p)∇p holds at finite G; rules whose W_G differ by a constant match after rescaling the step | **Holds.** No bias at any tier with the precision to detect one; the calibrated null is uniform in tabular runs (KS p = 0.73) | Yes: Davis & Recht prove the finite-G identity. The milestone (lines 258–260, 322) wrongly says they cover only infinite groups; the report corrects this | "The simulator matches known theory" (verification) |
+| **H1** | The identity E[ĝ] = W_G(p)∇p holds at finite G; rules whose W_G differ by a constant match after rescaling the step | **Holds.** No bias at any tier with the precision to detect one; the calibrated null is not rejected in tabular runs (KS p = 0.73) | Yes: Davis & Recht prove the finite-G identity. The milestone (lines 258–260, 322) wrongly says they cover only infinite groups; the report corrects this | "The simulator matches known theory" (verification) |
 | **H2** | Group size alone moves GRPO's surrogate from p at G = 2 toward 2 arcsin √p | **Holds without sharing** (tabular runs sit on the W_G line). With sharing a prompt's drift is not set by its own W_G; the full shared-gradient drift explains the change (R² 0.999) | Yes (Davis & Recht) | Verification; the sharing part leads into the mechanism |
-| **H3** | Stability is set by one effective step, η W_G(p) p(1 − p)/B, together with interference through shared parameters | **The single-variable claim fails.** No one variable lines up the sharing levels (shifts up to 4.7 decades). **The interference part holds and became the main result:** with shared parameters a majority answer class drives the minority to near-zero success (P1; 16 of 16 cells). Without sharing, success never decreases (2,268 runs) | The one-step mechanism is in Schaul et al. (2019) and Li, Pandey & Chen (2026). The multi-step outcome for a correct class, and its law in the class share, are not | The core of the report: mechanism, who pushes whom, the odds law, when it lasts |
-| **H4** | SGD with a KL penalty settles at the finite-G fixed point, not Mroueh's limit | **Fixed points hold** (median error 1e-4). Two stable points at low reference success (60 of 60). Our own scaling claim (spread set by η/β) **fails** | Fixed-point equations: Vojnovic & Yun | Verification, plus a new result that ties H4 to the main finding: the KL direction decides whether the minority survives (T17, T18) |
+| **H3** | Stability is set by one effective step, η W_G(p) p(1 − p)/B, together with interference through shared parameters | **The single-variable claim fails.** No one variable lines up the sharing levels (shifts up to 4.7 decades). **The interference part holds and became the main result:** with shared parameters, and from a start where every prompt gives every class the same probability, a majority answer class absorbs the minority, more completely as its share grows (P1 holds in 16 of 16 cells; 54–100% of minority prompts absorbed at m = 0.9). Without sharing, success cannot decrease (2,268 runs, a sanity check) | Schaul et al. (2019) already show multi-step loss of correct contexts through shared parameters, the vanishing signal at low success and the slow recovery; Li, Pandey & Chen (2026) give the first-step decomposition and its sign at m = 1/K. Ours: class share as a controlled driver for a correct minority under GRPO, with a dose–response; the correction c from the feature geometry; levers compared at matched progress | The core of the report: mechanism, who pushes whom, the odds law, when it lasts |
+| **H4** | SGD with a KL penalty settles at the finite-G fixed point, not Mroueh's limit | **Fixed points hold** (median error 1e-4). Two stable points at low reference success (60 of 60). Our own scaling claim (spread set by η/β) **fails** | Fixed-point equations: Vojnovic & Yun | Verification, plus a new result that ties H4 to the main finding: an anchor to a reference that still solves the minority keeps it above a floor, and the forward direction does so at far smaller strength than the reverse (T17, T18, T21) |
 | **H5** | Group-size scaling as a separate study | **The milestone pattern was an artefact.** With a wide enough learning-rate grid the best G is 2 almost everywhere. Fixes for all-wrong groups help only at small steps (Heckel) | Related analyses exist (Bay; Nie) | A short negative result: group size does not protect the minority (T19) |
 
 ## Pre-registered predictions (v3)
@@ -30,24 +30,30 @@ in the report as failed.
 |---|---|
 | Branch test (T11) | The majority's update lowers the minority; the minority's own update raises it. It is active pushing, not starvation |
 | Long horizon and release tests (T12, T18) | The collapse is a long plateau, not a second resting point. It lasts because the majority keeps pushing and because restoring forces shrink with success |
-| Threshold grid and the odds law (T15, `analysis/theory/odds_law.md`) | The push is R = c·m/(1 − m), with c from the feature geometry; the first decline starts at m = 1/(1 + c). Parameter-free, checked on 1,080 runs |
+| Threshold grid and the odds law (T15, `analysis/theory/odds_law.md`) | At the first step from a uniform start, the push is R = c·m/(1 − m), with c from the feature geometry, and the first decline starts where m = 1/(1 + c(m)). This is a first-order identity; it was verified with nothing fitted against the simulator's first step in 1,080 runs. It is not a law of the whole training run |
 | Margin check (M4) | Class decides, not prompt difficulty |
-| Prevention levers (T13, T16, T17, T19) | Hard-prompt weighting and a forward KL anchor prevent absorption at different costs; reverse KL at usual strengths and group size do not |
-| LLM census with a calibrated null (C1, both families; census calibration) | No training problem is lost at a learning rate that learns well; a few percent of unseen problems are. At 32 samples per problem, a naive "locked problem" count flags 83 of 3,000 problems in an unchanged model; our test flags none. This is about our setting and that sample count; it is not a statement about other papers' counts |
-| Controlled imbalance in the LLM (C2 and its controls) | The toy collapse does not transfer: two procedures that share most steps help each other |
+| Prevention levers (T13, T16, T17, T19) | Hard-prompt weighting and a forward KL anchor (to a reference that still solves the minority) prevent absorption at different costs; forward KL at small strength leaves the minority at a low floor. Reverse KL at usual strengths and group size do not help |
+| LLM census with a calibrated null (C1, both families; census calibration) | At lr 1e-6, no training problem is lost in either family (at lr 3e-6, Qwen loses 15, 12 and 1); a few percent of unseen problems decline in every run, mostly different problems in each seed. At 32 samples per problem, a naive "locked problem" count flags 83 of 3,000 problems in an unchanged model; our test flags none. This is about our setting and that sample count; it is not a statement about other papers' counts |
+| Controlled imbalance in the LLM (C2 and its controls) | No collapse: a minority procedure improves at every majority share, and majority-only training raises it (C10). Why is open: the procedures share skills, and the base model almost never gives the other procedure's answer (0.6% and 5.4%), unlike the toy's start (T22 tests the second reason in the toy) |
 
 ## Open on 2026-11-23
 
-- C10 (who pushes whom in the LLM): 18 runs in the queue.
-- T20 (a correct minority in Li, Pandey and Chen's environment): batch `v3h` running.
-- Rejection-sampling controls for the held-out declines; the long arm; KL runs in the LLM.
+- T22 (junk answers: where the wrong mass sits): batch `v3j` running.
+- Rejection-sampling controls for the held-out declines; the C2 seed replication; the long arm; KL
+  runs in the LLM.
+- An LLM pair whose two procedures are told apart by one token (the LLM-side test of the start).
+- P1 part (b) at the task level.
 - A hand check of the odds-law derivation by a team member.
 
 ## The story in one paragraph
 
-Under GRPO with parameters shared across prompts, a majority answer class pushes a correct minority
-class to near-zero success. The push at the start of training obeys a closed-form odds law, and
-the collapse lasts as a long plateau. It can be prevented, at a cost that differs by method. In two
-small LLMs the same pressure does not appear: training loses no problem it trains on, and a
-minority procedure improves alongside the majority. What the LLMs do show is a small, repeatable
-loss of unseen problems to confident wrong answers.
+Under GRPO with parameters shared across prompts, and from a start that does not yet tell the answer
+classes apart, a majority answer class absorbs a correct minority class, more completely as its
+share grows. The first step obeys a closed-form identity in the class share and the feature
+geometry, and the collapse then lasts as a long plateau. It can be prevented, at a cost that
+differs by method. The same holds for a small transformer on token prompts. In two small LLMs at a
+learning rate that learns well we do not see it: no training problem is lost, and a minority
+procedure improves alongside the majority, even under majority-only training. Whether that is
+because the procedures share skills or because the base model already separates them is not
+settled. What the LLMs do show is a small loss of unseen problems to confident wrong answers, at a
+rate that repeats across seeds and families.

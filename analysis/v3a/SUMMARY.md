@@ -112,3 +112,13 @@ Holm runs across P1–P5 once P3–P5 are in. For now, P1's p-value is 3.0e-8, s
   are, which supports keeping the verifier flip and the sign rule in C5.
 - **T5, T7, T9 and the P3 pre-registration are still to build.** P3 has to be committed before T5
   launches.
+
+## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+
+- **P1's p-value.** The 3.0e-8 quoted above is pseudo-replicated (it pairs task × η). The corrected
+  task-level value is 0.0098 (`P1_TASK_LEVEL.md`); with Holm over P1–P5 it is 0.049 (0.039 if P2's
+  registered partial p-value, 0.0027, is entered instead of 1). The correction redid part (a) of the
+  test; part (b), the Spearman test, is still at the (task, η) level.
+- **Wording.** P1 tests that absorption rises with the majority share, not how complete it is: at
+  m = 0.9 the share of minority prompts absorbed is 54% in the two linear, ρ = 0.5, Adam cells and
+  higher elsewhere.
