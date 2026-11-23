@@ -118,7 +118,10 @@ def run_row(label, path, base0, train, held, r0, n_train):
     gains = compare(subset(after, train), subset(base0, train), FDR)
     lost = int(tr.lost.sum())
     log = pd.DataFrame([json.loads(line) for line in open(os.path.join(path, "run", "log.jsonl"))])
-    row = dict(arm=label, run=os.path.basename(path.rstrip("/")), steps=len(log), lost=lost,
+    seed = json.load(open(os.path.join(path, "run", "config.json")))["seed"]
+    # Two runs of one arm can share a host, so name a run by its job folder and seed.
+    name = f"{os.path.basename(os.path.dirname(path.rstrip('/')))}-s{seed}"
+    row = dict(arm=label, run=name, steps=len(log), lost=lost,
                p_binom=float(binom.sf(lost - 1, n_train, r0)), declines=int(tr.decline.sum()),
                gains=int(gains.decline.sum()), lost_heldout=int(ho.lost.sum()),
                declines_heldout=int(ho.decline.sum()), p_before=tr.p_before.mean(), p_after=tr.p_after.mean(),

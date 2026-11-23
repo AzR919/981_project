@@ -48,7 +48,7 @@ class AnalyzeC1Tests(unittest.TestCase):
             text = open(f"{tmp}/out.md").read()
             self.assertIn("**PASS**", text)  # 2 of 3 seeds far above the null rate 1/201
             self.assertIn("## Turnover", text)
-            self.assertIn("| a | run0 | train | 200 | 0 | 20 | 20 | 20 | 0 | 20 |", text)  # gained, declined, lost, strict, new, locked
+            self.assertIn(f"| a | {os.path.basename(tmp)}-s0 | train | 200 | 0 | 20 | 20 | 20 | 0 | 20 |", text)  # gained, declined, lost, strict, new, locked
 
     def test_partial_conjunction_and_band(self):
         sys.path.insert(0, ROOT)
