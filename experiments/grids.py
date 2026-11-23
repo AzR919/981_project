@@ -383,6 +383,42 @@ def v3_t10():
                    log_every=250, snapshot_every=5000, track_every=5, diagnostics=False, level=level)
 
 
+def t1_base(arch, rho, m, task_seed):
+    return dict(arch=arch, width=64, features="correlated", rho=rho, majority=m, L=1, K=3, G=8, B=32, rule="grpo",
+                task_seed=task_seed, seed=0, diagnostics=False, level=f"{arch}-rho{rho}")
+
+
+def v3_t11():
+    """Four-branch update test: A-only, B-only and mixed steps from the same state, on the T1 tasks."""
+    arms = [("sgd", 0.01, "expected_full", 0), ("sgd", 0.01, "sampled", 16),
+            ("adam", 1e-3, "expected_full", 0), ("adam", 1e-4, "expected_full", 0)]
+    for arch, rho, m, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), (1 / 3, 0.7, 0.9), TASK_SEEDS):
+        for optimizer, eta, update, samples in arms:
+            steps = flow_steps(eta) if optimizer == "sgd" else 5000
+            yield dict(t1_base(arch, rho, m, task_seed), optimizer=optimizer, eta=eta, update=update, steps=steps,
+                       log_every=max(steps // 50, 1), snapshot_every=steps, track_every=5,
+                       branch_at=[0, 0.1, 0.5, 0.9], branch_samples=samples)
+
+
+def v3_t12():
+    """Plateau or permanent: the T1 minority tasks at 10x the T1 horizon; linear Adam at the smallest step."""
+    arms = [("sgd", 0.01, 100_000), ("sgd", 0.1, 10_000), ("sgd", 1, 10_000),
+            ("adam", 1e-4, 50_000), ("adam", 1e-3, 50_000)]
+    for arch, rho, m, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), TASK_SEEDS):
+        for (optimizer, eta, steps), update in itertools.product(arms, ("expected_full", "sampled")):
+            yield dict(t1_base(arch, rho, m, task_seed), optimizer=optimizer, eta=eta, update=update, steps=steps,
+                       log_every=steps // 200, snapshot_every=steps, track_every=50)
+
+
+def v3_t13():
+    """Projection control: remove the majority step's component against the minority's success gradient."""
+    for arch, rho, m, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), TASK_SEEDS):
+        for eta, update in itertools.product((0.01, 0.1), ("expected_full", "projected", "shortened")):
+            steps = flow_steps(eta)
+            yield dict(t1_base(arch, rho, m, task_seed), optimizer="sgd", eta=eta, update=update, steps=steps,
+                       log_every=max(steps // 50, 1), snapshot_every=steps, track_every=5)
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -390,6 +426,7 @@ BATCHES = {
     "v3b": [("v3_t5", v3_t5), ("v3_t7", v3_t7), ("v3_t9", v3_t9), ("v3_t1s1", v3_t1_seed1),
             ("v3_t2g", v3_t2_groups), ("v3_t6kl", v3_t6_kl), ("v3_t4e", v3_t4_edge)],
     "v3c": [("v3_t10", v3_t10)],
+    "v3d": [("v3_t11", v3_t11), ("v3_t12", v3_t12), ("v3_t13", v3_t13)],
 }
 
 

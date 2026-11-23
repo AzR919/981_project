@@ -9,7 +9,8 @@ set -e
 TAG=$1; JOBS=$2; WORKERS=$3; shift 3; HOSTS=("$@"); N=${#HOSTS[@]}
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; D=/tmp/asa715/rlvr/$TAG
 LAST=$(($(wc -l < "$JOBS") - 1))
-COMMIT=$(git -C "$ROOT" rev-parse --short HEAD)
+# Commit, number of modified tracked files (0 = the launch is reproducible from the commit) and job-list digest.
+COMMIT="$(git -C "$ROOT" rev-parse --short HEAD) dirty=$(git -C "$ROOT" status --porcelain --untracked-files=no | wc -l | tr -d ' ') jobs=$(shasum -a 256 "$JOBS" | cut -c1-12)"
 
 STAGE=$(mktemp -d); mkdir -p "$STAGE/code"
 cp -r "$ROOT/synthetic_rl" "$ROOT/experiments" "$STAGE/code/"
@@ -27,7 +28,7 @@ OUT=~/rlvr_results/$TAG/\$(hostname)
 mkdir -p \$OUT && cp -r ../results \$OUT/
 find ../logs -empty -delete; cp -r ../logs \$OUT/
 [ -f ../FAILED ] && cp ../FAILED \$OUT/
-echo $COMMIT > \$OUT/DONE
+echo "$COMMIT" > \$OUT/DONE
 EOT
   ssh -o ConnectTimeout=20 "$H" "mkdir -p $D && rm -rf $D/code $D/results $D/logs $D/FAILED"
   scp -q -r "$STAGE/code" "$H:$D/"
