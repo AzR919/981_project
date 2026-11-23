@@ -48,6 +48,21 @@ class EnumEnvTests(unittest.TestCase):
             self.assertGreaterEqual(min(np.array(out["min_p"]) - np.array(out["p_init"])), -1e-6)
             self.assertGreater(np.mean(out["p_final"]), np.mean(out["p_init"]))
 
+    def test_levers_are_off_by_default_and_run_when_set(self):
+        plain = enum_env.run_enum(config())
+        for algo in ("pg", "grpo"):
+            base = enum_env.run_enum(config(algo=algo))
+            same = enum_env.run_enum(config(algo=algo, enum_beta=0.0, enum_passk=None))
+            self.assertEqual(base["p_final"], same["p_final"])
+            # pass@1 weights every prompt by 1: the per-prompt path must reproduce their loss.
+            one = enum_env.run_enum(config(algo=algo, enum_passk=1))
+            np.testing.assert_allclose(one["p_final"], base["p_final"], rtol=1e-4, atol=1e-6)
+        # A strong forward anchor holds the policy at the base model.
+        held = enum_env.run_enum(config(enum_beta=100.0, enum_kl="forward", eta=0.01))
+        self.assertLess(np.abs(np.array(held["p_final"]) - np.array(held["p_init"])).max(),
+                        np.abs(np.array(plain["p_final"]) - np.array(plain["p_init"])).max())
+        self.assertNotEqual(enum_env.run_enum(config(enum_beta=0.3, enum_kl="reverse"))["p_final"], plain["p_final"])
+
 
 if __name__ == "__main__":
     unittest.main()

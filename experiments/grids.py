@@ -490,6 +490,17 @@ def v3_t20():
                    enum_policy="copies", algo="pg", level="copies-pg")
 
 
+def v3_t21():
+    """Prevention levers in the enumerable transformer environment: KL anchors and pass@k weighting."""
+    arms = [dict()] + [dict(enum_beta=b, enum_kl=d) for d in ("reverse", "forward") for b in (0.03, 0.3)]
+    arms += [dict(enum_passk=k) for k in (2, 4)]
+    tasks = [(3, 56, "random"), (2, 48, "parity")]
+    for (K, n_major, partition), algo, (optimizer, eta), arm, seed in itertools.product(
+            tasks, ("pg", "grpo"), (("adam", 1e-3), ("sgd", 0.3)), arms, range(10)):
+        yield dict(mode="enum", steps=2000, log_every=20, G=8, K=K, n_major=n_major, partition=partition,
+                   enum_policy="shared", algo=algo, optimizer=optimizer, eta=eta, seed=seed, level=f"shared-{algo}", **arm)
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -502,6 +513,7 @@ BATCHES = {
     "v3f": [("v3_t16", v3_t16)],
     "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
     "v3h": [("v3_t20", v3_t20)],
+    "v3i": [("v3_t21", v3_t21)],
 }
 
 

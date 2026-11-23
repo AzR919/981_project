@@ -16,6 +16,9 @@ standardised advantage, sampled GRPO). The loop and the measurements are ours.
 Config keys: K, n_major, partition ("random": classes unrelated to the prompt; "parity": class 0 = a*b even),
 enum_policy ("shared", "tabular", "copies"), algo ("pg": exact expected update; "grpo": sampled, G per prompt),
 optimizer, eta, steps, log_every, seed, G, floor, sft_steps, branch_eta.
+Prevention levers (T21; all off by default): enum_beta and enum_kl ("reverse": KL(pi || base), "forward":
+KL(base || pi)) add a KL anchor to the base model; enum_passk = k weights each prompt's loss by k (1 - p)^(k-1),
+with p the prompt's exact success.
 """
 
 import copy
@@ -27,7 +30,7 @@ import torch
 
 WSW = os.environ.get("WSW_SRC", os.path.join(os.path.dirname(os.path.abspath(__file__)), "third_party", "wsw", "src"))
 ENUM_DEFAULTS = {"partition": "random", "enum_policy": "shared", "algo": "pg", "floor": 0.1, "sft_steps": 600,
-                 "branch_eta": 0.001}
+                 "branch_eta": 0.001, "enum_beta": 0.0, "enum_kl": "reverse", "enum_passk": None}
 
 
 def load():
@@ -79,6 +82,16 @@ def per_prompt_loss(rlvr, lp, r):
     """Each prompt's exact policy-gradient loss with the standardised advantage; its mean is exact_pg_loss."""
     p = lp.exp()
     return -((p * rlvr.exact_advantage(p, r, "std")).detach() * lp).sum(-1)
+
+
+def sampled_per_prompt_loss(lp, r, G, gen):
+    """Each prompt's sampled GRPO loss; its mean is their grpo_loss with norm="std" (same sampling call)."""
+    with torch.no_grad():
+        idx = torch.multinomial(lp.exp(), G, replacement=True, generator=gen)
+        rew = torch.gather(r, 1, idx)
+        adv = rew - rew.mean(dim=1, keepdim=True)
+        adv = adv / (rew.std(dim=1, unbiased=False, keepdim=True) + 1e-4)
+    return -(adv * torch.gather(lp, 1, idx)).mean(dim=1)
 
 
 def gold_mass(lp, accept):
@@ -157,12 +170,28 @@ def run_enum(cfg):
         if kind == "copies":
             # Each copy sees its own prompt only; the sum keeps every copy's own gradient, with no 1/n.
             loss = per_prompt_loss(rlvr, lp, accept).sum()
+        elif cfg["algo"] not in ("pg", "grpo"):
+            raise ValueError(f"unknown algo {cfg['algo']}")
+        elif cfg["enum_passk"]:
+            k = cfg["enum_passk"]
+            weight = k * (1 - torch.as_tensor(p, dtype=lp.dtype)) ** (k - 1)
+            per = (per_prompt_loss(rlvr, lp, accept) if cfg["algo"] == "pg"
+                   else sampled_per_prompt_loss(lp, accept, cfg["G"], gen))
+            loss = (weight * per).mean()
         elif cfg["algo"] == "pg":
             loss = rlvr.exact_pg_loss(lp, accept, norm="std")
-        elif cfg["algo"] == "grpo":
-            loss = rlvr.grpo_loss(lp, accept, G=cfg["G"], norm="std", gen=gen)
         else:
-            raise ValueError(f"unknown algo {cfg['algo']}")
+            loss = rlvr.grpo_loss(lp, accept, G=cfg["G"], norm="std", gen=gen)
+        if cfg["enum_beta"] > 0:
+            if kind == "copies":
+                raise ValueError("the KL anchor is implemented for one policy")
+            if cfg["enum_kl"] == "reverse":
+                kl = (lp.exp() * (lp - lp0)).sum(-1).mean()
+            elif cfg["enum_kl"] == "forward":
+                kl = (lp0.exp() * (lp0 - lp)).sum(-1).mean()
+            else:
+                raise ValueError(f"unknown enum_kl {cfg['enum_kl']}")
+            loss = loss + cfg["enum_beta"] * kl
         for opt in opts:
             opt.zero_grad()
         loss.backward()
