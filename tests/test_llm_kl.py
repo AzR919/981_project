@@ -8,7 +8,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from llm.train import kl_terms  # noqa: E402
+from llm.train import drift_stats, kl_terms, policy_loss  # noqa: E402
 
 
 def expected_gradient(direction, z, ref):
@@ -42,6 +42,28 @@ class KLGradientTests(unittest.TestCase):
         logp = torch.log_softmax(self.z, 0).detach()
         _, value = kl_terms(logp, torch.log(self.ref), "reverse")
         torch.testing.assert_close((logp.exp() * value).sum(), (logp.exp() * (logp - torch.log(self.ref))).sum())
+
+
+class DriftTests(unittest.TestCase):
+    def test_tis_with_identical_log_probs_is_the_plain_loss(self):
+        adv = torch.tensor([1.0, -0.5, 2.0])
+        logp = torch.tensor([-3.0, -1.0, -2.0], requires_grad=True)
+        plain = policy_loss(adv, logp)
+        torch.testing.assert_close(policy_loss(adv, logp, logp.detach().clone(), tis=10.0), plain)
+
+    def test_tis_weights_are_truncated_and_carry_no_gradient(self):
+        adv = torch.tensor([1.0, 1.0])
+        logp = torch.tensor([-1.0, -1.0], requires_grad=True)
+        sampler = torch.tensor([-1.0 - 0.6931471805599453, -6.0])   # ratios 2 and e^5
+        loss = policy_loss(adv, logp, sampler, tis=3.0)
+        torch.testing.assert_close(loss, torch.tensor(-(2.0 * -1.0 + 3.0 * -1.0)))
+        torch.testing.assert_close(torch.autograd.grad(loss, logp)[0], torch.tensor([-2.0, -3.0]))
+
+    def test_drift_stats(self):
+        out = drift_stats([-10.0, -20.0], [-10.5, -19.0], [10, 30])
+        self.assertAlmostEqual(out["drift_abs_per_token"], 1.5 / 40)
+        self.assertAlmostEqual(out["drift_per_token"], -0.5 / 40)
+        self.assertAlmostEqual(out["drift_max_seq"], 1.0)
 
 
 if __name__ == "__main__":

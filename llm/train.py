@@ -57,6 +57,10 @@ def parse():
     p.add_argument("--beta", type=float, default=0.0)
     p.add_argument("--kl", choices=("reverse", "forward"), default="reverse",
                    help="KL direction of the penalty gradient: reverse KL(pi||ref) or forward KL(ref||pi)")
+    p.add_argument("--drift-log", action=argparse.BooleanOptionalAction, default=True,
+                   help="log the sampler-trainer mismatch each step (vLLM log-probs of the sampled answers)")
+    p.add_argument("--tis", type=float, default=None,
+                   help="truncated importance weights min(pi_trainer / pi_sampler, C) on the policy term (off by default)")
     p.add_argument("--agg", choices=("sequence", "token"), default="sequence",
                    help="sequence: sum_i A_i log pi(y_i) / n; token: / total completion tokens (DAPO), rescaled "
                         "by the step-1 mean length so only the length weighting changes")
@@ -240,6 +244,24 @@ def kl_terms(logp, ref_logp, direction):
     return loss, value
 
 
+def policy_loss(advantages, seq_logp, sampler_logp=None, tis=None):
+    """-(w * A * log pi).sum(). With tis = C, w = min(pi / pi_sampler, C) corrects for the samples having
+    come from vLLM's copy of the policy (bf16, possibly quantized), which can drift from the trainer's."""
+    if tis is None:
+        return -(advantages * seq_logp).sum()
+    weights = torch.exp(seq_logp.detach() - sampler_logp).clamp(max=tis)
+    return -(weights * advantages * seq_logp).sum()
+
+
+def drift_stats(trainer_logp, sampler_logp, lengths):
+    """Sampler-trainer mismatch over the sampled answers: per-token mean |gap|, per-token signed gap
+    (trainer - sampler), and the largest per-sequence |gap|, in nats."""
+    gap = np.asarray(trainer_logp, dtype=float) - np.asarray(sampler_logp, dtype=float)
+    tokens = max(float(np.sum(lengths)), 1.0)
+    return {"drift_abs_per_token": float(np.abs(gap).sum() / tokens), "drift_per_token": float(gap.sum() / tokens),
+            "drift_max_seq": float(np.abs(gap).max()) if len(gap) else 0.0}
+
+
 def completion_logprobs(model, sequences, prompt_lens, pad_id, ref=None, adapter_off=False, kl="reverse"):
     """Per-sequence sum of completion token log-probs, and (with ref) the summed KL loss term and value."""
     lengths = [len(s) for s in sequences]
@@ -364,17 +386,23 @@ def main():
         t0 = time.time()
         batch = [problems[i] for i in rng.choice(len(problems), size=args.prompts_per_step, replace=False)]
         prompts = [prompt_text(tokenizer, p) for p in batch]
+        track = args.drift_log or args.tis is not None
         params = SamplingParams(n=args.G, temperature=1.0, top_p=1.0, max_tokens=args.max_tokens,
-                                seed=int(rng.integers(2**31)))
+                                seed=int(rng.integers(2**31)), logprobs=0 if track else None)
         outputs = sampler.generate(prompts, params)
         t_sample = time.time() - t0
 
         rewards = np.zeros((len(batch), args.G))
         parsed = np.zeros_like(rewards)
-        sequences, prompt_lens, lengths = [], [], []
+        sequences, prompt_lens, lengths, sampler_logp = [], [], [], []
         for i, (problem, out) in enumerate(zip(batch, outputs)):
             for g, c in enumerate(out.outputs):
                 rewards[i, g], parsed[i, g] = reward(c.text, problem["answer"])
+                if track:
+                    total = c.cumulative_logprob
+                    if total is None:
+                        total = sum(lp[t].logprob for lp, t in zip(c.logprobs, c.token_ids))
+                    sampler_logp.append(float(total))
                 sequences.append(list(out.prompt_token_ids) + list(c.token_ids))
                 prompt_lens.append(len(out.prompt_token_ids))
                 lengths.append(len(c.token_ids))
@@ -396,12 +424,16 @@ def main():
             norm = sum(lengths) / agg_scale
         optimizer.zero_grad(set_to_none=True)
         kl_sum = 0.0
+        seen_logp = {}
+        sampler_t = torch.tensor(sampler_logp, device="cuda") if track else None
         for start in range(0, len(active), args.micro_batch):
             idx = active[start: start + args.micro_batch]
             seq_logp, kl = completion_logprobs(model, [sequences[i] for i in idx], [prompt_lens[i] for i in idx],
                                                pad, ref=None if args.beta <= 0 else (model if args.lora else ref),
                                                adapter_off=bool(args.lora), kl=args.kl)
-            loss = -(A[idx] * seq_logp).sum() / norm
+            loss = policy_loss(A[idx], seq_logp, None if args.tis is None else sampler_t[idx], args.tis) / norm
+            if track:
+                seen_logp.update(zip(idx, seq_logp.detach().tolist()))
             if kl is not None:
                 kl_loss, kl_value = kl
                 loss = loss + args.beta * kl_loss.sum() / n_total
@@ -420,10 +452,19 @@ def main():
                   "length": float(np.mean(lengths)), "active": len(active), "grad_norm": grad_norm,
                   "kl": kl_sum / n_total, "t_sample": t_sample, "t_step": time.time() - t0,
                   "peak_gb": torch.cuda.max_memory_allocated() / 2**30}
+        if track and seen_logp:
+            used = sorted(seen_logp)
+            record.update(drift_stats([seen_logp[i] for i in used], [sampler_logp[i] for i in used],
+                                      [lengths[i] for i in used]))
         if args.check_sync and step <= 3:
             record["sync_check"] = sync_check(sampler, model, tokenizer, problems[0], pad, 0)
         with open(log_path, "a") as f:
             f.write(json.dumps(record) + "\n")
+        # Which problems were sampled and what each group earned: per-problem exposure and, for C2,
+        # informative (mixed-reward) groups per procedure.
+        with open(os.path.join(args.out, "groups.jsonl"), "a") as f:
+            f.write(json.dumps({"step": step, "ids": [q["id"] for q in batch],
+                                "rewards": clean.astype(int).tolist()}) + "\n")
         print(json.dumps(record), flush=True)
         if step in args.save_at:
             export(model, tokenizer, os.path.join(args.work, f"step_{step}"), args)
