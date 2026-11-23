@@ -8,7 +8,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from llm.train import drift_stats, kl_terms, policy_loss  # noqa: E402
+from llm.train import draw_batch, drift_stats, kl_terms, parse_strata, policy_loss  # noqa: E402
 
 
 def expected_gradient(direction, z, ref):
@@ -64,6 +64,18 @@ class DriftTests(unittest.TestCase):
         self.assertAlmostEqual(out["drift_abs_per_token"], 1.5 / 40)
         self.assertAlmostEqual(out["drift_per_token"], -0.5 / 40)
         self.assertAlmostEqual(out["drift_max_seq"], 1.0)
+
+
+class BatchTests(unittest.TestCase):
+    def test_strata_fix_the_batch_composition(self):
+        import numpy as np
+
+        problems = [{"id": i, "procedure": "each" if i < 50 else "total"} for i in range(100)]
+        strata = parse_strata("procedure:each=7,total=3")
+        idx = draw_batch(np.random.default_rng(0), problems, 64, strata)
+        self.assertEqual(len(set(idx)), 10)
+        self.assertEqual(sum(problems[i]["procedure"] == "each" for i in idx), 7)
+        self.assertEqual(len(draw_batch(np.random.default_rng(0), problems, 64)), 64)
 
 
 if __name__ == "__main__":

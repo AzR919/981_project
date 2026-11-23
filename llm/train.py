@@ -52,6 +52,11 @@ def parse():
     p.add_argument("--passk", type=int, default=None)
     p.add_argument("--G", type=int, default=8)
     p.add_argument("--prompts-per-step", type=int, default=64)
+    p.add_argument("--strata", default=None,
+                   help="fixed batch composition by a problem field, e.g. procedure:each=76,total=4 (overrides "
+                        "--prompts-per-step); C2 matched-minority arm")
+    p.add_argument("--denominator", type=int, default=None,
+                   help="number of prompts the loss is divided by (default: prompts in the batch)")
     p.add_argument("--steps", type=int, default=300)
     p.add_argument("--lr", type=float, default=1e-6)
     p.add_argument("--beta", type=float, default=0.0)
@@ -244,6 +249,24 @@ def kl_terms(logp, ref_logp, direction):
     return loss, value
 
 
+def parse_strata(text):
+    """'procedure:each=76,total=4' -> ('procedure', {'each': 76, 'total': 4})."""
+    field, counts = text.split(":", 1)
+    return field, {k: int(v) for k, v in (item.split("=") for item in counts.split(","))}
+
+
+def draw_batch(rng, problems, prompts_per_step, strata=None):
+    """Indices of one batch: uniform without replacement, or a fixed count from each stratum."""
+    if strata is None:
+        return rng.choice(len(problems), size=prompts_per_step, replace=False).tolist()
+    field, counts = strata
+    picked = []
+    for value, count in counts.items():
+        members = [i for i, q in enumerate(problems) if q[field] == value]
+        picked += rng.choice(members, size=count, replace=False).tolist()
+    return picked
+
+
 def policy_loss(advantages, seq_logp, sampler_logp=None, tis=None):
     """-(w * A * log pi).sum(). With tis = C, w = min(pi / pi_sampler, C) corrects for the samples having
     come from vLLM's copy of the policy (bf16, possibly quantized), which can drift from the trainer's."""
@@ -382,9 +405,10 @@ def main():
     scale_path = os.path.join(args.out, "agg_scale.txt")
     agg_scale = float(open(scale_path).read()) if os.path.exists(scale_path) else None
 
+    strata = parse_strata(args.strata) if args.strata else None
     while step < args.steps:
         t0 = time.time()
-        batch = [problems[i] for i in rng.choice(len(problems), size=args.prompts_per_step, replace=False)]
+        batch = [problems[i] for i in draw_batch(rng, problems, args.prompts_per_step, strata)]
         prompts = [prompt_text(tokenizer, p) for p in batch]
         track = args.drift_log or args.tis is not None
         params = SamplingParams(n=args.G, temperature=1.0, top_p=1.0, max_tokens=args.max_tokens,
@@ -414,7 +438,7 @@ def main():
 
         # Samples with zero advantage contribute nothing to the policy term; skip them unless KL needs them.
         active = torch.nonzero((A != 0) | torch.tensor(args.beta > 0, device="cuda")).flatten().tolist()
-        n_total = len(sequences)
+        n_total = len(sequences) if args.denominator is None else args.denominator * args.G
         norm = n_total
         if args.agg == "token":
             if agg_scale is None:

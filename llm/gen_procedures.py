@@ -103,6 +103,7 @@ def generate(procedure, count, range_name, seed, start=0):
                     "answer": str(solve(procedure, a, b, c)), "other_answer": str(solve(other, a, b, c)),
                     "solution": worked(procedure, a, b, c),
                     "hint_neutral": HINT_NEUTRAL, "hint_first_step": first_step(procedure, a, b, c),
+                    "hint_wrong_step": first_step(other, a, b, c),
                     "procedure": procedure, "template": t, "a": a, "b": b, "c": c})
     return out
 
