@@ -474,6 +474,22 @@ def v3_t19():
                 yield dict(base, G=G, B=256 // G, update="sampled", level=f"{arch}-rho{rho}-grpo-sampled")
 
 
+def v3_t20():
+    """Correct minority in the enumerable transformer environment of Li, Pandey and Chen (experiments/enum_env.py)."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)] + [(2, n, "random") for n in (32, 40, 48, 56, 60)]
+    tasks.append((2, 48, "parity"))
+    steppers = [("sgd", 0.3), ("sgd", 1), ("sgd", 3), ("adam", 1e-3), ("adam", 3e-3)]
+    common = dict(mode="enum", steps=2000, log_every=20, G=8)
+    for (K, n_major, partition), (optimizer, eta), seed in itertools.product(tasks, steppers, range(10)):
+        job = dict(common, K=K, n_major=n_major, partition=partition, optimizer=optimizer, eta=eta, seed=seed)
+        for algo in ("pg", "grpo"):
+            yield dict(job, enum_policy="shared", algo=algo, level=f"shared-{algo}")
+        yield dict(job, enum_policy="tabular", algo="pg", level="tabular-pg")
+    for (K, n_major, partition), seed in itertools.product([(3, 22, "random"), (3, 56, "random"), (2, 48, "parity")], range(3)):
+        yield dict(common, K=K, n_major=n_major, partition=partition, optimizer="adam", eta=1e-3, seed=seed,
+                   enum_policy="copies", algo="pg", level="copies-pg")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -485,6 +501,7 @@ BATCHES = {
     "v3e": [("v3_t15", v3_t15)],
     "v3f": [("v3_t16", v3_t16)],
     "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
+    "v3h": [("v3_t20", v3_t20)],
 }
 
 
