@@ -190,6 +190,34 @@ class BranchTests(unittest.TestCase):
             self.assertIn("s_d_b_mixed", out["branches"]["0"])
 
 
+class JunkAnswerTests(unittest.TestCase):
+    """T22: tokens that are never a correct answer."""
+
+    def test_only_the_used_classes_have_prompts(self):
+        cfg = config(arch="linear", features="correlated", rho=0.9, majority=0.9, K=6, used_classes=2, L=1,
+                     n_train=512, n_test=8, diagnostics=False)
+        _, train, _, policy = run.build(cfg)
+        counts = np.bincount(train[1][:, 0], minlength=6)
+        self.assertEqual(counts[2:].sum(), 0)
+        self.assertAlmostEqual(counts[0] / 512, 0.9, delta=0.03)
+        self.assertEqual(policy.num_tokens, 6)
+
+    def test_junk_weakens_the_majority_push_as_the_first_order_formula_says(self):
+        # At a uniform start over K tokens, two classes: R = S_BA / ((K - 1) S_same), so R shrinks as 1 / (K - 1)
+        # for the same kernel sums. Compare the measured R with the kernel formula for K = 2 and K = 6.
+        for K in (2, 6):
+            cfg = config(arch="linear", features="correlated", rho=0.9, majority=0.9, K=K, used_classes=2, L=1,
+                         n_train=256, n_test=8, eta=1e-4, steps=1, log_every=1, snapshot_every=1, diagnostics=False,
+                         update="expected_full", branch_at=[0])
+            out = run.run_train(cfg)
+            _, train, _, _ = run.build(cfg)
+            x, cls = train[0], train[1][:, 0]
+            k = x @ x.T
+            s_ba, s_same = k[cls == 1][:, cls == 0].sum(), k[cls == 1][:, cls == 1].sum()
+            b = out["branches"]["0"]
+            self.assertAlmostEqual(-b["d_b_a"] / b["d_b_b"], s_ba / ((K - 1) * s_same), delta=1e-3 * s_ba / s_same)
+
+
 class ReleaseTests(unittest.TestCase):
     """T18: after the release, class A's reward term is dropped."""
 

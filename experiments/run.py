@@ -67,6 +67,8 @@ DEFAULTS = {
     "mix": 0.5, "sft_steps": 200,
     # v3 additions; the defaults reproduce earlier runs.
     "majority": None,            # T1: share of answer class 0 (others equal); adds a constant feature
+    "used_classes": None,        # T22: number of answer classes that have prompts (None: all K); the remaining
+                                 #      K - used_classes tokens are never correct ("junk" answers)
     "replace": True,             # T2: False draws each batch without replacement
     "track_every": 0,            # T0: also observe every prompt's p every k steps (0: log points only)
     "taus": [1e-3, 1e-2],        # T0: thresholds for ever- / persistent absorption
@@ -93,7 +95,9 @@ def build(cfg):
     shares = None
     if cfg["majority"] is not None:
         m = float(cfg["majority"])
-        shares = [m] + [(1 - m) / (cfg["K"] - 1)] * (cfg["K"] - 1)
+        used = cfg["used_classes"] or cfg["K"]
+        # A junk token gets a share too small for any prompt to draw it.
+        shares = [m] + [(1 - m) / (used - 1)] * (used - 1) + [1e-12] * (cfg["K"] - used)
         d += 1  # the constant feature
 
     task = SyntheticTask(

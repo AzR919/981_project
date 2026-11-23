@@ -474,6 +474,18 @@ def v3_t19():
                 yield dict(base, G=G, B=256 // G, update="sampled", level=f"{arch}-rho{rho}-grpo-sampled")
 
 
+def v3_t22():
+    """Junk answers: two answer classes with prompts, and K - 2 tokens that are never correct."""
+    for K, arch, update, task_seed, m in itertools.product(
+            (2, 3, 6, 20), ("linear", "mlp"), ("expected_full", "sampled"), TASK_SEEDS,
+            (0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 0.98)):
+        job = dict(t1_base(arch, 0.9, m, task_seed), K=K, used_classes=2, optimizer="sgd", eta=0.03, update=update,
+                   steps=10_000, log_every=200, snapshot_every=10_000, track_every=5, level=f"{arch}-K{K}-{update}")
+        if update == "expected_full":
+            job["branch_at"] = [0]
+        yield job
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -485,6 +497,7 @@ BATCHES = {
     "v3e": [("v3_t15", v3_t15)],
     "v3f": [("v3_t16", v3_t16)],
     "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
+    "v3j": [("v3_t22", v3_t22)],
 }
 
 
