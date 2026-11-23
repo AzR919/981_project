@@ -429,6 +429,15 @@ def v3_t15():
                        branch_at=[0], level=f"{arch}-rho{rho}-K{K}")
 
 
+def v3_t16():
+    """pass@k rules at matched progress: the minority task at 4x the v3c horizon, with class means logged."""
+    rules = [("grpo", None), ("mean", None)] + [(r, k) for r in ("passk", "rloo_k") for k in (2, 4, 8)]
+    for (rule, k), G, eta, task_seed in itertools.product(rules, (8, 32), (0.03, 0.3, 1), TASK_SEEDS):
+        yield dict(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, K=3, G=G, B=256 // G, rule=rule,
+                   passk=k, eta=eta, task_seed=task_seed, seed=0, steps=20_000, log_every=100, snapshot_every=20_000,
+                   track_every=5, diagnostics=False, level="minority")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -438,6 +447,7 @@ BATCHES = {
     "v3c": [("v3_t10", v3_t10)],
     "v3d": [("v3_t11", v3_t11), ("v3_t12", v3_t12), ("v3_t13", v3_t13)],
     "v3e": [("v3_t15", v3_t15)],
+    "v3f": [("v3_t16", v3_t16)],
 }
 
 
