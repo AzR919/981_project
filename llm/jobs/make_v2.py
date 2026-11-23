@@ -30,7 +30,7 @@ def hints(model, prefix=""):
                        for h in ("neutral", "first_step", "wrong_step"))
 
 
-def c2_run(work, train_args, eval_ids, steps=500, save_at=(250,), mid_n=32, with_hints=False):
+def c2_run(work, train_args, eval_ids, steps=500, save_at=(250,), mid_n=32, with_hints=False, final_n=256):
     """Train, evaluate saved steps (skipped if /tmp was wiped), evaluate the final model, drop the checkpoint."""
     saves = " ".join(map(str, save_at))
     line = (f"python llm/train.py --model {QWEN} {ALL} {train_args} --lr 1e-6 --steps {steps} "
@@ -38,7 +38,7 @@ def c2_run(work, train_args, eval_ids, steps=500, save_at=(250,), mid_n=32, with
     for s in save_at:
         mid = evaluate(f"{work}/step_{s}", f"step{s}", mid_n, f"{ALL} --ids {eval_ids}")
         line += f" && {{ [ ! -d {work}/step_{s} ] || {mid}; }}"
-    line += " && " + evaluate(f"{work}/final", "after_n256", 256, f"{ALL} --ids {eval_ids} --seed 0")
+    line += " && " + evaluate(f"{work}/final", f"after_n{final_n}", final_n, f"{ALL} --ids {eval_ids} --seed 0")
     if with_hints:
         line += " && " + hints(f"{work}/final")
     return line + " && rm -rf $OUT/run/checkpoint"
