@@ -95,3 +95,28 @@ After Holm's correction only P1 holds at 0.05.
    kick-size p-value, 0.0027. With that, P1's adjusted p is 0.039 instead of 0.049. P1 holds either
    way, and P2 still fails its registered rule.
 3. **Scope.** One model, 500 steps, lr 1e-6.
+
+## Seed replication of the degraded run (added 2026-11-23)
+
+`c2_seeds.md`, `c2_seeds_runs.csv`; pre-registered in `PREREG_C2_amendment2.md`; exploratory. **P5 is
+unchanged: it failed as registered.** The problem draw of the degraded run (draw 1, majority
+`each`) was rerun with five new training seeds at m = 0.95 and at m = 0.5.
+
+| | m = 0.5 (seeds 3–7) | m = 0.95 (seeds 3–7) | The original degraded run |
+|---|---|---|---|
+| Held-out minority problems lost (of 300) | 4, 5, 3, 5, 5 | 11, 9, 17, 6, 11 | 45 |
+| Held-out minority declines | 11, 9, 6, 10, 9 | 19, 18, 23, 17, 21 | 84 |
+| Mean change of the minority panel | +0.40 to +0.41 | +0.36 to +0.39 | +0.13 |
+| Majority-panel decline rate | 0.027–0.037 | 0.017–0.033 | 0.083 |
+
+- **Broad degradation is rare.** By the registered definition (at least 30 lost), 0 of 5 new runs at
+  m = 0.95 degrade, and 0 of 5 at m = 0.5. With the three original seeds, it is 1 run in 8 at
+  m = 0.95: an outlier of the training seed.
+- **A moderate effect of the share does show up on this draw.** Every run at m = 0.95 has more
+  held-out minority declines than every run at m = 0.5 (17–23 against 6–11), and about twice as many
+  lost problems. This was not a registered test; it agrees in direction with P5's near miss.
+- **It is not the majority's pressure.** The matched-minority arm (above) shows no dependence on
+  the number of majority prompts, and C10 shows majority-only training raising the minority. What
+  changes between m = 0.5 and m = 0.95 is how many minority problems the run trains on (about 32
+  against 3 per step): the minority panel still gains +0.36 or more, but unseen minority problems
+  decline a little more often when few like them are trained.

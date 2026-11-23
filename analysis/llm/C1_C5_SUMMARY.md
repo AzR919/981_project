@@ -92,3 +92,28 @@
 - **The held-out declines repeat in number, not in identity.** Between pairs of Qwen seeds, 1, 2
   and 2 declined problems are shared (0.2–0.4 expected by chance): slightly more than chance, but
   mostly different problems in each seed.
+
+## Held-out control: is the held-out decline specific to GRPO? (added 2026-11-23)
+
+`c1_control.md`, `c1_control_runs.csv`; rule as pre-registered in `PREREG_C1_amendment2.md`.
+Control: fine-tune Qwen on its own correct answers for the same 1,000 training problems
+(rejection-sampling fine-tuning), same optimizer and learning rate, 3 seeds.
+
+| | GRPO (3 seeds) | Control (3 seeds) | Null (base against itself) |
+|---|---|---|---|
+| Training success after (from 0.49) | 0.98 | 0.65 | 0.49 |
+| Held-out success after (from 0.51) | 0.84 | 0.64–0.65 | 0.51 |
+| Held-out declines (of 300) | 12, 8, 9 | 0, 0, 0 | 0 |
+| Held-out lost | 1, 2, 5 | 0, 0, 0 | 0 |
+| Training declines | 0, 0, 0 | 0, 0, 0 | 0 |
+
+- **By the registered count rule the declines are specific to GRPO:** every control run has 0
+  held-out declines (the rule needed at most 4).
+- **But the comparison is confounded, as the pre-registration anticipated.** The control moved the
+  model much less: training success ends at 0.65, below the registered bar of 0.75, against 0.98
+  for GRPO. A run that changes less has less opportunity to lower anything.
+- **One difference does not depend on that.** The control improves held-out problems as much as
+  training problems (0.64 against 0.65). GRPO improves training problems far more than held-out
+  ones (0.98 against 0.84), and its held-out problems are where the declines are.
+- **What would settle it:** a control trained until its training success matches GRPO's (more
+  epochs, or resampling correct answers from the improving model). Not run.
