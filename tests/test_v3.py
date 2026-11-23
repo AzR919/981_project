@@ -218,6 +218,30 @@ class JunkAnswerTests(unittest.TestCase):
             self.assertAlmostEqual(-b["d_b_a"] / b["d_b_b"], s_ba / ((K - 1) * s_same), delta=1e-3 * s_ba / s_same)
 
 
+class WarmStartTests(unittest.TestCase):
+    """T23: class-balanced supervised warm start."""
+
+    def test_both_classes_start_near_the_target_and_apart(self):
+        for arch in ("linear", "mlp"):
+            cfg = config(arch=arch, features="correlated", rho=0.9, majority=0.9, K=3, L=1, n_train=256, n_test=8,
+                         init="sft_balanced", p0=0.7, steps=1, log_every=1, snapshot_every=1, diagnostics=False,
+                         update="expected_full")
+            out = run.run_train(cfg)
+            start = out["start"]
+            self.assertGreater(start["p_a"], 0.5)
+            self.assertGreater(start["p_b"], 0.5)                    # the minority is not left behind
+            self.assertLess(start["b_on_a_answer"], 1 / 3)           # less mass on the majority's answer than at a uniform start
+            uniform = run.run_train(dict(cfg, init="uniform", p0=None))["start"]
+            self.assertAlmostEqual(uniform["b_on_a_answer"], 1 / 3, places=6)
+
+    def test_unweighted_warm_start_is_unchanged(self):
+        cfg = config(arch="linear", features="correlated", rho=0.5, K=3, L=1, n_train=64, n_test=8, init="sft_up", p0=0.5,
+                     steps=1, log_every=1, snapshot_every=1, diagnostics=False)
+        a, b = run.build(dict(cfg))[3], run.build(dict(cfg))[3]
+        for x, y in zip(a.parameters(), b.parameters()):
+            self.assertTrue(torch.equal(x, y))
+
+
 class ReleaseTests(unittest.TestCase):
     """T18: after the release, class A's reward term is dropped."""
 
