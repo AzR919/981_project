@@ -23,3 +23,9 @@ prediction: the ratio of low-p to high-p weight is ≫ grpo's 1.12.
   horizon. Compare at matched pass@1 before calling it protection.
 - **Different overall scales.** The rules differ in overall weight (rloo_k's W ≤ 1 against grpo's
   2–3), so at the same η the effective step differs. The minority result holds at every η tested.
+
+## Later correction (v3f, 2026-11-22)
+
+At matched majority progress, pass@2 does not stop the early push-down of the minority; it prevents
+absorption and allows recovery. pass@4 protects during learning at a speed cost. See
+`analysis/v3f/SUMMARY.md`.
