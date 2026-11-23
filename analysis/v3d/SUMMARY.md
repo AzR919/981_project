@@ -69,6 +69,35 @@ Share of minority prompts absorbed (mean over 10 tasks; η ∈ {0.01, 0.1} agree
   end at ≥ 0.97 (minority 0.91–1.00).
   - So the conflict is forced in a low-capacity policy, and avoidable in a larger one.
 
+## M2 (addendum 1): is the minority still sinking at 10× the horizon?
+
+g is the growth of the minority's wrong-side margin relative to the majority's margin, over the last
+decade of training (descriptive; written after T12 was seen).
+
+| Cell | Median g | Reading |
+|---|---|---|
+| ρ = 0.9, SGD (all 12 cells) | 0.99–1.01 | The minority sinks as fast as the majority improves. No run is recovering (0 of 120) |
+| ρ = 0.9, Adam | 1.00–1.05 (0.49 for MLP at m = 0.7, η = 1e-4) | Same, except that cell, where 5 of 10 runs are recovering |
+| ρ = 0.5, m = 0.9, SGD | 0.87–1.01 | Mostly still sinking; 1–3 of 10 runs recovering |
+| ρ = 0.5, m = 0.7 | −0.5 to 0.4 | Recovering in 4–8 of 10 runs |
+| ρ = 0.5, Adam | negative | Recovering in 5–9 of 10 runs; final minority success 0.26–0.99 |
+
+- **At strong feature correlation**, g sits at 1 and cannot separate "permanent" from "a plateau far
+  longer than the run".
+- **At weak correlation** the plateau ends inside 10× the horizon, sooner under Adam.
+
+## M4 (addendum 1): imbalance, not margin (prediction holds)
+
+Share of prompts absorbed under the unmodified update, by class and by tercile of score margin:
+
+- **Majority prompts:** 0.000 in every tercile of every cell, including the lowest-margin third.
+- **Minority prompts:** similar across terciles. For example, in the linear task at ρ = 0.9 and
+  m = 0.7: 0.96, 0.95, 0.95. In the MLP at ρ = 0.5 and m = 0.7: 0.88, 0.85, 0.83.
+  - The terciles are within 0.15 of each other in 7 of 8 cells.
+  - The exception is the linear task at ρ = 0.5 and m = 0.9: 0.81, 0.88, 0.67.
+
+Which class a prompt belongs to decides whether it is absorbed; its margin does not.
+
 ## What this changes
 
 1. **Headline mechanism: active reversal, then starvation.** Direct evidence, in every task tested.

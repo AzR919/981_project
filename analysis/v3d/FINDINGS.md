@@ -177,3 +177,68 @@ Mean share of minority prompts absorbed, over 10 tasks. `projected`: the majorit
 - **Prediction 2 (shortened within 0.05 of the unmodified update):** 0 of 16 cells.
 - **Prediction 3 (majority final mean within 0.05 under projection):** 8 of 16 cells.
 
+## M2 (addendum 1): is the minority still sinking at 10× the horizon?
+
+g = Δ[−log p̄_B] / Δ[−log(1 − p̄_A)] over the last decade of training (exact expected update). `sinking`: runs with g ≥ 1; `slower`: 0 < g < 1; `recovering`: g ≤ 0.
+
+| arch | rho | m | optimizer | eta | runs | median_g | sinking | slower | recovering | b_final |
+|---|---|---|---|---|---|---|---|---|---|---|
+| linear | 0.5 | 0.7 | adam | 0.0001 | 10 | -5.26 | 1 | 0 | 5 | 0.883 |
+| linear | 0.5 | 0.7 | adam | 0.001 | 10 | -0.0201 | 1 | 0 | 8 | 0.989 |
+| linear | 0.5 | 0.7 | sgd | 0.01 | 10 | -0.533 | 2 | 0 | 5 | 0.881 |
+| linear | 0.5 | 0.7 | sgd | 0.1 | 10 | -0.529 | 2 | 0 | 4 | 0.881 |
+| linear | 0.5 | 0.7 | sgd | 1 | 10 | -0.0494 | 1 | 1 | 8 | 0.964 |
+| linear | 0.5 | 0.9 | adam | 0.0001 | 10 | -0.947 | 3 | 0 | 7 | 0.264 |
+| linear | 0.5 | 0.9 | adam | 0.001 | 10 | -0.0432 | 3 | 0 | 7 | 0.653 |
+| linear | 0.5 | 0.9 | sgd | 0.01 | 10 | 0.871 | 4 | 3 | 1 | 0.00035 |
+| linear | 0.5 | 0.9 | sgd | 0.1 | 10 | 0.87 | 4 | 2 | 2 | 0.000351 |
+| linear | 0.5 | 0.9 | sgd | 1 | 10 | 0.997 | 3 | 1 | 3 | 0.0902 |
+| linear | 0.9 | 0.7 | adam | 0.0001 | 10 | 1.05 | 4 | 2 | 0 | 4.6e-10 |
+| linear | 0.9 | 0.7 | adam | 0.001 | 10 | 1.05 | 4 | 2 | 0 | 5.78e-11 |
+| linear | 0.9 | 0.7 | sgd | 0.01 | 10 | 0.988 | 4 | 6 | 0 | 2.33e-05 |
+| linear | 0.9 | 0.7 | sgd | 0.1 | 10 | 0.988 | 4 | 6 | 0 | 2.33e-05 |
+| linear | 0.9 | 0.7 | sgd | 1 | 10 | 0.988 | 4 | 6 | 0 | 2.38e-06 |
+| linear | 0.9 | 0.9 | adam | 0.0001 | 10 | 1.01 | 6 | 3 | 1 | 1.13e-10 |
+| linear | 0.9 | 0.9 | adam | 0.001 | 10 | 1 | 5 | 3 | 1 | 8.25e-12 |
+| linear | 0.9 | 0.9 | sgd | 0.01 | 10 | 0.993 | 4 | 6 | 0 | 1.35e-05 |
+| linear | 0.9 | 0.9 | sgd | 0.1 | 10 | 0.993 | 4 | 6 | 0 | 1.35e-05 |
+| linear | 0.9 | 0.9 | sgd | 1 | 10 | 0.994 | 4 | 6 | 0 | 1.38e-06 |
+| mlp | 0.5 | 0.7 | adam | 0.0001 | 10 | -0.00502 | 1 | 0 | 9 | 0.991 |
+| mlp | 0.5 | 0.7 | adam | 0.001 | 10 | -4.4e-07 | 1 | 1 | 8 | 0.99 |
+| mlp | 0.5 | 0.7 | sgd | 0.01 | 10 | 0.379 | 2 | 4 | 4 | 7.24e-05 |
+| mlp | 0.5 | 0.7 | sgd | 0.1 | 10 | 0.42 | 2 | 4 | 4 | 6.44e-05 |
+| mlp | 0.5 | 0.7 | sgd | 1 | 10 | -0.000151 | 1 | 2 | 7 | 0.997 |
+| mlp | 0.5 | 0.9 | adam | 0.0001 | 10 | -0.0786 | 3 | 0 | 7 | 0.594 |
+| mlp | 0.5 | 0.9 | adam | 0.001 | 10 | -3.26e-07 | 3 | 1 | 6 | 0.434 |
+| mlp | 0.5 | 0.9 | sgd | 0.01 | 10 | 1.01 | 5 | 4 | 0 | 2.95e-06 |
+| mlp | 0.5 | 0.9 | sgd | 0.1 | 10 | 1.01 | 5 | 4 | 0 | 2.96e-06 |
+| mlp | 0.5 | 0.9 | sgd | 1 | 10 | 1 | 5 | 3 | 1 | 2.48e-07 |
+| mlp | 0.9 | 0.7 | adam | 0.0001 | 10 | 0.49 | 4 | 1 | 5 | 0.274 |
+| mlp | 0.9 | 0.7 | adam | 0.001 | 10 | 0.99 | 4 | 2 | 3 | 1.47e-13 |
+| mlp | 0.9 | 0.7 | sgd | 0.01 | 10 | 0.995 | 4 | 6 | 0 | 1.71e-06 |
+| mlp | 0.9 | 0.7 | sgd | 0.1 | 10 | 0.995 | 4 | 6 | 0 | 1.72e-06 |
+| mlp | 0.9 | 0.7 | sgd | 1 | 10 | 0.996 | 4 | 6 | 0 | 1.41e-07 |
+| mlp | 0.9 | 0.9 | adam | 0.0001 | 10 | 1.02 | 6 | 3 | 1 | 4.55e-13 |
+| mlp | 0.9 | 0.9 | adam | 0.001 | 10 | 1.03 | 7 | 1 | 1 | 3.06e-14 |
+| mlp | 0.9 | 0.9 | sgd | 0.01 | 10 | 1.01 | 7 | 3 | 0 | 9.39e-07 |
+| mlp | 0.9 | 0.9 | sgd | 0.1 | 10 | 1.01 | 7 | 3 | 0 | 9.45e-07 |
+| mlp | 0.9 | 0.9 | sgd | 1 | 10 | 1.01 | 7 | 3 | 0 | 7.71e-08 |
+
+## M4 (addendum 1): imbalance or margin?
+
+Share of prompts absorbed, by class and by tercile of score margin (terciles over all prompts of the task); T13 runs with the unmodified update (the T1 configuration), mean over tasks and both η.
+
+| arch | rho | m | minority, low margin | minority, mid | minority, high margin | majority, low margin | majority, mid | majority, high margin |
+|---|---|---|---|---|---|---|---|---|
+| linear | 0.5 | 0.7 | 0.34 | 0.322 | 0.346 | 0 | 0 | 0 |
+| linear | 0.5 | 0.9 | 0.807 | 0.879 | 0.667 | 0 | 0 | 0 |
+| linear | 0.9 | 0.7 | 0.961 | 0.95 | 0.948 | 0 | 0 | 0 |
+| linear | 0.9 | 0.9 | 0.988 | 1 | 1 | 0 | 0 | 0 |
+| mlp | 0.5 | 0.7 | 0.878 | 0.853 | 0.829 | 0 | 0 | 0 |
+| mlp | 0.5 | 0.9 | 0.981 | 0.975 | 1 | 0 | 0 | 0 |
+| mlp | 0.9 | 0.7 | 1 | 1 | 1 | 0 | 0 | 0 |
+| mlp | 0.9 | 0.9 | 1 | 1 | 1 | 0 | 0 | 0 |
+
+- Minority terciles are within 0.15 of each other in 6 of 7 cells where every tercile is mostly absorbed (7 of 8 cells overall).
+- Majority prompts in the lowest-margin tercile: largest absorbed share 0.000 (prediction: below 0.05).
+

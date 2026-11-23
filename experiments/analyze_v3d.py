@@ -55,6 +55,18 @@ def read_one(path):
                b_min=float(means[low, 1]), b_min_step=int(steps[low]), b_final=float(means[-1, 1]),
                a_final=float(means[-1, 0]), b_start=float(means[0, 1]), a_start=float(means[0, 0]))
     row["recovered"] = bool(row["b_min"] < TAU and row["b_final"] > 0.01)
+    # M2: growth of the minority's wrong-side margin relative to the majority's margin over the last decade.
+    tenth = int(np.argmin(np.abs(steps - steps[-1] / 10)))
+    safe = lambda v: -np.log(np.clip(v, 1e-300, 1.0))  # noqa: E731
+    den = safe(1 - means[-1, 0]) - safe(1 - means[tenth, 0])
+    row["margin_growth"] = float((safe(means[-1, 1]) - safe(means[tenth, 1])) / den) if den > 0 else np.nan
+    # M4: absorption by tercile of score margin (terciles over all prompts of the task), per class.
+    margin = LABELS[task_key(cfg)][1]
+    tercile = np.digitize(margin, np.quantile(margin, [1 / 3, 2 / 3]))
+    for t in range(3):
+        for name, members in (("b", cls != 0), ("a", cls == 0)):
+            sel = members & (tercile == t)
+            row[f"abs_{name}_t{t}"] = float(absorbed[sel].mean()) if sel.any() else np.nan
     hit = np.nonzero(means[:, 0] >= means[0, 0] + 0.10)[0]
     row["b_at_a_plus_010"] = float(means[hit[0], 1]) if len(hit) else np.nan
     row["step_a_plus_010"] = int(steps[hit[0]]) if len(hit) else -1
@@ -229,6 +241,34 @@ def t13(runs, lines, out):
               f"{int(((t.a_final_proj - t.a_final_full).abs() <= 0.05).sum())} of {len(t)} cells.", ""]
 
 
+def m2_m4(runs, lines):
+    r = runs[runs.hypothesis == "v3_t12"].copy()
+    r["m"] = r.majority.round(3)
+    g = r[r["update"] == "expected_full"].groupby(["arch", "rho", "m", "optimizer", "eta"]).agg(
+        runs=("margin_growth", "size"), median_g=("margin_growth", "median"),
+        sinking=("margin_growth", lambda v: int((v >= 1).sum())), slower=("margin_growth", lambda v: int(((v > 0) & (v < 1)).sum())),
+        recovering=("margin_growth", lambda v: int((v <= 0).sum())), b_final=("b_final", "median")).reset_index()
+    lines += ["## M2 (addendum 1): is the minority still sinking at 10× the horizon?", "",
+              "g = Δ[−log p̄_B] / Δ[−log(1 − p̄_A)] over the last decade of training (exact expected update). "
+              "`sinking`: runs with g ≥ 1; `slower`: 0 < g < 1; `recovering`: g ≤ 0.", "", markdown(g), ""]
+    t = runs[(runs.hypothesis == "v3_t13") & (runs["update"] == "expected_full")].copy()
+    t["m"] = t.majority.round(3)
+    cols = [f"abs_{c}_t{k}" for c in ("b", "a") for k in range(3)]
+    m4 = t.groupby(["arch", "rho", "m"])[cols].mean().reset_index()
+    m4.columns = ["arch", "rho", "m", "minority, low margin", "minority, mid", "minority, high margin",
+                  "majority, low margin", "majority, mid", "majority, high margin"]
+    spread = (m4.iloc[:, 3:6].max(axis=1) - m4.iloc[:, 3:6].min(axis=1))
+    whole = m4.iloc[:, 3:6].min(axis=1) > 0.5
+    lines += ["## M4 (addendum 1): imbalance or margin?", "",
+              "Share of prompts absorbed, by class and by tercile of score margin (terciles over all prompts of the "
+              "task); T13 runs with the unmodified update (the T1 configuration), mean over tasks and both η.", "",
+              markdown(m4), "",
+              f"- Minority terciles are within 0.15 of each other in {int((spread[whole] <= 0.15).sum())} of {int(whole.sum())} cells "
+              f"where every tercile is mostly absorbed ({int((spread <= 0.15).sum())} of {len(m4)} cells overall).",
+              f"- Majority prompts in the lowest-margin tercile: largest absorbed share {m4['majority, low margin'].max():.3f} "
+              "(prediction: below 0.05).", ""]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("what", choices=("collect", "all"))
@@ -249,6 +289,7 @@ def main():
     t11(br, lines, args.out)
     t12(runs, lines, args.out)
     t13(runs, lines, args.out)
+    m2_m4(runs, lines)
     with open(os.path.join(args.out, "FINDINGS.md"), "w") as f:
         f.write("\n".join(lines) + "\n")
     print(f"wrote {args.out}/FINDINGS.md")
