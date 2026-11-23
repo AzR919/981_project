@@ -419,6 +419,16 @@ def v3_t13():
                        log_every=max(steps // 50, 1), snapshot_every=steps, track_every=5)
 
 
+def v3_t15():
+    """Threshold in class share: where does the mixed step start to lower the minority, for K = 2, 3, 5?"""
+    offsets = (-0.05, 0.0, 0.02, 0.04, 0.06, 0.08, 0.12, 0.2, 0.35)
+    for K, arch, rho, task_seed in itertools.product((2, 3, 5), ("linear", "mlp"), (0.5, 0.9), TASK_SEEDS):
+        for off in offsets:
+            yield dict(t1_base(arch, rho, round(1 / K + off, 4), task_seed), K=K, optimizer="sgd", eta=0.01,
+                       update="expected_full", steps=10_000, log_every=200, snapshot_every=10_000, track_every=5,
+                       branch_at=[0], level=f"{arch}-rho{rho}-K{K}")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -427,6 +437,7 @@ BATCHES = {
             ("v3_t2g", v3_t2_groups), ("v3_t6kl", v3_t6_kl), ("v3_t4e", v3_t4_edge)],
     "v3c": [("v3_t10", v3_t10)],
     "v3d": [("v3_t11", v3_t11), ("v3_t12", v3_t12), ("v3_t13", v3_t13)],
+    "v3e": [("v3_t15", v3_t15)],
 }
 
 
