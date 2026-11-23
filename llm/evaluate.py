@@ -26,17 +26,21 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from llm.data import extract_answer, load_gsm8k, prompt_text, reward  # noqa: E402
 
 
-def sample_counts(llm, tokenizer, problems, n, max_tokens, seed, keep_answers=False, keep_text=0, lora_request=None):
+def sample_counts(llm, tokenizer, problems, n, max_tokens, seed, keep_answers=False, keep_text=0, lora_request=None,
+                  keep_correct=0):
     from vllm import SamplingParams
 
     params = SamplingParams(n=n, temperature=1.0, top_p=1.0, max_tokens=max_tokens, seed=seed)
     outputs = llm.generate([prompt_text(tokenizer, p) for p in problems], params, lora_request=lora_request)
-    counts, answers, texts, tokens = {}, {}, {}, 0
+    counts, answers, texts, tokens, correct_texts = {}, {}, {}, 0, {}
     for problem, out in zip(problems, outputs):
         correct = parsed = 0
         hist = {}
+        kept = []
         for c in out.outputs:
             r, ok = reward(c.text, problem["answer"])
+            if r and len(kept) < keep_correct:
+                kept.append(c.text)
             correct += int(r)
             parsed += int(ok)
             tokens += len(c.token_ids)
@@ -48,7 +52,9 @@ def sample_counts(llm, tokenizer, problems, n, max_tokens, seed, keep_answers=Fa
             answers[problem["id"]] = hist
         if keep_text:
             texts[problem["id"]] = [c.text for c in out.outputs[:keep_text]]
-    return counts, answers, texts, tokens
+        if keep_correct and kept:
+            correct_texts[problem["id"]] = kept
+    return counts, answers, texts, tokens, correct_texts
 
 
 def main():
@@ -68,6 +74,10 @@ def main():
     parser.add_argument("--quant", choices=("none", "int8"), default="none", help="vLLM per-channel int8 weights")
     parser.add_argument("--lora-rank", type=int, default=64)
     parser.add_argument("--keep-text", type=int, default=0)
+    parser.add_argument("--keep-correct", type=int, default=0,
+                        help="store up to K correct completions per problem (targets for the rejection-sampling control)")
+    parser.add_argument("--hint-field", default=None,
+                        help="append this field of each problem to its question as a hint (C2 access test)")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
@@ -79,6 +89,8 @@ def main():
         problems = [p for p in problems if p["id"] in keep]
     if args.limit:
         problems = problems[: args.limit]
+    if args.hint_field:
+        problems = [dict(q, question=f"{q['question']}\n\nHint: {q[args.hint_field]}") for q in problems]
 
     kw = dict(model=args.model, dtype="bfloat16", gpu_memory_utilization=args.gpu_memory, seed=args.seed,
               max_model_len=args.max_tokens + 1024)
@@ -93,8 +105,9 @@ def main():
     llm = LLM(**kw)
     tokenizer = llm.get_tokenizer()
     t0 = time.time()
-    counts, answers, texts, tokens = sample_counts(llm, tokenizer, problems, args.n, args.max_tokens, args.seed,
-                                                   args.keep_answers, args.keep_text, request)
+    counts, answers, texts, tokens, correct_texts = sample_counts(
+        llm, tokenizer, problems, args.n, args.max_tokens, args.seed, args.keep_answers, args.keep_text, request,
+        args.keep_correct)
     seconds = time.time() - t0
 
     out = {"config": vars(args), "counts": counts, "tokens": tokens, "seconds": seconds,
@@ -103,6 +116,8 @@ def main():
         out["answers"] = answers
     if args.keep_text:
         out["texts"] = texts
+    if args.keep_correct:
+        out["correct_texts"] = correct_texts
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     with gzip.open(args.out, "wt") as f:
         json.dump(out, f)

@@ -30,6 +30,9 @@ def main():
     p.add_argument("--model", required=True)
     p.add_argument("--problems-file", required=True)
     p.add_argument("--problems", default=None, help="JSON list of ids to train on (default: all)")
+    p.add_argument("--targets", default=None,
+                   help="evaluate.py output with correct_texts: train on the model's own correct completions "
+                        "(rejection sampling) instead of the templated solutions")
     p.add_argument("--epochs", type=int, default=2)
     p.add_argument("--lr", type=float, default=1e-5)
     p.add_argument("--batch", type=int, default=16)
@@ -57,11 +60,19 @@ def main():
         optimizer = bnb.optim.AdamW8bit(trainable, lr=args.lr, weight_decay=0.0)
     pad = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
 
+    targets = None
+    if args.targets:
+        import gzip
+
+        targets = json.load(gzip.open(args.targets, "rt"))["correct_texts"]
     examples = []
     for q in problems:
         prompt = tokenizer(prompt_text(tokenizer, q), add_special_tokens=False).input_ids
-        answer = tokenizer(q["solution"], add_special_tokens=False).input_ids + [tokenizer.eos_token_id]
-        examples.append((prompt + answer, len(prompt)))
+        # Problems the base model never solved contribute nothing under rejection sampling.
+        for text in ([q["solution"]] if targets is None else targets.get(q["id"], [])):
+            answer = tokenizer(text, add_special_tokens=False).input_ids + [tokenizer.eos_token_id]
+            examples.append((prompt + answer, len(prompt)))
+    print(f"{len(examples)} training examples from {len(problems)} problems", flush=True)
 
     log = open(os.path.join(args.out, "log.jsonl"), "a")
     step = 0
