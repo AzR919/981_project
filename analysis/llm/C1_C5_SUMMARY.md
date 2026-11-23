@@ -66,3 +66,21 @@
 - **The cross-seed overlap test** is uninformative for the lr 1e-5 arm (everything is lost).
 - **One lr 3e-6 run** (seed 2) lost its final evaluation to the nightly `/tmp` wipe. It was resumed
   from its step-500 checkpoint and re-exported, so the evaluated model is the same.
+
+## Second family: Llama-3.2-1B (added 2026-11-23)
+
+`c1_llama.md`, `c1_llama_runs.csv`. Full fine-tuning at lr 1e-6, chosen by the pre-registered rule
+(`PREREG_C1_amendment1.md`); 3 seeds; 1,000 training and 300 held-out problems from a pool of 2,157.
+
+| | Qwen2.5-0.5B, lr 1e-6 | Llama-3.2-1B, lr 1e-6 |
+|---|---|---|
+| Training problems lost (of 1,000) | 0, 0, 0 | 0, 0, 0 |
+| Mean training success, before → after | 0.49 → 0.98 | 0.42 → 0.99 |
+| Held-out declines (of 300; null 0) | 8–12 | 10, 12, 13 |
+| Held-out lost (of 300; null 0) | 1–5 | 4, 5, 9 |
+| Mean held-out success after | 0.84 | 0.85–0.86 |
+
+- **P4 fails in both families** (partial-conjunction p = 1 in each): at a learning rate that learns
+  well, GRPO loses no training problem.
+- **The held-out declines replicate.** In both families a few percent of unseen problems decline,
+  and 1–3% end at success ≤ 0.05, while every training problem improves.
