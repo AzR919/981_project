@@ -46,6 +46,20 @@ Considered and not added:
 - more majority shares or a longer horizon for C2 (the long arm is already queued);
 - C11, a fix in the LLM (its gate is not met).
 
+## From the adversarial review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`), not scheduled
+
+1. **An LLM pair told apart by one token** (finding 5, the LLM-side test). C2's procedures differ by
+   a cue sentence and the base model almost never confuses them. Build a pair whose prompts differ
+   by one token, check that the base model then gives the other procedure's answer often, and rerun
+   C2 at m = 0.5 and 0.95: about 8 GPU runs of 80 minutes, plus a pilot for the pool. Do this after
+   T22, which tests the same idea in the toy.
+2. **P1 part (b) at the task level.** The Spearman test is still computed on (task, η) pairs.
+3. **Cite the KL-direction papers** already in `papers/notes` (2509.07430, 2510.20817) and Schaul et
+   al.'s non-vanishing-pull remedy where the forward-KL result is described.
+4. **T21 at the 1e-2 threshold** (needs the per-prompt tail values, which the runs store).
+5. Not planned: a KL anchor to a reference that has already lost the minority. By the same algebra
+   it holds the minority down; state this instead of running it.
+
 ## Experiment rigour pass (a refinement step, after all planned experiments are done)
 
 Requested by the user on 2026-11-23. For every place where the report compares our result with
