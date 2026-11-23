@@ -121,13 +121,20 @@ def main():
              f"## Pool with base success in [0.1, 0.9] ({len(ids)} problems)", "",
              "Mean number of flagged problems (95% range over subsamples):", "",
              markdown(null_table(k1, n1, k2, n2, sizes, args.draws, rng)), ""]
+    lines += ["**Scope.** These counts describe our models, problems and decoding (temperature 1), at the sample "
+              "counts shown. A naive rule's false alarms fall quickly as the number of samples per problem grows, and "
+              "they come almost entirely from problems with low base success, which the filtered pool excludes. So "
+              "the tables say what a census at a given sample count needs to guard against; they are not a "
+              "re-analysis of any other paper, whose sample counts and problems differ.", ""]
     if args.unfiltered_before:
         uid, u1, m1 = counts(args.unfiltered_before)
         uid2, u2, m2 = counts(args.unfiltered_after)
         assert uid == uid2
         usizes = [s for s in (8, 16, 32) if s <= m1[0]]
-        lines += [f"## Unfiltered problems ({len(uid)} problems, another model)", "",
-                  markdown(null_table(u1, m1, u2, m2, usizes, args.draws, rng)), ""]
+        lines += [f"## Unfiltered problems ({len(uid)} problems, another model, at most {m1[0]} samples per problem)", "",
+                  markdown(null_table(u1, m1, u2, m2, usizes, args.draws, rng)), "",
+                  f"No evaluation of unfiltered problems with more than {m1[0]} samples exists yet, so this table "
+                  "cannot be compared with work that uses 128 or 256 samples per problem.", ""]
     lines += ["## Power: a true drop planted in 5% of the problems", "",
               "\"found\": share of the planted problems flagged. \"false\": flagged problems that were not planted.", "",
               markdown(power_table(k1, n1, k2, n2, [s for s in sizes if s >= 32], (0.5, 0.75, 1.0), min(args.draws, 50), rng)),
