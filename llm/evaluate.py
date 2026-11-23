@@ -32,11 +32,12 @@ def sample_counts(llm, tokenizer, problems, n, max_tokens, seed, keep_answers=Fa
 
     params = SamplingParams(n=n, temperature=1.0, top_p=1.0, max_tokens=max_tokens, seed=seed)
     outputs = llm.generate([prompt_text(tokenizer, p) for p in problems], params, lora_request=lora_request)
-    counts, answers, texts, tokens, correct_texts = {}, {}, {}, 0, {}
+    counts, answers, texts, tokens, correct_texts, truncated = {}, {}, {}, 0, {}, {}
     for problem, out in zip(problems, outputs):
         correct = parsed = 0
         hist = {}
         kept = []
+        cut = 0
         for c in out.outputs:
             r, ok = reward(c.text, problem["answer"])
             if r and len(kept) < keep_correct:
@@ -44,17 +45,19 @@ def sample_counts(llm, tokenizer, problems, n, max_tokens, seed, keep_answers=Fa
             correct += int(r)
             parsed += int(ok)
             tokens += len(c.token_ids)
+            cut += int(len(c.token_ids) >= max_tokens)
             if keep_answers:
                 key = extract_answer(c.text) or "unparsed"
                 hist[key] = hist.get(key, 0) + 1
         counts[problem["id"]] = [correct, parsed, n]
+        truncated[problem["id"]] = cut
         if keep_answers:
             answers[problem["id"]] = hist
         if keep_text:
             texts[problem["id"]] = [c.text for c in out.outputs[:keep_text]]
         if keep_correct and kept:
             correct_texts[problem["id"]] = kept
-    return counts, answers, texts, tokens, correct_texts
+    return counts, answers, texts, tokens, correct_texts, truncated
 
 
 def main():
@@ -105,13 +108,16 @@ def main():
     llm = LLM(**kw)
     tokenizer = llm.get_tokenizer()
     t0 = time.time()
-    counts, answers, texts, tokens, correct_texts = sample_counts(
+    counts, answers, texts, tokens, correct_texts, truncated = sample_counts(
         llm, tokenizer, problems, args.n, args.max_tokens, args.seed, args.keep_answers, args.keep_text, request,
         args.keep_correct)
     seconds = time.time() - t0
 
     out = {"config": vars(args), "counts": counts, "tokens": tokens, "seconds": seconds,
            "tokens_per_second": tokens / seconds}
+    # Completions that hit the token limit, and the reference answers (to tell wrong answers apart).
+    out["truncated"] = truncated
+    out["gold"] = {q["id"]: q["answer"] for q in problems}
     if args.keep_answers:
         out["answers"] = answers
     if args.keep_text:
