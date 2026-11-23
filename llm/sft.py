@@ -21,14 +21,14 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from llm.data import prompt_text  # noqa: E402
+from llm.data import load_gsm8k, prompt_text  # noqa: E402
 from llm.train import build_policy, export, token_logprobs  # noqa: E402
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
-    p.add_argument("--problems-file", required=True)
+    p.add_argument("--problems-file", default=None, help="JSON list of problem dicts (default: GSM8K train)")
     p.add_argument("--problems", default=None, help="JSON list of ids to train on (default: all)")
     p.add_argument("--targets", default=None,
                    help="evaluate.py output with correct_texts: train on the model's own correct completions "
@@ -47,7 +47,7 @@ def main():
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
 
-    problems = json.load(open(args.problems_file))
+    problems = json.load(open(args.problems_file)) if args.problems_file else load_gsm8k("train")
     if args.problems:
         keep = set(json.load(open(args.problems)))
         problems = [q for q in problems if q["id"] in keep]
