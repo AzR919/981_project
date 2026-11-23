@@ -419,6 +419,73 @@ def v3_t13():
                        log_every=max(steps // 50, 1), snapshot_every=steps, track_every=5)
 
 
+def v3_t15():
+    """Threshold in class share: where does the mixed step start to lower the minority, for K = 2, 3, 5?"""
+    offsets = (-0.05, 0.0, 0.02, 0.04, 0.06, 0.08, 0.12, 0.2, 0.35)
+    for K, arch, rho, task_seed in itertools.product((2, 3, 5), ("linear", "mlp"), (0.5, 0.9), TASK_SEEDS):
+        for off in offsets:
+            yield dict(t1_base(arch, rho, round(1 / K + off, 4), task_seed), K=K, optimizer="sgd", eta=0.01,
+                       update="expected_full", steps=10_000, log_every=200, snapshot_every=10_000, track_every=5,
+                       branch_at=[0], level=f"{arch}-rho{rho}-K{K}")
+
+
+def v3_t16():
+    """pass@k rules at matched progress: the minority task at 4x the v3c horizon, with class means logged."""
+    rules = [("grpo", None), ("mean", None)] + [(r, k) for r in ("passk", "rloo_k") for k in (2, 4, 8)]
+    for (rule, k), G, eta, task_seed in itertools.product(rules, (8, 32), (0.03, 0.3, 1), TASK_SEEDS):
+        yield dict(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, K=3, G=G, B=256 // G, rule=rule,
+                   passk=k, eta=eta, task_seed=task_seed, seed=0, steps=20_000, log_every=100, snapshot_every=20_000,
+                   track_every=5, diagnostics=False, level="minority")
+
+
+def v3_t17():
+    """KL anchor on the minority task: does anchoring to the start policy protect the minority, and at what cost?"""
+    arms = [(0.0, "reverse")] + [(beta, kl) for kl in ("reverse", "forward") for beta in (0.01, 0.03, 0.1, 0.3, 1, 3)]
+    for arch, update, eta, (beta, kl), task_seed in itertools.product(
+            ("linear", "mlp"), ("expected_full", "sampled"), (0.1, 1), arms, TASK_SEEDS):
+        yield dict(t1_base(arch, 0.9, 0.9, task_seed), optimizer="sgd", eta=eta, update=update, beta=beta, kl=kl,
+                   steps=20_000, log_every=100, snapshot_every=20_000, track_every=5, level=f"{arch}-{update}")
+
+
+def v3_t18():
+    """Release test: collapse the minority at m = 0.9 with beta = 0, then stop rewarding the majority.
+    After the release: no KL, or a reverse or forward KL anchor to the start policy. Control: no release."""
+    after = [(0.0, "reverse")] + [(beta, kl) for kl in ("reverse", "forward") for beta in (0.01, 0.1)]
+    for arch, task_seed in itertools.product(("linear", "mlp"), TASK_SEEDS):
+        base = dict(t1_base(arch, 0.9, 0.9, task_seed), optimizer="sgd", eta=0.1, update="expected_full",
+                    steps=20_000, log_every=100, snapshot_every=20_000, track_every=5)
+        yield dict(base, level=f"{arch}-control")
+        for release_at, (beta, kl) in itertools.product((0.005, 0.05, 0.25), after):
+            yield dict(base, release_at=release_at, release_beta=beta, release_kl=kl, level=f"{arch}-release")
+
+
+def v3_t19():
+    """Group size and the collapse threshold: the T15 share grid at K = 3 for several G."""
+    offsets = (-0.05, 0.0, 0.02, 0.04, 0.06, 0.08, 0.12, 0.2, 0.35, 0.45, 0.55)
+    for arch, rho, task_seed, off in itertools.product(("linear", "mlp"), (0.5, 0.9), TASK_SEEDS, offsets):
+        base = dict(t1_base(arch, rho, round(1 / 3 + off, 4), task_seed), K=3, optimizer="sgd", eta=0.01,
+                    steps=10_000, log_every=200, snapshot_every=10_000, track_every=5)
+        for G in (2, 4, 8, 16, 64):
+            yield dict(base, G=G, update="expected_full", branch_at=[0], level=f"{arch}-rho{rho}-grpo-exact")
+            if G in (2, 64):
+                yield dict(base, G=G, rule="mean", update="expected_full", branch_at=[0],
+                           level=f"{arch}-rho{rho}-mean-exact")
+            if rho == 0.9:
+                yield dict(base, G=G, B=256 // G, update="sampled", level=f"{arch}-rho{rho}-grpo-sampled")
+
+
+def v3_t22():
+    """Junk answers: two answer classes with prompts, and K - 2 tokens that are never correct."""
+    for K, arch, update, task_seed, m in itertools.product(
+            (2, 3, 6, 20), ("linear", "mlp"), ("expected_full", "sampled"), TASK_SEEDS,
+            (0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 0.98)):
+        job = dict(t1_base(arch, 0.9, m, task_seed), K=K, used_classes=2, optimizer="sgd", eta=0.03, update=update,
+                   steps=10_000, log_every=200, snapshot_every=10_000, track_every=5, level=f"{arch}-K{K}-{update}")
+        if update == "expected_full":
+            job["branch_at"] = [0]
+        yield job
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -427,6 +494,10 @@ BATCHES = {
             ("v3_t2g", v3_t2_groups), ("v3_t6kl", v3_t6_kl), ("v3_t4e", v3_t4_edge)],
     "v3c": [("v3_t10", v3_t10)],
     "v3d": [("v3_t11", v3_t11), ("v3_t12", v3_t12), ("v3_t13", v3_t13)],
+    "v3e": [("v3_t15", v3_t15)],
+    "v3f": [("v3_t16", v3_t16)],
+    "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
+    "v3j": [("v3_t22", v3_t22)],
 }
 
 

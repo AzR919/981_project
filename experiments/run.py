@@ -67,6 +67,8 @@ DEFAULTS = {
     "mix": 0.5, "sft_steps": 200,
     # v3 additions; the defaults reproduce earlier runs.
     "majority": None,            # T1: share of answer class 0 (others equal); adds a constant feature
+    "used_classes": None,        # T22: number of answer classes that have prompts (None: all K); the remaining
+                                 #      K - used_classes tokens are never correct ("junk" answers)
     "replace": True,             # T2: False draws each batch without replacement
     "track_every": 0,            # T0: also observe every prompt's p every k steps (0: log points only)
     "taus": [1e-3, 1e-2],        # T0: thresholds for ever- / persistent absorption
@@ -76,6 +78,8 @@ DEFAULTS = {
     "boot": 0,                   # T7: bootstrap draws of the mean z^2 null in gradcheck
     "branch_at": [],             # T11: fractions of training at which to measure A-only / B-only / mixed steps
     "branch_samples": 0,         # T11: sampled batches per branch point (0: exact expected branches only)
+    "release_at": None,          # T18: fraction of training after which class A is no longer rewarded
+    "release_beta": None, "release_kl": None,   # T18: KL strength and direction after the release (None: unchanged)
     "seed": 0,
 }
 
@@ -91,7 +95,9 @@ def build(cfg):
     shares = None
     if cfg["majority"] is not None:
         m = float(cfg["majority"])
-        shares = [m] + [(1 - m) / (cfg["K"] - 1)] * (cfg["K"] - 1)
+        used = cfg["used_classes"] or cfg["K"]
+        # A junk token gets a share too small for any prompt to draw it.
+        shares = [m] + [(1 - m) / (used - 1)] * (used - 1) + [1e-12] * (cfg["K"] - used)
         d += 1  # the constant feature
 
     task = SyntheticTask(
@@ -165,17 +171,18 @@ def make_optimizer(cfg, policy):
     raise ValueError(f"unknown optimizer {cfg['optimizer']}")
 
 
-def expected_step(policy, optimizer, prompts, correct, cfg, reference=None):
+def expected_step(policy, optimizer, prompts, correct, cfg, reference=None, weight=None):
     """One step on the exact expected GRPO update, -mean_x W_G(p_x) grad p_x.
 
     Same normalization as the sampled loss -(A * log pi).mean() over (B, G),
     whose expected gradient is exactly this (H1). With beta > 0 the exact
     KL term the sampled trainer uses is added (T8), so the two modes differ
-    only in sampling noise.
+    only in sampling noise. `weight` (one value per prompt) scales each prompt's
+    reward term and leaves the denominator and the KL term alone (T18).
     """
     p = policy.success_probability(prompts, correct)
     W = torch.as_tensor(advantage_gap(p.detach().numpy(), cfg["G"], cfg["rule"], passk=cfg["passk"]), dtype=p.dtype)
-    loss = -(W * p).mean()
+    loss = -(W * p).mean() if weight is None else -(W * p * weight).mean()
     if cfg["beta"] > 0:
         loss = loss + cfg["beta"] * policy.kl_divergence(prompts, reference, direction=cfg["kl"]).mean()
     optimizer.zero_grad(set_to_none=True)
@@ -360,6 +367,17 @@ def run_train(cfg):
     branches = {}
     if (branch_steps or cfg["update"] in ("projected", "shortened")) and in_a is None:
         raise ValueError("branch_at and the projected/shortened updates need a class-share task (majority)")
+    # T18: after the release step, class A's reward term is dropped (its prompts keep the KL term), and the KL
+    # strength and direction can change. Everything before the release is the plain run.
+    release_step = None
+    if cfg["release_at"] is not None:
+        if in_a is None or cfg["update"] != "expected_full":
+            raise ValueError("release_at needs a class-share task (majority) and update='expected_full'")
+        release_step = int(round(cfg["release_at"] * cfg["steps"]))
+        released_cfg = dict(cfg, beta=cfg["beta"] if cfg["release_beta"] is None else cfg["release_beta"],
+                            kl=cfg["release_kl"] or cfg["kl"])
+        only_b = (~in_a).to(prompts_t.dtype)
+        out["release_step"] = release_step
     checkpoints = {}
     absorbed_at = np.full(n, -1, dtype=np.int64)
     min_p = p_init.copy()
@@ -406,7 +424,7 @@ def run_train(cfg):
             ev = trainer.evaluate(*train)
             record["entropy"], record["kl"] = ev["entropy"], ev["kl"]
         history.append(record)
-        if step % cfg["snapshot_every"] == 0 or step == cfg["steps"]:
+        if step % cfg["snapshot_every"] == 0 or step == cfg["steps"] or step == release_step:
             snapshots[str(step)] = p.astype(np.float32).tolist()
         if cfg["drift_every"] and step % cfg["drift_every"] == 0 and step < cfg["steps"]:
             d = predicted_drift(policy, prompts_t, correct_t, cfg["rule"], cfg["G"], cfg["eta"], passk=cfg["passk"])
@@ -439,6 +457,9 @@ def run_train(cfg):
                 class_step(policy, trainer.optimizer, *batch, in_a, cfg)
             elif cfg["update"] == "supervised":
                 supervised_step(policy, trainer.optimizer, *batch)
+            elif release_step is not None and step > release_step:
+                trainer.decreases += expected_step(policy, trainer.optimizer, *batch, released_cfg,
+                                                   reference=trainer.reference, weight=only_b)
             else:
                 trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg, reference=trainer.reference)
         if step % cfg["log_every"] == 0 or step == cfg["steps"]:
