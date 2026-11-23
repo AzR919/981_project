@@ -1,0 +1,24 @@
+
+Released counts (DeepScaleR-1.5B against its base, 32k-token limit): n = 128 samples per prompt per model, 1060 prompts
+  base never solves (c = 0): 116;  RL never solves (d = 0): 137
+  observed locked (c > 0, d = 0): 33   observed newly solved (c = 0, d > 0): 12
+  prior-free test (locked against newly solved, one-sided binomial): p = 0.0012
+  expected locked prompts under no change, with a Poisson-binomial sd:
+    NPMLE                              15.4 +- 3.4
+    Beta MLE (a = 0.302, b = 0.220)    17.4 +- 3.5
+    Beta(0.25, 1), as in check 1       18.1 +- 3.5
+    Beta(0.5, 1), as in check 1        15.2 +- 3.3
+    Beta(1.0, 1), as in check 1        10.8 +- 2.9
+  by base count (observed locked / prompts; expected under no change with the NPMLE and the Beta MLE):
+    c = 1     16 /  27    NPMLE   7.4    Beta MLE  10.9
+    c = 2      7 /  22    NPMLE   5.2    Beta MLE   4.4
+    c = 3-4    4 /  20    NPMLE   2.4    Beta MLE   1.6
+    c = 5-8    5 /  26    NPMLE   0.4    Beta MLE   0.4
+    c > 8      1 / 849    NPMLE   0.0    Beta MLE   0.0
+  NPMLE mass on p < 1/n: 0.090 (of which at p = 0: 0.001)
+
+Thinned to 64 samples per prompt (20 draws): observed locked 32.4 (range 26-39); expected under no change (Beta MLE) 19.9
+
+Thinned to 32 samples per prompt (20 draws): observed locked 27.9 (range 23-32); expected under no change (Beta MLE) 21.9
+
+Thinned to 16 samples per prompt (20 draws): observed locked 26.6 (range 20-38); expected under no change (Beta MLE) 27.2
