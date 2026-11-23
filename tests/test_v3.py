@@ -190,5 +190,40 @@ class BranchTests(unittest.TestCase):
             self.assertIn("s_d_b_mixed", out["branches"]["0"])
 
 
+class ReleaseTests(unittest.TestCase):
+    """T18: after the release, class A's reward term is dropped."""
+
+    base = dict(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, n_train=64, n_test=8, eta=0.1,
+                steps=40, log_every=1, snapshot_every=40, diagnostics=False, update="expected_full")
+
+    def test_run_is_unchanged_before_the_release_and_follows_class_b_after_it(self):
+        plain = run.run_train(config(**self.base, branch_at=[0.5]))
+        released = run.run_train(config(**self.base, branch_at=[0.5], release_at=0.5))
+        self.assertEqual(released["release_step"], 20)
+        self.assertEqual([h["class_mean"] for h in plain["history"][:21]],
+                         [h["class_mean"] for h in released["history"][:21]])
+        self.assertIn("20", released["snapshots"])
+        # The first released step is the B-only branch measured from the same state.
+        before, after = released["history"][20]["class_mean"], released["history"][21]["class_mean"]
+        branch = released["branches"]["20"]
+        self.assertAlmostEqual(after[1] - before[1], branch["d_b_b"], places=12)
+        self.assertAlmostEqual(after[0] - before[0], branch["d_a_b"], places=12)
+        self.assertNotEqual(plain["history"][21]["class_mean"], after)
+
+    def test_kl_after_the_release_pulls_toward_the_start_policy(self):
+        # With no reward left for anyone (all prompts in class A) and a forward KL anchor, the policy
+        # relaxes toward the reference it started from.
+        cfg = config(**dict(self.base, majority=1.0, steps=400, log_every=100), release_at=0.25, release_beta=1.0,
+                     release_kl="forward")
+        out = run.run_train(cfg)
+        means = [h["train"]["mean"] for h in out["history"]]
+        self.assertGreater(means[1], means[0] + 0.05)                 # rewarded phase: success rises
+        self.assertLess(abs(means[-1] - means[0]), abs(means[1] - means[0]) / 2)   # released: back toward the start
+
+    def test_release_needs_the_exact_full_update(self):
+        with self.assertRaises(ValueError):
+            run.run_train(config(**dict(self.base, update="sampled"), release_at=0.5))
+
+
 if __name__ == "__main__":
     unittest.main()
