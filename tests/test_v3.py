@@ -138,5 +138,57 @@ class PassAtKRuleTests(unittest.TestCase):
                                advantage_gap(np.array([0.2]), 8, "rloo_k", passk=4)[0], delta=0.01)
 
 
+class BranchTests(unittest.TestCase):
+    """T11-T13: class-split updates from one state."""
+
+    def two_contexts(self, angle_deg, n_a, n_b, optimizer="sgd", eta=1e-6):
+        from synthetic_rl.policy import Policy
+
+        angle = np.deg2rad(angle_deg)
+        x = np.array([[1.0, 0.0]] * n_a + [[np.cos(angle), np.sin(angle)]] * n_b)
+        prompts = torch.as_tensor(x)
+        correct = torch.zeros(n_a + n_b, 1, dtype=torch.long)
+        in_a = torch.as_tensor([True] * n_a + [False] * n_b)
+        policy = Policy(num_features=2, num_tokens=2, response_length=1, arch="linear").double()
+        cfg = config(G=8, eta=eta, optimizer=optimizer, B=n_a + n_b)
+        out = run.measure_branches(policy, run.make_optimizer(cfg, policy), prompts, correct, in_a, cfg,
+                                   np.random.default_rng(0))
+        return out, policy
+
+    def test_mixed_step_follows_the_analytic_control(self):
+        # Two equally solvable contexts at p = 0.5: the mixed step moves B's logit in proportion to
+        # (1 - f) + f cos(angle), the B-only step in proportion to (1 - f).
+        for n_a, n_b, f in ((1, 1, 0.5), (2, 1, 2 / 3), (9, 1, 0.9)):
+            out, _ = self.two_contexts(120, n_a, n_b)
+            want = ((1 - f) + f * np.cos(np.deg2rad(120))) / (1 - f)
+            self.assertAlmostEqual(out["d_b_mixed"] / out["d_b_b"], want, places=5)
+        out, _ = self.two_contexts(90, 9, 1)
+        self.assertAlmostEqual(out["d_b_a"] / out["d_b_b"], 0.0, places=6)   # A alone leaves B unchanged
+        out, _ = self.two_contexts(60, 9, 1)
+        self.assertGreater(out["d_b_a"], 0)                                  # A alone helps B
+
+    def test_mixed_branch_is_the_real_step_and_the_parent_is_untouched(self):
+        for optimizer, eta in (("sgd", 0.5), ("adam", 0.01)):
+            out, policy = self.two_contexts(120, 9, 1, optimizer=optimizer, eta=eta)
+            self.assertLess(out["mixed_check"], 1e-12)
+            self.assertTrue(all(torch.count_nonzero(q) == 0 for q in policy.parameters()))
+
+    def test_projection_removes_the_harmful_component(self):
+        out, policy = self.two_contexts(120, 9, 1, eta=1e-6)
+        self.assertLess(out["dot_a_h"], 0)
+        self.assertAlmostEqual(out["d_b_a_proj"] / abs(out["d_b_a"]), 0.0, places=5)  # B no longer pushed down
+        self.assertLess(out["d_b_a_short"], 0)                                        # a shorter A step still harms B
+
+    def test_projected_update_and_class_means_run(self):
+        base = config(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, n_train=64, n_test=8,
+                      eta=0.1, steps=40, log_every=20, track_every=5, diagnostics=False, branch_at=[0, 0.5],
+                      branch_samples=2)
+        for update in ("expected_full", "projected", "shortened"):
+            out = run.run_train(dict(base, update=update))
+            self.assertEqual(sorted(out["branches"]), ["0", "20"])
+            self.assertEqual(len(out["history"][-1]["class_mean"]), 2)
+            self.assertIn("s_d_b_mixed", out["branches"]["0"])
+
+
 if __name__ == "__main__":
     unittest.main()

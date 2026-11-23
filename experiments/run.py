@@ -23,6 +23,7 @@ Modes:
 """
 
 import argparse
+import copy
 import gzip
 import json
 import os
@@ -73,6 +74,8 @@ DEFAULTS = {
     "ppo_epochs": 1, "clip_eps": None, "grad_clip": None,   # T6
     "stop_at_half": False,       # T4: end the run at the first observed mean p >= 0.5
     "boot": 0,                   # T7: bootstrap draws of the mean z^2 null in gradcheck
+    "branch_at": [],             # T11: fractions of training at which to measure A-only / B-only / mixed steps
+    "branch_samples": 0,         # T11: sampled batches per branch point (0: exact expected branches only)
     "seed": 0,
 }
 
@@ -183,6 +186,116 @@ def expected_step(policy, optimizer, prompts, correct, cfg, reference=None):
     return int((after < p.detach()).sum().item())
 
 
+def class_gradients(policy, prompts, correct, in_a, cfg):
+    """Ascent gradients of the exact expected update split by class, and the minority's success gradient.
+
+    g_a + g_b is the full expected ascent direction -grad of expected_step's loss (same W, same 1/n), so
+    each part already carries its class's share of the prompts. h = grad of mean success over class B.
+    """
+    p = policy.success_probability(prompts, correct)
+    W = torch.as_tensor(advantage_gap(p.detach().numpy(), cfg["G"], cfg["rule"], passk=cfg["passk"]), dtype=p.dtype)
+    params = list(policy.parameters())
+    weighted = W * p / len(p)
+    g_a = torch.autograd.grad(weighted[in_a].sum(), params, retain_graph=True)
+    g_b = torch.autograd.grad(weighted[~in_a].sum(), params, retain_graph=True)
+    h = torch.autograd.grad(p[~in_a].mean(), params)
+    return g_a, g_b, h
+
+
+def flat(grads):
+    return torch.cat([g.reshape(-1) for g in grads])
+
+
+def project_out(g_a, h):
+    """g_a without its component along h when that component is negative (g_a . h < 0); else g_a."""
+    dot, norm = flat(g_a) @ flat(h), flat(h) @ flat(h)
+    if dot >= 0 or norm == 0:
+        return list(g_a)
+    return [a - hh * (dot / norm) for a, hh in zip(g_a, h)]
+
+
+def step_with(policy, optimizer, ascent):
+    """One optimizer step along a given ascent direction (SGD: theta += eta * ascent)."""
+    for param, g in zip(policy.parameters(), ascent):
+        param.grad = -g.clone()
+    optimizer.step()
+
+
+def class_step(policy, optimizer, prompts, correct, in_a, cfg):
+    """T13: the expected step with the majority part projected, or shortened to the projected norm."""
+    g_a, g_b, h = class_gradients(policy, prompts, correct, in_a, cfg)
+    proj = project_out(g_a, h)
+    if cfg["update"] == "shortened":
+        scale = flat(proj).norm() / flat(g_a).norm().clamp(min=1e-300)
+        proj = [scale * g for g in g_a]
+    step_with(policy, optimizer, [a + b for a, b in zip(proj, g_b)])
+
+
+def measure_branches(policy, optimizer, prompts, correct, in_a, cfg, rng):
+    """T11: from copies of the current state, take one step along several directions and record the exact
+    change in mean success of class A (answer class 0) and class B (the rest)."""
+    g_a, g_b, h = class_gradients(policy, prompts, correct, in_a, cfg)
+    fa, fb, fh = flat(g_a), flat(g_b), flat(h)
+    proj = project_out(g_a, h)
+    scale = flat(proj).norm() / fa.norm().clamp(min=1e-300)
+    add = lambda x, y: [u + v for u, v in zip(x, y)]  # noqa: E731
+    branches = {
+        "zero": [torch.zeros_like(g) for g in g_a], "a": list(g_a), "b": list(g_b), "mixed": add(g_a, g_b),
+        "a_proj": proj, "a_short": [scale * g for g in g_a],
+        "mixed_proj": add(proj, g_b), "mixed_short": add([scale * g for g in g_a], g_b),
+    }
+    with torch.no_grad():
+        p0 = policy.success_probability(prompts, correct)
+    cos = lambda x, y: float(x @ y / (x.norm() * y.norm()).clamp(min=1e-300))  # noqa: E731
+    out = {"n_a": int(in_a.sum()), "n_b": int((~in_a).sum()), "p_a": float(p0[in_a].mean()),
+           "p_b": float(p0[~in_a].mean()), "norm_a": float(fa.norm()), "norm_b": float(fb.norm()),
+           "dot_ab": float(fa @ fb), "cos_ab": cos(fa, fb), "dot_a_h": float(fa @ fh), "cos_a_h": cos(fa, fh)}
+
+    def change(pol):
+        with torch.no_grad():
+            d = pol.success_probability(prompts, correct) - p0
+        return float(d[in_a].mean()), float(d[~in_a].mean())
+
+    for name, ascent in branches.items():
+        pol, opt = copy.deepcopy((policy, optimizer))
+        step_with(pol, opt, ascent)
+        out["d_a_" + name], out["d_b_" + name] = change(pol)
+    if cfg["beta"] == 0:
+        # The mixed branch must be the step expected_step itself takes.
+        pol, opt = copy.deepcopy((policy, optimizer))
+        expected_step(pol, opt, prompts, correct, cfg)
+        d_a, d_b = change(pol)
+        out["mixed_check"] = max(abs(d_a - out["d_a_mixed"]), abs(d_b - out["d_b_mixed"]))
+
+    if cfg["branch_samples"]:
+        # Sampled GRPO steps: the same prompts, responses and rewards for every branch of a draw; a class's
+        # contribution is masked out and the full batch denominator kept.
+        state = torch.get_rng_state()
+        draws = {k: [] for k in ("a", "b", "mixed")}
+        missing = 0
+        for _ in range(cfg["branch_samples"]):
+            idx = torch.as_tensor(draw(rng, len(prompts), cfg))
+            x, c, a_rows = prompts[idx], correct[idx], in_a[idx]
+            if a_rows.all() or not a_rows.any():
+                missing += 1
+            responses = policy.sample(x, cfg["G"])
+            rewards = torch.as_tensor(verify(responses.numpy(), c.numpy()), dtype=x.dtype)
+            adv = calculate_advantages(rewards, kind=cfg["rule"], passk=cfg["passk"])
+            for name, rows in (("a", a_rows), ("b", ~a_rows), ("mixed", torch.ones_like(a_rows))):
+                pol, opt = copy.deepcopy((policy, optimizer))
+                weighted = adv * pol.log_prob(x, responses) * rows[:, None]
+                ascent = torch.autograd.grad(weighted.sum() / adv.numel(), list(pol.parameters()), allow_unused=True)
+                step_with(pol, opt, [torch.zeros_like(q) if g is None else g for g, q in zip(ascent, pol.parameters())])
+                draws[name].append(change(pol))
+        torch.set_rng_state(state)
+        for name, values in draws.items():
+            values = np.asarray(values)
+            out["s_d_a_" + name], out["s_d_b_" + name] = float(values[:, 0].mean()), float(values[:, 1].mean())
+            out["s_sd_b_" + name] = float(values[:, 1].std())
+        out["s_batches_missing_a_class"] = missing
+    return out
+
+
 def draw(rng, n, cfg):
     """Batch indices; with replacement keeps the earlier random stream."""
     if cfg["replace"]:
@@ -240,6 +353,13 @@ def run_train(cfg):
         raise ValueError("expected updates need an exact verifier and one update per batch")
 
     n = len(train[0])
+    # Answer class 0 is "A" (the majority when cfg["majority"] > 1/K); the other classes are "B".
+    in_a = torch.as_tensor(train[1][:, 0] == 0) if cfg["majority"] is not None else None
+    branch_steps = {int(round(f * cfg["steps"])) for f in cfg["branch_at"]}
+    branch_rng = np.random.default_rng(cfg["seed"] + 20_000)
+    branches = {}
+    if (branch_steps or cfg["update"] in ("projected", "shortened")) and in_a is None:
+        raise ValueError("branch_at and the projected/shortened updates need a class-share task (majority)")
     checkpoints = {}
     absorbed_at = np.full(n, -1, dtype=np.int64)
     min_p = p_init.copy()
@@ -273,6 +393,8 @@ def run_train(cfg):
         p = success(policy, train)
         observe(step, p)
         record = {"step": step, "train": summarize(p, p_init), "decreases": trainer.decreases}
+        if in_a is not None:
+            record["class_mean"] = [float(p[in_a.numpy()].mean()), float(p[~in_a.numpy()].mean())]
         if test is not None:
             record["test_mean"] = float(success(policy, test).mean())
         if informative:
@@ -297,6 +419,9 @@ def run_train(cfg):
 
     log(0)
     for step in range(1, cfg["steps"] + 1):
+        if step - 1 in branch_steps:
+            branches[str(step - 1)] = measure_branches(policy, trainer.optimizer, prompts_t, correct_t, in_a, cfg,
+                                                       branch_rng)
         if cfg["update"] == "sampled":
             idx = draw(trainer.rng, n, cfg)
             metrics = trainer.train_step(train[0][idx], train[1][idx])
@@ -306,11 +431,13 @@ def run_train(cfg):
             if cfg["update"] == "expected":
                 idx = draw(trainer.rng, n, cfg)
                 batch = (prompts_t[idx], correct_t[idx])
-            elif cfg["update"] in ("expected_full", "supervised"):
+            elif cfg["update"] in ("expected_full", "supervised", "projected", "shortened"):
                 batch = (prompts_t, correct_t)
             else:
                 raise ValueError(f"unknown update {cfg['update']}")
-            if cfg["update"] == "supervised":
+            if cfg["update"] in ("projected", "shortened"):
+                class_step(policy, trainer.optimizer, *batch, in_a, cfg)
+            elif cfg["update"] == "supervised":
                 supervised_step(policy, trainer.optimizer, *batch)
             else:
                 trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg, reference=trainer.reference)
@@ -336,6 +463,8 @@ def run_train(cfg):
     })
     if checkpoints:
         out["checkpoints"] = checkpoints
+    if branches:
+        out["branches"] = branches
     return out
 
 
