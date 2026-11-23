@@ -42,6 +42,7 @@ def main():
     p.add_argument("--out", required=True)
     p.add_argument("--work", required=True)
     args = p.parse_args()
+    args.quant, args.sync = "none", "merged"   # build_policy and export read these (see train.py)
     os.makedirs(args.out, exist_ok=True)
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
@@ -105,7 +106,7 @@ def main():
             step += 1
             log.write(json.dumps({"step": step, "epoch": epoch, "loss": total, "t_step": time.time() - t0}) + "\n")
             log.flush()
-    export(model, tokenizer, os.path.join(args.work, "final"), args.lora)
+    export(model, tokenizer, os.path.join(args.work, "final"), args)
     print(f"saved {os.path.join(args.work, 'final')} after {step} steps", flush=True)
 
 
