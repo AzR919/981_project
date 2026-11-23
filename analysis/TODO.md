@@ -46,6 +46,33 @@ Considered and not added:
 - more majority shares or a longer horizon for C2 (the long arm is already queued);
 - C11, a fix in the LLM (its gate is not met).
 
+## Experiment rigour pass (a refinement step, after all planned experiments are done)
+
+Requested by the user on 2026-11-23. For every place where the report compares our result with
+another paper's, or uses our numbers to comment on theirs, check that the two are comparable, and
+where they are not, see whether a comparable run or re-analysis is possible on our hardware (one
+24 GB GPU per machine; models up to about 1.5B with full fine-tuning). Fix what we can; state the
+rest as a limitation.
+
+Checklist per comparison: samples per problem; model and size; decoding (temperature, top-p, token
+limit); problem set and how it was filtered; number of seeds; the definition of the statistic.
+
+Known cases to start from:
+- **Yang (2609.22547), locked prompts.** Our "83 of 3,000" is at 32 samples per problem; Yang uses
+  128–256. Not comparable, and no longer used against that paper. Done instead: a re-analysis of
+  Yang's own released counts at n = 128 (`tools/literature/checks/yang_2609_22547_check2_exact_null.py`
+  on `literature`): 33 locked against 15–18 expected with no change. Possible addition: evaluate
+  our base model twice at 256 samples on unfiltered problems (2 GPU jobs of about 2 hours).
+- **Ramesh et al. (Multi-Task GRPO).** They use Qwen2.5-3B and real task mixtures; we use 0.5B and
+  two templated procedures. Is a 1.5B run of C2 feasible?
+- **Li, Galhotra & Cardie (replay).** Their toy varies samples per group; our samples-per-step arm
+  varies prompts per step. State the difference.
+- **Zhou & Li (access against ability).** Our hints are three fixed templates at 64 samples.
+- **Li, Pandey & Chen.** T20 runs in their environment at their settings; their published cells
+  were reproduced within 0.016 on another torch version. Rerun the reproduction on torch 2.15.
+- **Davis & Recht; Vojnovic & Yun.** H1, H2 and H4 checks: confirm the settings match the theorems'
+  assumptions (clipping off, fresh on-policy samples).
+
 ## Other open items
 
 - **Restart C1 Qwen lr 3e-6, seed 0** (queue job `q_00`, c12). It hit a CUDA illegal-address fault at

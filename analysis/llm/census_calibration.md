@@ -15,13 +15,17 @@ Mean number of flagged problems (95% range over subsamples):
 | 128 | 0.0 (0–0) | 2.5 (0–5) | 0.0 (0–0) | 0.0 (0–0) |
 | 256 | 0.0 | 0.0 | 0.0 | 0.0 |
 
-## Unfiltered problems (3000 problems, another model)
+**Scope.** These counts describe our models, problems and decoding (temperature 1), at the sample counts shown. A naive rule's false alarms fall quickly as the number of samples per problem grows, and they come almost entirely from problems with low base success, which the filtered pool excludes. So the tables say what a census at a given sample count needs to guard against; they are not a re-analysis of any other paper, whose sample counts and problems differ.
+
+## Unfiltered problems (3000 problems, another model, at most 32 samples per problem)
 
 | samples per problem | locked | halved | decline | lost |
 |---|---|---|---|---|
 | 8 | 255.5 (227–288) | 540.6 (507–573) | 0.0 (0–0) | 0.0 (0–0) |
 | 16 | 164.1 (143–183) | 287.9 (262–311) | 0.0 (0–0) | 0.0 (0–0) |
 | 32 | 83.0 | 65.0 | 0.0 | 0.0 |
+
+No evaluation of unfiltered problems with more than 32 samples exists yet, so this table cannot be compared with work that uses 128 or 256 samples per problem.
 
 ## Power: a true drop planted in 5% of the problems
 

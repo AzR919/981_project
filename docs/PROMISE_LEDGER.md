@@ -33,7 +33,7 @@ in the report as failed.
 | Threshold grid and the odds law (T15, `analysis/theory/odds_law.md`) | The push is R = c·m/(1 − m), with c from the feature geometry; the first decline starts at m = 1/(1 + c). Parameter-free, checked on 1,080 runs |
 | Margin check (M4) | Class decides, not prompt difficulty |
 | Prevention levers (T13, T16, T17, T19) | Hard-prompt weighting and a forward KL anchor prevent absorption at different costs; reverse KL at usual strengths and group size do not |
-| LLM census with a calibrated null (C1, both families; census calibration) | No training problem is lost at a learning rate that learns well; a few percent of unseen problems are. A naive "locked problem" count flags 83 of 3,000 problems in an unchanged model |
+| LLM census with a calibrated null (C1, both families; census calibration) | No training problem is lost at a learning rate that learns well; a few percent of unseen problems are. At 32 samples per problem, a naive "locked problem" count flags 83 of 3,000 problems in an unchanged model; our test flags none. This is about our setting and that sample count; it is not a statement about other papers' counts |
 | Controlled imbalance in the LLM (C2 and its controls) | The toy collapse does not transfer: two procedures that share most steps help each other |
 
 ## Open on 2026-11-23
