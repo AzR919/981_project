@@ -49,3 +49,33 @@ solution on the majority's features (dual solved with nonnegative L-BFGS).
   tested on T12 and T18.
 - Until that test passes, the report should state only the run-level association, as an
   observation, and the first-step identity as the theory.
+
+## Update, 2026-11-23 evening: three further tests
+
+1. **Formal and symbolic checks.** The first-step algebra is proved in Lean 4 with Mathlib
+   (`formal/Formal/RLVR.lean`: tabular monotonicity, the cross-class factor, the push ratio in block
+   and odds form). The late-phase algebra is checked in SymPy (`tests/test_theory_symbolic.py`),
+   including an exact solution of the scalar late model dL/dτ = γ/τ − c e^{−L}: with y = e^L the
+   equation is linear, and permanent absorption needs γ > 1 *and* a deep enough fall.
+2. **The depth comparison above was partly circular** (a prompt that never recovered is deepest at the
+   end by construction) and is withdrawn as evidence. T24 replaces it.
+3. **T24 (pre-registered, `analysis/v3l/SUMMARY.md`).** The run-level association replicates on fresh
+   runs (within-cell Spearman 0.86). The per-prompt reduced model fails its main predictions. The late
+   phase preserves the order of prompts (Spearman 0.97–1.00 between the state at the start of the late
+   phase and the final state, where few recover): the per-prompt outcome is decided during the fall.
+4. **Stretch hypothesis, optimizer geometry (`experiments/probe_optimizer_geometry.py`): not
+   supported.** Under SGD the ℓ2 max-margin geometry predicts the late sinking better than the ℓ∞ one
+   (within-cell 0.81 against 0.72), as expected. Under Adam the ℓ∞ geometry adds nothing (0.60 against
+   0.62 with the exact update). The two geometries correlate at 0.75 across tasks, so the test had
+   power. The planned optimizer batch (T25) was not run.
+
+## Status of the theory
+
+| Piece | Status |
+|---|---|
+| First-step identity (odds law, kernel correction) | Proved (Lean), checked (SymPy), verified on 1,080 + T20 + T22 runs |
+| Late sinking rate set by the majority's max-margin geometry (implicit bias) | Supported at the run level, replicated on pre-registered runs |
+| Per-prompt late model; "γ < 1 recovers" | Not supported |
+| What decides each prompt's outcome | The state reached during the fall (order preserved late); no theory yet |
+| Adam's ℓ∞ geometry explains its recoveries | Not supported |
+
