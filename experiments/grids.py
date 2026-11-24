@@ -501,6 +501,24 @@ def v3_t21():
                    enum_policy="shared", algo=algo, optimizer=optimizer, eta=eta, seed=seed, level=f"shared-{algo}", **arm)
 
 
+def v3_a4():
+    """A4: T20's share effect under Adam (lr 1e-3, shared transformer, exact) on fresh partition seeds 10-29."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)] + [(2, n, "random") for n in (32, 40, 48, 56, 60)]
+    for (K, n_major, partition), algo, seed in itertools.product(tasks, ("pg", "grpo"), range(10, 30)):
+        yield dict(mode="enum", steps=2000, log_every=20, G=8, K=K, n_major=n_major, partition=partition,
+                   optimizer="adam", eta=1e-3, seed=seed, enum_policy="shared", algo=algo, level=f"shared-{algo}")
+
+
+def v3_t29():
+    """J: the T20 share grid under SGD at small step sizes (flow time matched to SGD 0.3 x 2,000 steps)."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)]
+    for (K, n_major, partition), (eta, steps), algo, seed in itertools.product(
+            tasks, ((0.03, 20_000), (0.1, 6_000)), ("pg", "grpo"), range(10)):
+        yield dict(mode="enum", steps=steps, log_every=max(steps // 100, 1), G=8, K=K, n_major=n_major,
+                   partition=partition, optimizer="sgd", eta=eta, seed=seed, enum_policy="shared", algo=algo,
+                   level=f"shared-{algo}-sgd{eta}")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -514,6 +532,7 @@ BATCHES = {
     "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
     "v3h": [("v3_t20", v3_t20)],
     "v3i": [("v3_t21", v3_t21)],
+    "v3q": [("v3_a4", v3_a4), ("v3_t29", v3_t29)],
 }
 
 
