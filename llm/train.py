@@ -238,12 +238,20 @@ def token_logprobs(logits, targets):
     return logits.gather(-1, targets[..., None]).squeeze(-1) - torch.logsumexp(logits, dim=-1)
 
 
+KL_LOG_RATIO_BOUND = 20.0
+
+
 def kl_terms(logp, ref_logp, direction):
     """Per-token KL loss term and value. Samples come from pi, so only log pi carries gradient:
     differentiating k2 = (log pi - log ref)^2 / 2 gives the reverse-KL gradient, differentiating
     k3 = rho - log rho - 1 (rho = ref / pi) gives the forward-KL gradient (tested in
-    tests/test_llm_kl.py). The value logged is k3, an unbiased estimate of the reverse KL."""
-    delta = ref_logp - logp
+    tests/test_llm_kl.py). The value logged is k3, an unbiased estimate of the reverse KL.
+
+    The log-ratio is bounded to [-20, 20]. Without the bound, one sampled token that the trainer
+    scores as (nearly) impossible makes exp(delta) overflow or delta infinite, and the whole update
+    becomes NaN (this destroyed two C7/C8 runs on 2026-11-23). Tokens beyond the bound contribute no
+    KL gradient."""
+    delta = (ref_logp - logp).clamp(-KL_LOG_RATIO_BOUND, KL_LOG_RATIO_BOUND)
     value = (torch.exp(delta) - delta - 1).detach()
     loss = 0.5 * delta**2 if direction == "reverse" else torch.exp(delta) - delta - 1
     return loss, value
@@ -466,15 +474,20 @@ def main():
         torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 1e9)  # norm only, no clipping
         grad_norm = float(sum(p.grad.float().norm() ** 2 for p in model.parameters()
                               if p.requires_grad and p.grad is not None) ** 0.5)
-        optimizer.step()
-        sampler.sync(model)
+        skipped = not np.isfinite(grad_norm)
+        if skipped:
+            # A non-finite gradient would destroy the weights; drop this update and keep going.
+            optimizer.zero_grad(set_to_none=True)
+        else:
+            optimizer.step()
+            sampler.sync(model)
         step += 1
 
         group = clean.mean(axis=1)
         record = {"step": step, "reward": float(clean.mean()), "reward_used": float(rewards.mean()),
                   "informative": float(((group > 0) & (group < 1)).mean()), "parsed": float(parsed.mean()),
                   "length": float(np.mean(lengths)), "active": len(active), "grad_norm": grad_norm,
-                  "kl": kl_sum / n_total, "t_sample": t_sample, "t_step": time.time() - t0,
+                  "kl": kl_sum / n_total, "skipped": int(skipped), "t_sample": t_sample, "t_step": time.time() - t0,
                   "peak_gb": torch.cuda.max_memory_allocated() / 2**30}
         if track and seen_logp:
             used = sorted(seen_logp)

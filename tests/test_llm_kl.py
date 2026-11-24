@@ -44,6 +44,27 @@ class KLGradientTests(unittest.TestCase):
         torch.testing.assert_close((logp.exp() * value).sum(), (logp.exp() * (logp - torch.log(self.ref))).sum())
 
 
+class KLBoundTests(unittest.TestCase):
+    def test_extreme_log_ratios_give_finite_losses_and_gradients(self):
+        # A sampled token the trainer scores as impossible (-inf), and ratios far beyond exp range.
+        for direction in ("reverse", "forward"):
+            logp = torch.tensor([-1.0, -400.0, float("-inf"), -2.0], requires_grad=True)
+            ref = torch.tensor([-1.2, -0.5, -0.7, -900.0])
+            loss, value = kl_terms(logp, ref, direction)
+            self.assertTrue(torch.isfinite(loss).all() and torch.isfinite(value).all(), direction)
+            grad = torch.autograd.grad(loss.sum(), logp)[0]
+            self.assertTrue(torch.isfinite(grad).all(), direction)
+            self.assertEqual(float(grad[1]), 0.0)          # beyond the bound: no KL gradient
+
+    def test_bound_leaves_ordinary_tokens_unchanged(self):
+        logp = torch.tensor([-1.0, -3.0, -0.2])
+        ref = torch.tensor([-1.5, -2.0, -0.1])
+        for direction in ("reverse", "forward"):
+            delta = ref - logp
+            want = 0.5 * delta**2 if direction == "reverse" else torch.exp(delta) - delta - 1
+            torch.testing.assert_close(kl_terms(logp, ref, direction)[0], want)
+
+
 class DriftTests(unittest.TestCase):
     def test_tis_with_identical_log_probs_is_the_plain_loss(self):
         adv = torch.tensor([1.0, -0.5, 2.0])
