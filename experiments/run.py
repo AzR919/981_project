@@ -81,6 +81,8 @@ DEFAULTS = {
     "release_at": None,          # T18: fraction of training after which class A is no longer rewarded
     "release_beta": None, "release_kl": None,   # T18: KL strength and direction after the release (None: unchanged)
     "snapshot_at": [],           # T24: extra steps at which every prompt's success is logged and stored
+    "differing_positions": None, # T26: with L > 1, positions 0..k-1 carry the answer class (the "procedure");
+                                 #      the other positions follow one balanced rule shared by all prompts
     "seed": 0,
 }
 
@@ -108,6 +110,18 @@ def build(cfg):
     )
     train = task.generate_dataset(cfg["n_train"])
     test = None if tabular else task.generate_dataset(cfg["n_test"])
+    if cfg["differing_positions"] is not None:
+        if cfg["majority"] is None or not 1 <= cfg["differing_positions"] <= cfg["L"]:
+            raise ValueError("differing_positions needs a class-share task and 1 <= k <= L")
+        # The shared positions use the same weights with an offset calibrated to equal shares (a twin task with
+        # uniform class shares has identical weights; only its offset differs).
+        balanced = SyntheticTask(
+            num_tokens=cfg["K"], response_length=cfg["L"], num_features=d, seed=cfg.get("task_seed", seed),
+            features=cfg["features"], rho=cfg["rho"], answers=answers, class_shares=[1.0 / cfg["K"]] * cfg["K"],
+        )
+        assert np.array_equal(balanced.weights, task.weights)
+        train, test = (shared_skill_answers(task, data, cfg["differing_positions"], balanced.offset)
+                       for data in (train, test))
 
     torch.manual_seed(seed)
     policy = Policy(
@@ -157,6 +171,20 @@ def build(cfg):
         raise ValueError(f"unknown init {init}")
 
     return task, train, test, policy
+
+
+def shared_skill_answers(task, data, k, offset):
+    """T26: answer class (position 0, with the class shares) at positions 0..k-1; at positions k..L-1 a
+    balanced rule (the task's own weights with `offset`, calibrated to equal shares), the same for every
+    prompt."""
+    if data is None:
+        return None
+    prompts, correct = data
+    correct = correct.copy()
+    scores = np.einsum("nd,lkd->nlk", prompts, task.weights) + offset
+    for l in range(correct.shape[1]):
+        correct[:, l] = correct[:, 0] if l < k else scores[:, l].argmax(axis=-1)
+    return prompts, correct
 
 
 def tensors(policy, data):
