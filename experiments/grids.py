@@ -498,6 +498,17 @@ def v3_t23():
         yield job
 
 
+T24_SNAPSHOTS = [10, 20, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000]
+
+
+def v3_t24():
+    """Late phase, prompt by prompt: per-prompt snapshots at log-spaced steps, linear policy, SGD, exact update."""
+    for rho, m, eta, task_seed in itertools.product((0.5, 0.7, 0.9), (0.7, 0.9), (0.1, 1), TASK_SEEDS):
+        yield dict(t1_base("linear", rho, m, task_seed), optimizer="sgd", eta=eta, update="expected_full", steps=100_000,
+                   log_every=100, snapshot_every=100_000, track_every=10, snapshot_at=T24_SNAPSHOTS,
+                   level=f"linear-rho{rho}-eta{eta}")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -511,6 +522,7 @@ BATCHES = {
     "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
     "v3j": [("v3_t22", v3_t22)],
     "v3k": [("v3_t23", v3_t23)],
+    "v3l": [("v3_t24", v3_t24)],
 }
 
 

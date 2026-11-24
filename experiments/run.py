@@ -80,6 +80,7 @@ DEFAULTS = {
     "branch_samples": 0,         # T11: sampled batches per branch point (0: exact expected branches only)
     "release_at": None,          # T18: fraction of training after which class A is no longer rewarded
     "release_beta": None, "release_kl": None,   # T18: KL strength and direction after the release (None: unchanged)
+    "snapshot_at": [],           # T24: extra steps at which every prompt's success is logged and stored
     "seed": 0,
 }
 
@@ -379,6 +380,7 @@ def run_train(cfg):
         out["start"] = {"p_a": float(p_init[a].mean()), "p_b": float(p_init[~a].mean()),
                         "b_on_a_answer": float(on_a[~a].mean()), "a_off_a_answer": float(1 - on_a[a].mean())}
     branch_steps = {int(round(f * cfg["steps"])) for f in cfg["branch_at"]}
+    snap_at = {int(s) for s in cfg["snapshot_at"]}
     branch_rng = np.random.default_rng(cfg["seed"] + 20_000)
     branches = {}
     if (branch_steps or cfg["update"] in ("projected", "shortened")) and in_a is None:
@@ -440,8 +442,8 @@ def run_train(cfg):
             ev = trainer.evaluate(*train)
             record["entropy"], record["kl"] = ev["entropy"], ev["kl"]
         history.append(record)
-        if step % cfg["snapshot_every"] == 0 or step == cfg["steps"] or step == release_step:
-            snapshots[str(step)] = p.astype(np.float32).tolist()
+        if step % cfg["snapshot_every"] == 0 or step == cfg["steps"] or step == release_step or step in snap_at:
+            snapshots[str(step)] = p.astype(np.float64).tolist() if snap_at else p.astype(np.float32).tolist()
         if cfg["drift_every"] and step % cfg["drift_every"] == 0 and step < cfg["steps"]:
             d = predicted_drift(policy, prompts_t, correct_t, cfg["rule"], cfg["G"], cfg["eta"], passk=cfg["passk"])
             W = advantage_gap(p, cfg["G"], cfg["rule"], passk=cfg["passk"])
@@ -478,7 +480,7 @@ def run_train(cfg):
                                                    reference=trainer.reference, weight=only_b)
             else:
                 trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg, reference=trainer.reference)
-        if step % cfg["log_every"] == 0 or step == cfg["steps"]:
+        if step % cfg["log_every"] == 0 or step == cfg["steps"] or step in snap_at:
             log(step)
         elif cfg["track_every"] and step % cfg["track_every"] == 0:
             observe(step, success(policy, train))
