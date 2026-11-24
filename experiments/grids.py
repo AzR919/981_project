@@ -509,6 +509,14 @@ def v3_t24():
                    level=f"linear-rho{rho}-eta{eta}")
 
 
+def v3_t26():
+    """Shared skills: 4-token answers, k procedure positions (the answer class) and 4 - k shared positions."""
+    for arch, rho, m, k, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), (1, 2, 3, 4), TASK_SEEDS):
+        yield dict(t1_base(arch, rho, m, task_seed), L=4, differing_positions=k, optimizer="sgd", eta=0.1,
+                   update="expected_full", steps=10_000, log_every=100, snapshot_every=10_000, track_every=5,
+                   branch_at=[0, 0.1, 0.5], level=f"{arch}-rho{rho}-k{k}")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -523,6 +531,7 @@ BATCHES = {
     "v3j": [("v3_t22", v3_t22)],
     "v3k": [("v3_t23", v3_t23)],
     "v3l": [("v3_t24", v3_t24)],
+    "v3n": [("v3_t26", v3_t26)],
 }
 
 

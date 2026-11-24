@@ -242,6 +242,24 @@ class WarmStartTests(unittest.TestCase):
             self.assertTrue(torch.equal(x, y))
 
 
+class SharedSkillTests(unittest.TestCase):
+    def test_procedure_positions_follow_the_class_and_shared_positions_are_balanced(self):
+        cfg = config(arch="linear", features="correlated", rho=0.5, majority=0.9, K=3, L=4, differing_positions=2,
+                     n_train=512, n_test=64, diagnostics=False)
+        _, train, test, _ = run.build(cfg)
+        for prompts, correct in (train, test):
+            self.assertTrue((correct[:, 1] == correct[:, 0]).all())            # procedure positions
+        c = train[1]
+        self.assertAlmostEqual((c[:, 0] == 0).mean(), 0.9, delta=0.04)         # class shares at position 0
+        for l in (2, 3):                                                        # shared rule: no class-share skew
+            self.assertLess((c[:, l] == 0).mean(), 0.6)
+        plain = run.build(config(arch="linear", features="correlated", rho=0.5, majority=0.9, K=3, L=4, n_train=64,
+                                 n_test=8, diagnostics=False))[1]
+        again = run.build(config(arch="linear", features="correlated", rho=0.5, majority=0.9, K=3, L=4, n_train=64,
+                                 n_test=8, diagnostics=False))[1]
+        self.assertTrue((plain[1] == again[1]).all())                          # default unchanged
+
+
 class SnapshotAtTests(unittest.TestCase):
     def test_extra_snapshots_are_stored_and_the_run_is_unchanged(self):
         base = config(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, n_train=64, n_test=8, eta=0.1,
