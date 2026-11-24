@@ -474,6 +474,51 @@ def v3_t19():
                 yield dict(base, G=G, B=256 // G, update="sampled", level=f"{arch}-rho{rho}-grpo-sampled")
 
 
+def v3_t20():
+    """Correct minority in the enumerable transformer environment of Li, Pandey and Chen (experiments/enum_env.py)."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)] + [(2, n, "random") for n in (32, 40, 48, 56, 60)]
+    tasks.append((2, 48, "parity"))
+    steppers = [("sgd", 0.3), ("sgd", 1), ("sgd", 3), ("adam", 1e-3), ("adam", 3e-3)]
+    common = dict(mode="enum", steps=2000, log_every=20, G=8)
+    for (K, n_major, partition), (optimizer, eta), seed in itertools.product(tasks, steppers, range(10)):
+        job = dict(common, K=K, n_major=n_major, partition=partition, optimizer=optimizer, eta=eta, seed=seed)
+        for algo in ("pg", "grpo"):
+            yield dict(job, enum_policy="shared", algo=algo, level=f"shared-{algo}")
+        yield dict(job, enum_policy="tabular", algo="pg", level="tabular-pg")
+    for (K, n_major, partition), seed in itertools.product([(3, 22, "random"), (3, 56, "random"), (2, 48, "parity")], range(3)):
+        yield dict(common, K=K, n_major=n_major, partition=partition, optimizer="adam", eta=1e-3, seed=seed,
+                   enum_policy="copies", algo="pg", level="copies-pg")
+
+
+def v3_t21():
+    """Prevention levers in the enumerable transformer environment: KL anchors and pass@k weighting."""
+    arms = [dict()] + [dict(enum_beta=b, enum_kl=d) for d in ("reverse", "forward") for b in (0.03, 0.3)]
+    arms += [dict(enum_passk=k) for k in (2, 4)]
+    tasks = [(3, 56, "random"), (2, 48, "parity")]
+    for (K, n_major, partition), algo, (optimizer, eta), arm, seed in itertools.product(
+            tasks, ("pg", "grpo"), (("adam", 1e-3), ("sgd", 0.3)), arms, range(10)):
+        yield dict(mode="enum", steps=2000, log_every=20, G=8, K=K, n_major=n_major, partition=partition,
+                   enum_policy="shared", algo=algo, optimizer=optimizer, eta=eta, seed=seed, level=f"shared-{algo}", **arm)
+
+
+def v3_a4():
+    """A4: T20's share effect under Adam (lr 1e-3, shared transformer, exact) on fresh partition seeds 10-29."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)] + [(2, n, "random") for n in (32, 40, 48, 56, 60)]
+    for (K, n_major, partition), algo, seed in itertools.product(tasks, ("pg", "grpo"), range(10, 30)):
+        yield dict(mode="enum", steps=2000, log_every=20, G=8, K=K, n_major=n_major, partition=partition,
+                   optimizer="adam", eta=1e-3, seed=seed, enum_policy="shared", algo=algo, level=f"shared-{algo}")
+
+
+def v3_t29():
+    """J: the T20 share grid under SGD at small step sizes (flow time matched to SGD 0.3 x 2,000 steps)."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)]
+    for (K, n_major, partition), (eta, steps), algo, seed in itertools.product(
+            tasks, ((0.03, 20_000), (0.1, 6_000)), ("pg", "grpo"), range(10)):
+        yield dict(mode="enum", steps=steps, log_every=max(steps // 100, 1), G=8, K=K, n_major=n_major,
+                   partition=partition, optimizer="sgd", eta=eta, seed=seed, enum_policy="shared", algo=algo,
+                   level=f"shared-{algo}-sgd{eta}")
+
+
 def v3_t22():
     """Junk answers: two answer classes with prompts, and K - 2 tokens that are never correct."""
     for K, arch, update, task_seed, m in itertools.product(
@@ -583,6 +628,9 @@ BATCHES = {
     "v3e": [("v3_t15", v3_t15)],
     "v3f": [("v3_t16", v3_t16)],
     "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
+    "v3h": [("v3_t20", v3_t20)],
+    "v3i": [("v3_t21", v3_t21)],
+    "v3q": [("v3_a4", v3_a4), ("v3_t29", v3_t29)],
     "v3j": [("v3_t22", v3_t22)],
     "v3k": [("v3_t23", v3_t23)],
     "v3l": [("v3_t24", v3_t24)],

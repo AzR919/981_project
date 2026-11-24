@@ -698,7 +698,11 @@ def main():
     # Absorbed prompts reach p ~ 1e-320; subnormal floats are ~100x slower.
     torch.set_flush_denormal(True)
     t0 = time.time()
-    result = {"train": run_train, "gradcheck": run_gradcheck, "onestep": run_onestep}[cfg["mode"]](cfg)
+    if cfg["mode"] == "enum":
+        from enum_env import run_enum          # needs the third-party code (experiments/third_party/fetch_wsw.sh)
+        result = run_enum(cfg)
+    else:
+        result = {"train": run_train, "gradcheck": run_gradcheck, "onestep": run_onestep}[cfg["mode"]](cfg)
     result["config"] = cfg
     result["seconds"] = time.time() - t0
 
