@@ -134,6 +134,15 @@ def build(cfg):
             lr=cfg.get("sft_lr", 0.5), direction=direction,
         )
         cfg["_warmstart"] = {"steps": steps, "mean_success": reached}
+    elif init == "sft_balanced":
+        # T23: supervised warm start with equal total weight per answer class, until the mean of the class
+        # means of success reaches p0. Every class then starts at about the same success, whatever its share.
+        cls = train[1][:, 0]
+        present = np.unique(cls)
+        weights = 1.0 / (len(present) * np.bincount(cls, minlength=cfg["K"])[cls])
+        steps, reached = supervised_warmstart(policy, train[0], train[1], float(cfg["p0"]), train[1],
+                                              lr=cfg.get("sft_lr", 0.5), direction="up", weights=weights)
+        cfg["_warmstart"] = {"steps": steps, "mean_success": reached}
     elif init == "sft_mixed":
         # Correct answers on a random share of prompts, decoys on the rest, for a
         # fixed number of steps: with shared parameters this spreads p widely.
@@ -362,6 +371,13 @@ def run_train(cfg):
     n = len(train[0])
     # Answer class 0 is "A" (the majority when cfg["majority"] > 1/K); the other classes are "B".
     in_a = torch.as_tensor(train[1][:, 0] == 0) if cfg["majority"] is not None else None
+    if in_a is not None:
+        # Where each class's probability sits at the start: success, and the mass on the other side's answers.
+        with torch.no_grad():
+            on_a = policy.probabilities(prompts_t)[:, 0, 0].numpy()
+        a = in_a.numpy()
+        out["start"] = {"p_a": float(p_init[a].mean()), "p_b": float(p_init[~a].mean()),
+                        "b_on_a_answer": float(on_a[~a].mean()), "a_off_a_answer": float(1 - on_a[a].mean())}
     branch_steps = {int(round(f * cfg["steps"])) for f in cfg["branch_at"]}
     branch_rng = np.random.default_rng(cfg["seed"] + 20_000)
     branches = {}

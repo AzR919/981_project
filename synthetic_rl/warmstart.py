@@ -41,13 +41,17 @@ def set_tabular_success(policy, correct, p0):
 
 
 def supervised_warmstart(policy, prompts, targets, target_success, correct,
-                         lr=0.5, max_steps=20000, direction="up"):
+                         lr=0.5, max_steps=20000, direction="up", weights=None):
     """Full-batch SGD on the cross-entropy of target tokens.
 
     direction "up": targets are the correct answers; stop once the mean
     success reaches target_success.
     direction "down": targets are decoy (wrong) answers; stop once the mean
     success falls to target_success. This makes low-p bases for L = 1.
+
+    weights: optional per-prompt weights summing to 1. The loss and the stopping
+    criterion are then weighted means (with equal total weight per answer class,
+    the criterion is the mean of the class means).
 
     Returns (steps taken, mean success reached).
     """
@@ -56,9 +60,13 @@ def supervised_warmstart(policy, prompts, targets, target_success, correct,
     correct = torch.as_tensor(correct, dtype=torch.long)
     optimizer = torch.optim.SGD(policy.parameters(), lr=lr)
 
+    if weights is not None:
+        weights = torch.as_tensor(weights, dtype=prompts.dtype)
+
     def mean_success():
         with torch.no_grad():
-            return policy.success_probability(prompts, correct).mean().item()
+            p = policy.success_probability(prompts, correct)
+            return (p.mean() if weights is None else (weights * p).sum()).item()
 
     success = mean_success()
     for step in range(max_steps):
@@ -67,7 +75,7 @@ def supervised_warmstart(policy, prompts, targets, target_success, correct,
         ):
             return step, success
         log_probs = policy.distribution(prompts).log_prob(targets)  # (N, L)
-        loss = -log_probs.mean()
+        loss = -log_probs.mean() if weights is None else -(weights[:, None] * log_probs).sum() / log_probs.shape[1]
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()

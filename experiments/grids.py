@@ -486,6 +486,18 @@ def v3_t22():
         yield job
 
 
+def v3_t23():
+    """Warm start: the T1 minority task from a policy that already answers every class correctly with about p0."""
+    starts = [dict(init="uniform")] + [dict(init="sft_balanced", p0=p0) for p0 in (0.5, 0.7, 0.9)]
+    for arch, m, update, start, task_seed in itertools.product(
+            ("linear", "mlp"), (0.7, 0.9), ("expected_full", "sampled"), starts, TASK_SEEDS):
+        job = dict(t1_base(arch, 0.9, m, task_seed), optimizer="sgd", eta=0.1, update=update, steps=10_000,
+                   log_every=100, snapshot_every=10_000, track_every=5, level=f"{arch}-{update}", **start)
+        if update == "expected_full":
+            job["branch_at"] = [0]
+        yield job
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -498,6 +510,7 @@ BATCHES = {
     "v3f": [("v3_t16", v3_t16)],
     "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
     "v3j": [("v3_t22", v3_t22)],
+    "v3k": [("v3_t23", v3_t23)],
 }
 
 
