@@ -21,6 +21,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 STATE="$JOBS.started"; [ -f "$STATE" ] || echo 0 > "$STATE"
 PLACED="$JOBS.placed"; touch "$PLACED"
 MAX_JOBS=${MAX_JOBS:-${#HOSTS[@]}}
+echo "$(date +%H:%M) queue $BATCH: ${#HOSTS[@]} hosts, at most $MAX_JOBS running at a time, skipping hosts with another user logged in"
 
 start() {  # start <tag> <command line> <host>
   local ONE RC; ONE=$(mktemp); echo "$2" > "$ONE"
