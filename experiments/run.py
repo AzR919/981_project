@@ -81,6 +81,9 @@ DEFAULTS = {
     "release_at": None,          # T18: fraction of training after which class A is no longer rewarded
     "release_beta": None, "release_kl": None,   # T18: KL strength and direction after the release (None: unchanged)
     "snapshot_at": [],           # T24: extra steps at which every prompt's success is logged and stored
+    "adam_eps": 1e-8,            # H: Adam's epsilon (large values remove the per-coordinate normalisation)
+    "anchor_at": None,           # G: fraction of training after which a KL anchor to the policy *at that step*
+    "anchor_beta": None, "anchor_kl": "forward",   #    is switched on (all classes keep their reward)
     "differing_positions": None, # T26: with L > 1, positions 0..k-1 carry the answer class (the "procedure");
                                  #      the other positions follow one balanced rule shared by all prompts
     "seed": 0,
@@ -205,7 +208,7 @@ def make_optimizer(cfg, policy):
     if cfg["optimizer"] == "sgd":
         return torch.optim.SGD(policy.parameters(), lr=cfg["eta"], momentum=cfg["momentum"])
     if cfg["optimizer"] == "adam":
-        return torch.optim.Adam(policy.parameters(), lr=cfg["eta"])
+        return torch.optim.Adam(policy.parameters(), lr=cfg["eta"], eps=cfg["adam_eps"])
     raise ValueError(f"unknown optimizer {cfg['optimizer']}")
 
 
@@ -482,7 +485,17 @@ def run_train(cfg):
             }
 
     log(0)
+    # G: from anchor_step on, a KL term pulls toward the policy as it was at anchor_step (e.g. already collapsed).
+    anchor_step = None
+    if cfg["anchor_at"] is not None:
+        if cfg["update"] != "expected_full" or cfg["release_at"] is not None or not cfg["anchor_beta"]:
+            raise ValueError("anchor_at needs update='expected_full', no release, and anchor_beta > 0")
+        anchor_step = int(round(cfg["anchor_at"] * cfg["steps"]))
+        anchored_cfg = dict(cfg, beta=cfg["anchor_beta"], kl=cfg["anchor_kl"])
+        out["anchor_step"] = anchor_step
     for step in range(1, cfg["steps"] + 1):
+        if anchor_step is not None and step == anchor_step + 1:
+            trainer.reference = policy.frozen_reference()
         if step - 1 in branch_steps:
             branches[str(step - 1)] = measure_branches(policy, trainer.optimizer, prompts_t, correct_t, in_a, cfg,
                                                        branch_rng)
@@ -507,7 +520,8 @@ def run_train(cfg):
                 trainer.decreases += expected_step(policy, trainer.optimizer, *batch, released_cfg,
                                                    reference=trainer.reference, weight=only_b)
             else:
-                trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg, reference=trainer.reference)
+                now = anchored_cfg if anchor_step is not None and step > anchor_step else cfg
+                trainer.decreases += expected_step(policy, trainer.optimizer, *batch, now, reference=trainer.reference)
         if step % cfg["log_every"] == 0 or step == cfg["steps"] or step in snap_at:
             log(step)
         elif cfg["track_every"] and step % cfg["track_every"] == 0:

@@ -517,6 +517,61 @@ def v3_t26():
                    branch_at=[0, 0.1, 0.5], level=f"{arch}-rho{rho}-k{k}")
 
 
+REPLICATION_SEEDS = list(range(10, 30))
+
+
+def fresh(jobs, keep=lambda job: True):
+    """The task-0 jobs of a grid that pass `keep`, repeated on task seeds 10-29 (fresh tasks)."""
+    for job in jobs:
+        if job["task_seed"] == 0 and keep(job):
+            for task_seed in REPLICATION_SEEDS:
+                yield dict(job, task_seed=task_seed)
+
+
+def v3_a1():
+    """A1: P1 (absorption rises with the majority share) on fresh tasks."""
+    yield from fresh(v3_t1())
+
+
+def v3_a2():
+    """A2: forward-KL floor on fresh tasks (no anchor and forward KL at beta 0.03, 0.1, 0.3)."""
+    yield from fresh(v3_t17(), lambda j: j["beta"] == 0 or (j["kl"] == "forward" and j["beta"] in (0.03, 0.1, 0.3)))
+
+
+def v3_a3():
+    """A3: pass@4 protection at matched progress on fresh tasks (GRPO, pass@4 and its unbiased form)."""
+    yield from fresh(v3_t16(), lambda j: j["rule"] == "grpo" or j["passk"] == 4)
+
+
+def v3_a5():
+    """A5: warm start p0 = 0.5 against the uniform start at m = 0.7, on fresh tasks."""
+    yield from fresh(v3_t23(), lambda j: j["majority"] == 0.7 and (j["init"] == "uniform" or j.get("p0") == 0.5))
+
+
+def v3_t27():
+    """G: forward KL toward a collapsed reference. The anchor is the policy at 0.5%, 5% or 25% of training;
+    controls: no anchor, and forward KL toward the start policy (as in T17)."""
+    for arch, task_seed in itertools.product(("linear", "mlp"), TASK_SEEDS):
+        base = dict(t1_base(arch, 0.9, 0.9, task_seed), optimizer="sgd", eta=0.1, update="expected_full",
+                    steps=20_000, log_every=100, snapshot_every=20_000, track_every=5)
+        yield dict(base, level=f"{arch}-control")
+        for beta in (0.01, 0.1, 1):
+            yield dict(base, beta=beta, kl="forward", level=f"{arch}-start-anchor")
+            for anchor_at in (0.005, 0.05, 0.25):
+                yield dict(base, anchor_at=anchor_at, anchor_beta=beta, anchor_kl="forward", level=f"{arch}-late-anchor")
+
+
+def v3_t28():
+    """H: Adam's epsilon. Large epsilon removes the per-coordinate normalisation (Adam tends to momentum SGD
+    with step eta/eps), so the learning rate grows with epsilon to keep progress comparable. Control: SGD."""
+    arms = [("adam", max(1e-3, 0.1 * eps), eps) for eps in (1e-8, 1e-5, 1e-3, 1e-2, 1e-1, 1.0)] + [("sgd", 0.1, 1e-8)]
+    for arch, rho, m, (optimizer, eta, eps), task_seed in itertools.product(
+            ("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), arms, TASK_SEEDS):
+        yield dict(t1_base(arch, rho, m, task_seed), optimizer=optimizer, eta=eta, adam_eps=eps,
+                   update="expected_full", steps=10_000, log_every=100, snapshot_every=10_000, track_every=5,
+                   level=f"{arch}-rho{rho}-{optimizer}")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -532,6 +587,8 @@ BATCHES = {
     "v3k": [("v3_t23", v3_t23)],
     "v3l": [("v3_t24", v3_t24)],
     "v3n": [("v3_t26", v3_t26)],
+    "v3o": [("v3_a1", v3_a1), ("v3_a2", v3_a2), ("v3_a3", v3_a3), ("v3_a5", v3_a5)],
+    "v3p": [("v3_t27", v3_t27), ("v3_t28", v3_t28)],
 }
 
 
