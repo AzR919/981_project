@@ -176,3 +176,80 @@ Most of these are now worked out in the guide (sections 3 and 6). They still nee
 - [ ] Present H1–H5 under the one-equation storyline of Section 1.
 - [ ] For each hypothesis, show its collapse plot, and state where it held and where it broke.
 - [ ] Use the "What we could conclude" section of the guide as the outline for the discussion.
+
+---
+
+## Side note: status after the experiment batches (2026-11-24)
+
+A summary of the work merged in #4–#9, compared with the plan above. Not yet folded into the checklist.
+
+### Who did what
+
+- **Simon:**
+  - the shared framework (`synthetic_rl/policy.py`, `trainer.py`, `synthetic_task.py`);
+  - the tabular option of the policy;
+  - `tests/test_tabular_bandit.py`, which checks the tabular trainer against the NumPy bandit in `main.py` (passes on current `main`);
+  - `experiments/h1.py`.
+    - Setup: one prompt, K = 4, L = 1, G = 4.
+    - Result: the sampled ‖ĝ‖² tracks ‖W_G ∇p‖² over the whole run for mean-only, RLOO and GRPO (`results/h1_plots/`).
+    - Caveats: it compares norms only, not directions, and the sampled side carries a small variance bias. It covers one cell of the planned grid. Best used as the H1 figure, with Ankush's vector test as the statistics.
+- **Ankush:**
+  - the experiment runner and lab launcher;
+  - the base and stretch batches;
+  - four-way AI review, then plan v3 with pre-registered P1–P5;
+  - the v3a–v3c batches (about 24k runs) and Phase A re-analyses;
+  - the `llm/` track (C0 pilot, model probes; C1 trained but not analysed).
+  - Details: `analysis/review/SUMMARY.md`, `analysis/review/NEXT_PLAN.md`, `analysis/v3*/SUMMARY.md`.
+
+### Policies: plan vs. code
+
+- **One policy class**, `architecture="linear"` (logits = W·x, no bias) or `"mlp"` (two ReLU layers).
+- **Tabular = linear + one-hot prompts.** Each prompt owns a column of W, so nothing is shared. Simon's tabular policy is this case; his H1 script uses a single prompt.
+- **The levels in `experiments/grids.py` are the planned sharing ladder**, with a `lin` rung added:
+
+  | Level | Policy | Prompt features | Sharing |
+  |---|---|---|---|
+  | `tab` | linear | one-hot | none |
+  | `lin` | linear | Gaussian, d = 16 | shared W |
+  | `c05` / `c09` | linear | correlated, ρ = 0.5 / 0.9 | shared, prompts alike |
+  | `m64` / `m256` | MLP | Gaussian | shared, nonlinear |
+
+- **New knob (v3):** answer imbalance m, the share of prompts whose correct answer is the majority class. The v3 batches mostly use L = 1, K = 3.
+
+### Results against the hypotheses
+
+| Hypothesis | Result |
+|---|---|
+| H1 | ✅ 414 runs, vector test, cosine ≥ 0.989; calibrated tighter test (T7) |
+| H2 | ✅ Measured W within 1% of exact W_G. GRPO moves toward 2 arcsin√p as G grows: λ = 0, 0.015, 0.22, 0.63 at G = 2, 4, 16, 64 |
+| H3 | ❌ **No single effective-step law:** the best candidate is off by up to 4.7 decades on held-out levels |
+| H4 | ◐ (a) p\* matches to about 1e-4. (b) The KL-stabilizer slope failed. New: KL fixed points are bistable at G ≥ 16 under SGD (extends Mroueh) |
+| H5 | ◐ The first table was a tie-break artifact. Rerun: best G = 2 (tabular), often at the η-grid edge, so undetermined |
+| New P1 | ✅ With shared features, GRPO absorbs the **minority-answer class**, more completely as m grows. It happens at small η under the deterministic flow, under SGD and Adam. Absorption is ≈ 0 when classes are balanced, and supervised training does not absorb |
+| New P2 | ◐ Per-prompt kick size η/B matters. Response sampling adds absorption only at B = 8 |
+| Heckel (T9) | ◐ Helps at small η; doubles absorption with large steps |
+| Pass@k rules (v3c) | ✅ Prevent minority collapse; k = 2 with no speed cost |
+| Huang | Dropped: the collapse needs graded rewards; we use binary |
+
+### What changed in the story
+
+- **Still holds:** tabular never absorbs (p never decreases, 2,268 runs), and collapse needs parameter sharing.
+- **Changed:** how sharing causes collapse.
+  - Mainly mean drift pulling minority-answer prompts to the majority answer. There is no step-size threshold, so this is not Suk & Duan's instability.
+  - Plus a second route: large per-prompt kicks at small batches.
+
+### Decisions and open items
+
+- **Keep the report toy-only, on the tabular → linear → MLP ladder.**
+  - The instructor asked for a fixed setting, and every confirmed result is a toy result.
+  - The LLM track brings its own confounds: sampler/trainer mismatch, full fine-tuning vs. LoRA, and GSM8K contamination.
+  - At most, report C1 as a short transfer note or as future work.
+- **Possible report outline, up the ladder:**
+  1. Tabular: exact theory holds (H1, H2, H4) and nothing collapses.
+  2. `lin`: large kicks can knock prompts out.
+  3. Correlated linear and MLP: minority-answer collapse.
+  4. Fixes: pass@k rules prevent it; Heckel weights only partly help.
+- **Credit:** Davis & Recht already prove the finite-G identity and the finite-G surrogate. The milestone said "infinite groups … we compute W_G for finite G"; fix this in the final report. Our additions are the calibrated test and the λ(G) measurement.
+- **Related work:** read Schaul et al. 2019 ("ray interference") before claiming the interference result is new.
+- **Bibliography:** add Zhang et al. (2505.17508) and the missing citations listed in `analysis/review/c.md`.
+- **Team understanding:** make sure everyone understands the AI-assisted analysis before writing. Address AI use at the end.
