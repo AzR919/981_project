@@ -138,5 +138,195 @@ class PassAtKRuleTests(unittest.TestCase):
                                advantage_gap(np.array([0.2]), 8, "rloo_k", passk=4)[0], delta=0.01)
 
 
+class BranchTests(unittest.TestCase):
+    """T11-T13: class-split updates from one state."""
+
+    def two_contexts(self, angle_deg, n_a, n_b, optimizer="sgd", eta=1e-6):
+        from synthetic_rl.policy import Policy
+
+        angle = np.deg2rad(angle_deg)
+        x = np.array([[1.0, 0.0]] * n_a + [[np.cos(angle), np.sin(angle)]] * n_b)
+        prompts = torch.as_tensor(x)
+        correct = torch.zeros(n_a + n_b, 1, dtype=torch.long)
+        in_a = torch.as_tensor([True] * n_a + [False] * n_b)
+        policy = Policy(num_features=2, num_tokens=2, response_length=1, arch="linear").double()
+        cfg = config(G=8, eta=eta, optimizer=optimizer, B=n_a + n_b)
+        out = run.measure_branches(policy, run.make_optimizer(cfg, policy), prompts, correct, in_a, cfg,
+                                   np.random.default_rng(0))
+        return out, policy
+
+    def test_mixed_step_follows_the_analytic_control(self):
+        # Two equally solvable contexts at p = 0.5: the mixed step moves B's logit in proportion to
+        # (1 - f) + f cos(angle), the B-only step in proportion to (1 - f).
+        for n_a, n_b, f in ((1, 1, 0.5), (2, 1, 2 / 3), (9, 1, 0.9)):
+            out, _ = self.two_contexts(120, n_a, n_b)
+            want = ((1 - f) + f * np.cos(np.deg2rad(120))) / (1 - f)
+            self.assertAlmostEqual(out["d_b_mixed"] / out["d_b_b"], want, places=5)
+        out, _ = self.two_contexts(90, 9, 1)
+        self.assertAlmostEqual(out["d_b_a"] / out["d_b_b"], 0.0, places=6)   # A alone leaves B unchanged
+        out, _ = self.two_contexts(60, 9, 1)
+        self.assertGreater(out["d_b_a"], 0)                                  # A alone helps B
+
+    def test_mixed_branch_is_the_real_step_and_the_parent_is_untouched(self):
+        for optimizer, eta in (("sgd", 0.5), ("adam", 0.01)):
+            out, policy = self.two_contexts(120, 9, 1, optimizer=optimizer, eta=eta)
+            self.assertLess(out["mixed_check"], 1e-12)
+            self.assertTrue(all(torch.count_nonzero(q) == 0 for q in policy.parameters()))
+
+    def test_projection_removes_the_harmful_component(self):
+        out, policy = self.two_contexts(120, 9, 1, eta=1e-6)
+        self.assertLess(out["dot_a_h"], 0)
+        self.assertAlmostEqual(out["d_b_a_proj"] / abs(out["d_b_a"]), 0.0, places=5)  # B no longer pushed down
+        self.assertLess(out["d_b_a_short"], 0)                                        # a shorter A step still harms B
+
+    def test_projected_update_and_class_means_run(self):
+        base = config(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, n_train=64, n_test=8,
+                      eta=0.1, steps=40, log_every=20, track_every=5, diagnostics=False, branch_at=[0, 0.5],
+                      branch_samples=2)
+        for update in ("expected_full", "projected", "shortened"):
+            out = run.run_train(dict(base, update=update))
+            self.assertEqual(sorted(out["branches"]), ["0", "20"])
+            self.assertEqual(len(out["history"][-1]["class_mean"]), 2)
+            self.assertIn("s_d_b_mixed", out["branches"]["0"])
+
+
+class JunkAnswerTests(unittest.TestCase):
+    """T22: tokens that are never a correct answer."""
+
+    def test_only_the_used_classes_have_prompts(self):
+        cfg = config(arch="linear", features="correlated", rho=0.9, majority=0.9, K=6, used_classes=2, L=1,
+                     n_train=512, n_test=8, diagnostics=False)
+        _, train, _, policy = run.build(cfg)
+        counts = np.bincount(train[1][:, 0], minlength=6)
+        self.assertEqual(counts[2:].sum(), 0)
+        self.assertAlmostEqual(counts[0] / 512, 0.9, delta=0.03)
+        self.assertEqual(policy.num_tokens, 6)
+
+    def test_junk_weakens_the_majority_push_as_the_first_order_formula_says(self):
+        # At a uniform start over K tokens, two classes: R = S_BA / ((K - 1) S_same), so R shrinks as 1 / (K - 1)
+        # for the same kernel sums. Compare the measured R with the kernel formula for K = 2 and K = 6.
+        for K in (2, 6):
+            cfg = config(arch="linear", features="correlated", rho=0.9, majority=0.9, K=K, used_classes=2, L=1,
+                         n_train=256, n_test=8, eta=1e-4, steps=1, log_every=1, snapshot_every=1, diagnostics=False,
+                         update="expected_full", branch_at=[0])
+            out = run.run_train(cfg)
+            _, train, _, _ = run.build(cfg)
+            x, cls = train[0], train[1][:, 0]
+            k = x @ x.T
+            s_ba, s_same = k[cls == 1][:, cls == 0].sum(), k[cls == 1][:, cls == 1].sum()
+            b = out["branches"]["0"]
+            self.assertAlmostEqual(-b["d_b_a"] / b["d_b_b"], s_ba / ((K - 1) * s_same), delta=1e-3 * s_ba / s_same)
+
+
+class WarmStartTests(unittest.TestCase):
+    """T23: class-balanced supervised warm start."""
+
+    def test_both_classes_start_near_the_target_and_apart(self):
+        for arch in ("linear", "mlp"):
+            cfg = config(arch=arch, features="correlated", rho=0.9, majority=0.9, K=3, L=1, n_train=256, n_test=8,
+                         init="sft_balanced", p0=0.7, steps=1, log_every=1, snapshot_every=1, diagnostics=False,
+                         update="expected_full")
+            out = run.run_train(cfg)
+            start = out["start"]
+            self.assertGreater(start["p_a"], 0.5)
+            self.assertGreater(start["p_b"], 0.5)                    # the minority is not left behind
+            self.assertLess(start["b_on_a_answer"], 1 / 3)           # less mass on the majority's answer than at a uniform start
+            uniform = run.run_train(dict(cfg, init="uniform", p0=None))["start"]
+            self.assertAlmostEqual(uniform["b_on_a_answer"], 1 / 3, places=6)
+
+    def test_unweighted_warm_start_is_unchanged(self):
+        cfg = config(arch="linear", features="correlated", rho=0.5, K=3, L=1, n_train=64, n_test=8, init="sft_up", p0=0.5,
+                     steps=1, log_every=1, snapshot_every=1, diagnostics=False)
+        a, b = run.build(dict(cfg))[3], run.build(dict(cfg))[3]
+        for x, y in zip(a.parameters(), b.parameters()):
+            self.assertTrue(torch.equal(x, y))
+
+
+class SharedSkillTests(unittest.TestCase):
+    def test_procedure_positions_follow_the_class_and_shared_positions_are_balanced(self):
+        cfg = config(arch="linear", features="correlated", rho=0.5, majority=0.9, K=3, L=4, differing_positions=2,
+                     n_train=512, n_test=64, diagnostics=False)
+        _, train, test, _ = run.build(cfg)
+        for prompts, correct in (train, test):
+            self.assertTrue((correct[:, 1] == correct[:, 0]).all())            # procedure positions
+        c = train[1]
+        self.assertAlmostEqual((c[:, 0] == 0).mean(), 0.9, delta=0.04)         # class shares at position 0
+        for l in (2, 3):                                                        # shared rule: no class-share skew
+            self.assertLess((c[:, l] == 0).mean(), 0.6)
+        plain = run.build(config(arch="linear", features="correlated", rho=0.5, majority=0.9, K=3, L=4, n_train=64,
+                                 n_test=8, diagnostics=False))[1]
+        again = run.build(config(arch="linear", features="correlated", rho=0.5, majority=0.9, K=3, L=4, n_train=64,
+                                 n_test=8, diagnostics=False))[1]
+        self.assertTrue((plain[1] == again[1]).all())                          # default unchanged
+
+
+class AnchorAndEpsTests(unittest.TestCase):
+    def test_late_anchor_switches_on_and_holds_the_policy(self):
+        base = config(arch="linear", features="correlated", rho=0.9, majority=0.9, K=3, n_train=64, n_test=8,
+                      diagnostics=False, optimizer="sgd", eta=0.1, update="expected_full", steps=400, log_every=100,
+                      snapshot_every=400)
+        plain = run.run_train(dict(base))
+        held = run.run_train(dict(base, anchor_at=0.25, anchor_beta=100.0, anchor_kl="forward"))
+        self.assertEqual(held["anchor_step"], 100)
+        same = [h for h in held["history"] if h["step"] <= 100]
+        self.assertEqual(same, [h for h in plain["history"] if h["step"] <= 100])   # identical before
+        at = next(h for h in held["history"] if h["step"] == 100)["class_mean"]
+        end = held["history"][-1]["class_mean"]
+        self.assertAlmostEqual(end[1], at[1], delta=0.02)                           # pinned after
+        with self.assertRaises(ValueError):
+            run.run_train(dict(base, anchor_at=0.25))
+
+    def test_adam_eps_reaches_the_optimizer(self):
+        _, _, _, policy = run.build(config(arch="linear", K=3, n_train=8, n_test=4, diagnostics=False))
+        opt = run.make_optimizer(dict(run.DEFAULTS, optimizer="adam", eta=1e-3, adam_eps=0.5), policy)
+        self.assertEqual(opt.param_groups[0]["eps"], 0.5)
+
+
+class SnapshotAtTests(unittest.TestCase):
+    def test_extra_snapshots_are_stored_and_the_run_is_unchanged(self):
+        base = config(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, n_train=64, n_test=8, eta=0.1,
+                      steps=40, log_every=20, snapshot_every=40, diagnostics=False, update="expected_full")
+        plain = run.run_train(dict(base))
+        snap = run.run_train(dict(base, snapshot_at=[3, 7, 13]))
+        self.assertEqual(sorted(snap["snapshots"], key=int), ["0", "3", "7", "13", "40"])
+        self.assertEqual(plain["snapshots"]["40"], [float(np.float32(v)) for v in snap["snapshots"]["40"]])
+        self.assertEqual(plain["tail_max"], snap["tail_max"])
+
+
+class ReleaseTests(unittest.TestCase):
+    """T18: after the release, class A's reward term is dropped."""
+
+    base = dict(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, n_train=64, n_test=8, eta=0.1,
+                steps=40, log_every=1, snapshot_every=40, diagnostics=False, update="expected_full")
+
+    def test_run_is_unchanged_before_the_release_and_follows_class_b_after_it(self):
+        plain = run.run_train(config(**self.base, branch_at=[0.5]))
+        released = run.run_train(config(**self.base, branch_at=[0.5], release_at=0.5))
+        self.assertEqual(released["release_step"], 20)
+        self.assertEqual([h["class_mean"] for h in plain["history"][:21]],
+                         [h["class_mean"] for h in released["history"][:21]])
+        self.assertIn("20", released["snapshots"])
+        # The first released step is the B-only branch measured from the same state.
+        before, after = released["history"][20]["class_mean"], released["history"][21]["class_mean"]
+        branch = released["branches"]["20"]
+        self.assertAlmostEqual(after[1] - before[1], branch["d_b_b"], places=12)
+        self.assertAlmostEqual(after[0] - before[0], branch["d_a_b"], places=12)
+        self.assertNotEqual(plain["history"][21]["class_mean"], after)
+
+    def test_kl_after_the_release_pulls_toward_the_start_policy(self):
+        # With no reward left for anyone (all prompts in class A) and a forward KL anchor, the policy
+        # relaxes toward the reference it started from.
+        cfg = config(**dict(self.base, majority=1.0, steps=400, log_every=100), release_at=0.25, release_beta=1.0,
+                     release_kl="forward")
+        out = run.run_train(cfg)
+        means = [h["train"]["mean"] for h in out["history"]]
+        self.assertGreater(means[1], means[0] + 0.05)                 # rewarded phase: success rises
+        self.assertLess(abs(means[-1] - means[0]), abs(means[1] - means[0]) / 2)   # released: back toward the start
+
+    def test_release_needs_the_exact_full_update(self):
+        with self.assertRaises(ValueError):
+            run.run_train(config(**dict(self.base, update="sampled"), release_at=0.5))
+
+
 if __name__ == "__main__":
     unittest.main()

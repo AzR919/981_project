@@ -383,6 +383,195 @@ def v3_t10():
                    log_every=250, snapshot_every=5000, track_every=5, diagnostics=False, level=level)
 
 
+def t1_base(arch, rho, m, task_seed):
+    return dict(arch=arch, width=64, features="correlated", rho=rho, majority=m, L=1, K=3, G=8, B=32, rule="grpo",
+                task_seed=task_seed, seed=0, diagnostics=False, level=f"{arch}-rho{rho}")
+
+
+def v3_t11():
+    """Four-branch update test: A-only, B-only and mixed steps from the same state, on the T1 tasks."""
+    arms = [("sgd", 0.01, "expected_full", 0), ("sgd", 0.01, "sampled", 16),
+            ("adam", 1e-3, "expected_full", 0), ("adam", 1e-4, "expected_full", 0)]
+    for arch, rho, m, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), (1 / 3, 0.7, 0.9), TASK_SEEDS):
+        for optimizer, eta, update, samples in arms:
+            steps = flow_steps(eta) if optimizer == "sgd" else 5000
+            yield dict(t1_base(arch, rho, m, task_seed), optimizer=optimizer, eta=eta, update=update, steps=steps,
+                       log_every=max(steps // 50, 1), snapshot_every=steps, track_every=5,
+                       branch_at=[0, 0.1, 0.5, 0.9], branch_samples=samples)
+
+
+def v3_t12():
+    """Plateau or permanent: the T1 minority tasks at 10x the T1 horizon; linear Adam at the smallest step."""
+    arms = [("sgd", 0.01, 100_000), ("sgd", 0.1, 10_000), ("sgd", 1, 10_000),
+            ("adam", 1e-4, 50_000), ("adam", 1e-3, 50_000)]
+    for arch, rho, m, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), TASK_SEEDS):
+        for (optimizer, eta, steps), update in itertools.product(arms, ("expected_full", "sampled")):
+            yield dict(t1_base(arch, rho, m, task_seed), optimizer=optimizer, eta=eta, update=update, steps=steps,
+                       log_every=steps // 200, snapshot_every=steps, track_every=50)
+
+
+def v3_t13():
+    """Projection control: remove the majority step's component against the minority's success gradient."""
+    for arch, rho, m, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), TASK_SEEDS):
+        for eta, update in itertools.product((0.01, 0.1), ("expected_full", "projected", "shortened")):
+            steps = flow_steps(eta)
+            yield dict(t1_base(arch, rho, m, task_seed), optimizer="sgd", eta=eta, update=update, steps=steps,
+                       log_every=max(steps // 50, 1), snapshot_every=steps, track_every=5)
+
+
+def v3_t15():
+    """Threshold in class share: where does the mixed step start to lower the minority, for K = 2, 3, 5?"""
+    offsets = (-0.05, 0.0, 0.02, 0.04, 0.06, 0.08, 0.12, 0.2, 0.35)
+    for K, arch, rho, task_seed in itertools.product((2, 3, 5), ("linear", "mlp"), (0.5, 0.9), TASK_SEEDS):
+        for off in offsets:
+            yield dict(t1_base(arch, rho, round(1 / K + off, 4), task_seed), K=K, optimizer="sgd", eta=0.01,
+                       update="expected_full", steps=10_000, log_every=200, snapshot_every=10_000, track_every=5,
+                       branch_at=[0], level=f"{arch}-rho{rho}-K{K}")
+
+
+def v3_t16():
+    """pass@k rules at matched progress: the minority task at 4x the v3c horizon, with class means logged."""
+    rules = [("grpo", None), ("mean", None)] + [(r, k) for r in ("passk", "rloo_k") for k in (2, 4, 8)]
+    for (rule, k), G, eta, task_seed in itertools.product(rules, (8, 32), (0.03, 0.3, 1), TASK_SEEDS):
+        yield dict(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, K=3, G=G, B=256 // G, rule=rule,
+                   passk=k, eta=eta, task_seed=task_seed, seed=0, steps=20_000, log_every=100, snapshot_every=20_000,
+                   track_every=5, diagnostics=False, level="minority")
+
+
+def v3_t17():
+    """KL anchor on the minority task: does anchoring to the start policy protect the minority, and at what cost?"""
+    arms = [(0.0, "reverse")] + [(beta, kl) for kl in ("reverse", "forward") for beta in (0.01, 0.03, 0.1, 0.3, 1, 3)]
+    for arch, update, eta, (beta, kl), task_seed in itertools.product(
+            ("linear", "mlp"), ("expected_full", "sampled"), (0.1, 1), arms, TASK_SEEDS):
+        yield dict(t1_base(arch, 0.9, 0.9, task_seed), optimizer="sgd", eta=eta, update=update, beta=beta, kl=kl,
+                   steps=20_000, log_every=100, snapshot_every=20_000, track_every=5, level=f"{arch}-{update}")
+
+
+def v3_t18():
+    """Release test: collapse the minority at m = 0.9 with beta = 0, then stop rewarding the majority.
+    After the release: no KL, or a reverse or forward KL anchor to the start policy. Control: no release."""
+    after = [(0.0, "reverse")] + [(beta, kl) for kl in ("reverse", "forward") for beta in (0.01, 0.1)]
+    for arch, task_seed in itertools.product(("linear", "mlp"), TASK_SEEDS):
+        base = dict(t1_base(arch, 0.9, 0.9, task_seed), optimizer="sgd", eta=0.1, update="expected_full",
+                    steps=20_000, log_every=100, snapshot_every=20_000, track_every=5)
+        yield dict(base, level=f"{arch}-control")
+        for release_at, (beta, kl) in itertools.product((0.005, 0.05, 0.25), after):
+            yield dict(base, release_at=release_at, release_beta=beta, release_kl=kl, level=f"{arch}-release")
+
+
+def v3_t19():
+    """Group size and the collapse threshold: the T15 share grid at K = 3 for several G."""
+    offsets = (-0.05, 0.0, 0.02, 0.04, 0.06, 0.08, 0.12, 0.2, 0.35, 0.45, 0.55)
+    for arch, rho, task_seed, off in itertools.product(("linear", "mlp"), (0.5, 0.9), TASK_SEEDS, offsets):
+        base = dict(t1_base(arch, rho, round(1 / 3 + off, 4), task_seed), K=3, optimizer="sgd", eta=0.01,
+                    steps=10_000, log_every=200, snapshot_every=10_000, track_every=5)
+        for G in (2, 4, 8, 16, 64):
+            yield dict(base, G=G, update="expected_full", branch_at=[0], level=f"{arch}-rho{rho}-grpo-exact")
+            if G in (2, 64):
+                yield dict(base, G=G, rule="mean", update="expected_full", branch_at=[0],
+                           level=f"{arch}-rho{rho}-mean-exact")
+            if rho == 0.9:
+                yield dict(base, G=G, B=256 // G, update="sampled", level=f"{arch}-rho{rho}-grpo-sampled")
+
+
+def v3_t22():
+    """Junk answers: two answer classes with prompts, and K - 2 tokens that are never correct."""
+    for K, arch, update, task_seed, m in itertools.product(
+            (2, 3, 6, 20), ("linear", "mlp"), ("expected_full", "sampled"), TASK_SEEDS,
+            (0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 0.98)):
+        job = dict(t1_base(arch, 0.9, m, task_seed), K=K, used_classes=2, optimizer="sgd", eta=0.03, update=update,
+                   steps=10_000, log_every=200, snapshot_every=10_000, track_every=5, level=f"{arch}-K{K}-{update}")
+        if update == "expected_full":
+            job["branch_at"] = [0]
+        yield job
+
+
+def v3_t23():
+    """Warm start: the T1 minority task from a policy that already answers every class correctly with about p0."""
+    starts = [dict(init="uniform")] + [dict(init="sft_balanced", p0=p0) for p0 in (0.5, 0.7, 0.9)]
+    for arch, m, update, start, task_seed in itertools.product(
+            ("linear", "mlp"), (0.7, 0.9), ("expected_full", "sampled"), starts, TASK_SEEDS):
+        job = dict(t1_base(arch, 0.9, m, task_seed), optimizer="sgd", eta=0.1, update=update, steps=10_000,
+                   log_every=100, snapshot_every=10_000, track_every=5, level=f"{arch}-{update}", **start)
+        if update == "expected_full":
+            job["branch_at"] = [0]
+        yield job
+
+
+T24_SNAPSHOTS = [10, 20, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000]
+
+
+def v3_t24():
+    """Late phase, prompt by prompt: per-prompt snapshots at log-spaced steps, linear policy, SGD, exact update."""
+    for rho, m, eta, task_seed in itertools.product((0.5, 0.7, 0.9), (0.7, 0.9), (0.1, 1), TASK_SEEDS):
+        yield dict(t1_base("linear", rho, m, task_seed), optimizer="sgd", eta=eta, update="expected_full", steps=100_000,
+                   log_every=100, snapshot_every=100_000, track_every=10, snapshot_at=T24_SNAPSHOTS,
+                   level=f"linear-rho{rho}-eta{eta}")
+
+
+def v3_t26():
+    """Shared skills: 4-token answers, k procedure positions (the answer class) and 4 - k shared positions."""
+    for arch, rho, m, k, task_seed in itertools.product(("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), (1, 2, 3, 4), TASK_SEEDS):
+        yield dict(t1_base(arch, rho, m, task_seed), L=4, differing_positions=k, optimizer="sgd", eta=0.1,
+                   update="expected_full", steps=10_000, log_every=100, snapshot_every=10_000, track_every=5,
+                   branch_at=[0, 0.1, 0.5], level=f"{arch}-rho{rho}-k{k}")
+
+
+REPLICATION_SEEDS = list(range(10, 30))
+
+
+def fresh(jobs, keep=lambda job: True):
+    """The task-0 jobs of a grid that pass `keep`, repeated on task seeds 10-29 (fresh tasks)."""
+    for job in jobs:
+        if job["task_seed"] == 0 and keep(job):
+            for task_seed in REPLICATION_SEEDS:
+                yield dict(job, task_seed=task_seed)
+
+
+def v3_a1():
+    """A1: P1 (absorption rises with the majority share) on fresh tasks."""
+    yield from fresh(v3_t1())
+
+
+def v3_a2():
+    """A2: forward-KL floor on fresh tasks (no anchor and forward KL at beta 0.03, 0.1, 0.3)."""
+    yield from fresh(v3_t17(), lambda j: j["beta"] == 0 or (j["kl"] == "forward" and j["beta"] in (0.03, 0.1, 0.3)))
+
+
+def v3_a3():
+    """A3: pass@4 protection at matched progress on fresh tasks (GRPO, pass@4 and its unbiased form)."""
+    yield from fresh(v3_t16(), lambda j: j["rule"] == "grpo" or j["passk"] == 4)
+
+
+def v3_a5():
+    """A5: warm start p0 = 0.5 against the uniform start at m = 0.7, on fresh tasks."""
+    yield from fresh(v3_t23(), lambda j: j["majority"] == 0.7 and (j["init"] == "uniform" or j.get("p0") == 0.5))
+
+
+def v3_t27():
+    """G: forward KL toward a collapsed reference. The anchor is the policy at 0.5%, 5% or 25% of training;
+    controls: no anchor, and forward KL toward the start policy (as in T17)."""
+    for arch, task_seed in itertools.product(("linear", "mlp"), TASK_SEEDS):
+        base = dict(t1_base(arch, 0.9, 0.9, task_seed), optimizer="sgd", eta=0.1, update="expected_full",
+                    steps=20_000, log_every=100, snapshot_every=20_000, track_every=5)
+        yield dict(base, level=f"{arch}-control")
+        for beta in (0.01, 0.1, 1):
+            yield dict(base, beta=beta, kl="forward", level=f"{arch}-start-anchor")
+            for anchor_at in (0.005, 0.05, 0.25):
+                yield dict(base, anchor_at=anchor_at, anchor_beta=beta, anchor_kl="forward", level=f"{arch}-late-anchor")
+
+
+def v3_t28():
+    """H: Adam's epsilon. Large epsilon removes the per-coordinate normalisation (Adam tends to momentum SGD
+    with step eta/eps), so the learning rate grows with epsilon to keep progress comparable. Control: SGD."""
+    arms = [("adam", max(1e-3, 0.1 * eps), eps) for eps in (1e-8, 1e-5, 1e-3, 1e-2, 1e-1, 1.0)] + [("sgd", 0.1, 1e-8)]
+    for arch, rho, m, (optimizer, eta, eps), task_seed in itertools.product(
+            ("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), arms, TASK_SEEDS):
+        yield dict(t1_base(arch, rho, m, task_seed), optimizer=optimizer, eta=eta, adam_eps=eps,
+                   update="expected_full", steps=10_000, log_every=100, snapshot_every=10_000, track_every=5,
+                   level=f"{arch}-rho{rho}-{optimizer}")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -390,6 +579,16 @@ BATCHES = {
     "v3b": [("v3_t5", v3_t5), ("v3_t7", v3_t7), ("v3_t9", v3_t9), ("v3_t1s1", v3_t1_seed1),
             ("v3_t2g", v3_t2_groups), ("v3_t6kl", v3_t6_kl), ("v3_t4e", v3_t4_edge)],
     "v3c": [("v3_t10", v3_t10)],
+    "v3d": [("v3_t11", v3_t11), ("v3_t12", v3_t12), ("v3_t13", v3_t13)],
+    "v3e": [("v3_t15", v3_t15)],
+    "v3f": [("v3_t16", v3_t16)],
+    "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
+    "v3j": [("v3_t22", v3_t22)],
+    "v3k": [("v3_t23", v3_t23)],
+    "v3l": [("v3_t24", v3_t24)],
+    "v3n": [("v3_t26", v3_t26)],
+    "v3o": [("v3_a1", v3_a1), ("v3_a2", v3_a2), ("v3_a3", v3_a3), ("v3_a5", v3_a5)],
+    "v3p": [("v3_t27", v3_t27), ("v3_t28", v3_t28)],
 }
 
 
