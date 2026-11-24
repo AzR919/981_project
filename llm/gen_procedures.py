@@ -74,6 +74,16 @@ def worked(procedure, a, b, c):
     return f"Before the reduction: {a} * {b} = {a * b}. After it: {a * b} - {c} = {answer}.\n#### {answer}"
 
 
+HINT_NEUTRAL = "Read the problem carefully and work step by step."
+
+
+def first_step(procedure, a, b, c):
+    """The procedure's first operation, as a hint (C2 access test: is the procedure still executable?)."""
+    if procedure == "each":
+        return f"Start by subtracting {c} from {b} for a single unit."
+    return f"Start by multiplying {a} by {b}."
+
+
 def generate(procedure, count, range_name, seed, start=0):
     """count problems of one procedure; ids are c2-<range>-<procedure>-<seed>-<i>."""
     rng = np.random.default_rng([seed, PROCEDURES.index(procedure), list(RANGES).index(range_name)])
@@ -92,6 +102,8 @@ def generate(procedure, count, range_name, seed, start=0):
         out.append({"id": f"c2-{range_name}-{procedure}-{seed}-{i}", "question": text,
                     "answer": str(solve(procedure, a, b, c)), "other_answer": str(solve(other, a, b, c)),
                     "solution": worked(procedure, a, b, c),
+                    "hint_neutral": HINT_NEUTRAL, "hint_first_step": first_step(procedure, a, b, c),
+                    "hint_wrong_step": first_step(other, a, b, c),
                     "procedure": procedure, "template": t, "a": a, "b": b, "c": c})
     return out
 

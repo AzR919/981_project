@@ -41,6 +41,17 @@ class GeneratorTests(unittest.TestCase):
         self.assertEqual(sum(q["procedure"] == "each" for q in mix), 320)
         self.assertEqual(len({q["id"] for q in mix}), 400)
 
+    def test_committed_c2_problems_match_the_generator(self):
+        import json
+
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        committed = json.load(open(os.path.join(root, "llm", "pools", "c2", "all.json")))
+        fresh = {q["id"]: q for proc in PROCEDURES for q in generate(proc, 3000, "ml", 1)}
+        self.assertEqual(len(committed), 2600)
+        for q in committed:
+            self.assertEqual({k: v for k, v in q.items() if k != "base_p"}, fresh[q["id"]])
+            self.assertIn(str(q["b"]), q["hint_first_step"])
+
 
 if __name__ == "__main__":
     unittest.main()

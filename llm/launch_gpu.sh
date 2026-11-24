@@ -8,6 +8,9 @@
 # survives the 03:00 /tmp wipe). Large files (model weights, envs, HF cache)
 # stay in /tmp/asa715. Each host builds the environment first if it is missing
 # (llm/setup_env.sh), then writes $OUT/DONE (or $OUT/FAILED) at the end.
+# With AFTER=<tag> in the environment, each job first waits (on its own host, in its tmux session)
+# until the job <tag> on that host has written DONE or FAILED, so jobs can be chained on a machine
+# without anything running on the laptop.
 set -e
 TAG=$1; JOBS=$2; shift 2; HOSTS=("$@")
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,8 +25,11 @@ find "$STAGE/code" -name __pycache__ -prune -exec rm -rf {} +
 i=0
 while IFS= read -r CMD; do
   H=${HOSTS[$i]}; i=$((i + 1))
+  WAIT=""
+  [ -n "$AFTER" ] && WAIT="until [ -f \$HOME/rlvr_results/llm/$AFTER/\$(hostname)/DONE ] || [ -f \$HOME/rlvr_results/llm/$AFTER/\$(hostname)/FAILED ]; do sleep 120; done"
   cat > "$STAGE/run_$i.sh" <<EOT
 #!/bin/bash
+$WAIT
 export OUT=\$HOME/rlvr_results/llm/$TAG/\$(hostname)
 mkdir -p \$OUT
 echo $COMMIT > \$OUT/COMMIT

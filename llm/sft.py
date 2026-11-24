@@ -21,15 +21,18 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from llm.data import prompt_text  # noqa: E402
+from llm.data import load_gsm8k, prompt_text  # noqa: E402
 from llm.train import build_policy, export, token_logprobs  # noqa: E402
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
-    p.add_argument("--problems-file", required=True)
+    p.add_argument("--problems-file", default=None, help="JSON list of problem dicts (default: GSM8K train)")
     p.add_argument("--problems", default=None, help="JSON list of ids to train on (default: all)")
+    p.add_argument("--targets", default=None,
+                   help="evaluate.py output with correct_texts: train on the model's own correct completions "
+                        "(rejection sampling) instead of the templated solutions")
     p.add_argument("--epochs", type=int, default=2)
     p.add_argument("--lr", type=float, default=1e-5)
     p.add_argument("--batch", type=int, default=16)
@@ -39,11 +42,12 @@ def main():
     p.add_argument("--out", required=True)
     p.add_argument("--work", required=True)
     args = p.parse_args()
+    args.quant, args.sync = "none", "merged"   # build_policy and export read these (see train.py)
     os.makedirs(args.out, exist_ok=True)
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
 
-    problems = json.load(open(args.problems_file))
+    problems = json.load(open(args.problems_file)) if args.problems_file else load_gsm8k("train")
     if args.problems:
         keep = set(json.load(open(args.problems)))
         problems = [q for q in problems if q["id"] in keep]
@@ -57,11 +61,19 @@ def main():
         optimizer = bnb.optim.AdamW8bit(trainable, lr=args.lr, weight_decay=0.0)
     pad = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
 
+    targets = None
+    if args.targets:
+        import gzip
+
+        targets = json.load(gzip.open(args.targets, "rt"))["correct_texts"]
     examples = []
     for q in problems:
         prompt = tokenizer(prompt_text(tokenizer, q), add_special_tokens=False).input_ids
-        answer = tokenizer(q["solution"], add_special_tokens=False).input_ids + [tokenizer.eos_token_id]
-        examples.append((prompt + answer, len(prompt)))
+        # Problems the base model never solved contribute nothing under rejection sampling.
+        for text in ([q["solution"]] if targets is None else targets.get(q["id"], [])):
+            answer = tokenizer(text, add_special_tokens=False).input_ids + [tokenizer.eos_token_id]
+            examples.append((prompt + answer, len(prompt)))
+    print(f"{len(examples)} training examples from {len(problems)} problems", flush=True)
 
     log = open(os.path.join(args.out, "log.jsonl"), "a")
     step = 0
@@ -94,7 +106,7 @@ def main():
             step += 1
             log.write(json.dumps({"step": step, "epoch": epoch, "loss": total, "t_step": time.time() - t0}) + "\n")
             log.flush()
-    export(model, tokenizer, os.path.join(args.work, "final"), args.lora)
+    export(model, tokenizer, os.path.join(args.work, "final"), args)
     print(f"saved {os.path.join(args.work, 'final')} after {step} steps", flush=True)
 
 
