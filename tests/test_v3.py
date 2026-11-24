@@ -242,6 +242,17 @@ class WarmStartTests(unittest.TestCase):
             self.assertTrue(torch.equal(x, y))
 
 
+class SnapshotAtTests(unittest.TestCase):
+    def test_extra_snapshots_are_stored_and_the_run_is_unchanged(self):
+        base = config(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, n_train=64, n_test=8, eta=0.1,
+                      steps=40, log_every=20, snapshot_every=40, diagnostics=False, update="expected_full")
+        plain = run.run_train(dict(base))
+        snap = run.run_train(dict(base, snapshot_at=[3, 7, 13]))
+        self.assertEqual(sorted(snap["snapshots"], key=int), ["0", "3", "7", "13", "40"])
+        self.assertEqual(plain["snapshots"]["40"], [float(np.float32(v)) for v in snap["snapshots"]["40"]])
+        self.assertEqual(plain["tail_max"], snap["tail_max"])
+
+
 class ReleaseTests(unittest.TestCase):
     """T18: after the release, class A's reward term is dropped."""
 
