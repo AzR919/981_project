@@ -67,6 +67,8 @@ DEFAULTS = {
     "mix": 0.5, "sft_steps": 200,
     # v3 additions; the defaults reproduce earlier runs.
     "majority": None,            # T1: share of answer class 0 (others equal); adds a constant feature
+    "used_classes": None,        # T22: number of answer classes that have prompts (None: all K); the remaining
+                                 #      K - used_classes tokens are never correct ("junk" answers)
     "replace": True,             # T2: False draws each batch without replacement
     "track_every": 0,            # T0: also observe every prompt's p every k steps (0: log points only)
     "taus": [1e-3, 1e-2],        # T0: thresholds for ever- / persistent absorption
@@ -78,6 +80,12 @@ DEFAULTS = {
     "branch_samples": 0,         # T11: sampled batches per branch point (0: exact expected branches only)
     "release_at": None,          # T18: fraction of training after which class A is no longer rewarded
     "release_beta": None, "release_kl": None,   # T18: KL strength and direction after the release (None: unchanged)
+    "snapshot_at": [],           # T24: extra steps at which every prompt's success is logged and stored
+    "adam_eps": 1e-8,            # H: Adam's epsilon (large values remove the per-coordinate normalisation)
+    "anchor_at": None,           # G: fraction of training after which a KL anchor to the policy *at that step*
+    "anchor_beta": None, "anchor_kl": "forward",   #    is switched on (all classes keep their reward)
+    "differing_positions": None, # T26: with L > 1, positions 0..k-1 carry the answer class (the "procedure");
+                                 #      the other positions follow one balanced rule shared by all prompts
     "seed": 0,
 }
 
@@ -93,7 +101,9 @@ def build(cfg):
     shares = None
     if cfg["majority"] is not None:
         m = float(cfg["majority"])
-        shares = [m] + [(1 - m) / (cfg["K"] - 1)] * (cfg["K"] - 1)
+        used = cfg["used_classes"] or cfg["K"]
+        # A junk token gets a share too small for any prompt to draw it.
+        shares = [m] + [(1 - m) / (used - 1)] * (used - 1) + [1e-12] * (cfg["K"] - used)
         d += 1  # the constant feature
 
     task = SyntheticTask(
@@ -103,6 +113,18 @@ def build(cfg):
     )
     train = task.generate_dataset(cfg["n_train"])
     test = None if tabular else task.generate_dataset(cfg["n_test"])
+    if cfg["differing_positions"] is not None:
+        if cfg["majority"] is None or not 1 <= cfg["differing_positions"] <= cfg["L"]:
+            raise ValueError("differing_positions needs a class-share task and 1 <= k <= L")
+        # The shared positions use the same weights with an offset calibrated to equal shares (a twin task with
+        # uniform class shares has identical weights; only its offset differs).
+        balanced = SyntheticTask(
+            num_tokens=cfg["K"], response_length=cfg["L"], num_features=d, seed=cfg.get("task_seed", seed),
+            features=cfg["features"], rho=cfg["rho"], answers=answers, class_shares=[1.0 / cfg["K"]] * cfg["K"],
+        )
+        assert np.array_equal(balanced.weights, task.weights)
+        train, test = (shared_skill_answers(task, data, cfg["differing_positions"], balanced.offset)
+                       for data in (train, test))
 
     torch.manual_seed(seed)
     policy = Policy(
@@ -130,6 +152,15 @@ def build(cfg):
             lr=cfg.get("sft_lr", 0.5), direction=direction,
         )
         cfg["_warmstart"] = {"steps": steps, "mean_success": reached}
+    elif init == "sft_balanced":
+        # T23: supervised warm start with equal total weight per answer class, until the mean of the class
+        # means of success reaches p0. Every class then starts at about the same success, whatever its share.
+        cls = train[1][:, 0]
+        present = np.unique(cls)
+        weights = 1.0 / (len(present) * np.bincount(cls, minlength=cfg["K"])[cls])
+        steps, reached = supervised_warmstart(policy, train[0], train[1], float(cfg["p0"]), train[1],
+                                              lr=cfg.get("sft_lr", 0.5), direction="up", weights=weights)
+        cfg["_warmstart"] = {"steps": steps, "mean_success": reached}
     elif init == "sft_mixed":
         # Correct answers on a random share of prompts, decoys on the rest, for a
         # fixed number of steps: with shared parameters this spreads p widely.
@@ -143,6 +174,20 @@ def build(cfg):
         raise ValueError(f"unknown init {init}")
 
     return task, train, test, policy
+
+
+def shared_skill_answers(task, data, k, offset):
+    """T26: answer class (position 0, with the class shares) at positions 0..k-1; at positions k..L-1 a
+    balanced rule (the task's own weights with `offset`, calibrated to equal shares), the same for every
+    prompt."""
+    if data is None:
+        return None
+    prompts, correct = data
+    correct = correct.copy()
+    scores = np.einsum("nd,lkd->nlk", prompts, task.weights) + offset
+    for l in range(correct.shape[1]):
+        correct[:, l] = correct[:, 0] if l < k else scores[:, l].argmax(axis=-1)
+    return prompts, correct
 
 
 def tensors(policy, data):
@@ -163,7 +208,7 @@ def make_optimizer(cfg, policy):
     if cfg["optimizer"] == "sgd":
         return torch.optim.SGD(policy.parameters(), lr=cfg["eta"], momentum=cfg["momentum"])
     if cfg["optimizer"] == "adam":
-        return torch.optim.Adam(policy.parameters(), lr=cfg["eta"])
+        return torch.optim.Adam(policy.parameters(), lr=cfg["eta"], eps=cfg["adam_eps"])
     raise ValueError(f"unknown optimizer {cfg['optimizer']}")
 
 
@@ -358,7 +403,15 @@ def run_train(cfg):
     n = len(train[0])
     # Answer class 0 is "A" (the majority when cfg["majority"] > 1/K); the other classes are "B".
     in_a = torch.as_tensor(train[1][:, 0] == 0) if cfg["majority"] is not None else None
+    if in_a is not None:
+        # Where each class's probability sits at the start: success, and the mass on the other side's answers.
+        with torch.no_grad():
+            on_a = policy.probabilities(prompts_t)[:, 0, 0].numpy()
+        a = in_a.numpy()
+        out["start"] = {"p_a": float(p_init[a].mean()), "p_b": float(p_init[~a].mean()),
+                        "b_on_a_answer": float(on_a[~a].mean()), "a_off_a_answer": float(1 - on_a[a].mean())}
     branch_steps = {int(round(f * cfg["steps"])) for f in cfg["branch_at"]}
+    snap_at = {int(s) for s in cfg["snapshot_at"]}
     branch_rng = np.random.default_rng(cfg["seed"] + 20_000)
     branches = {}
     if (branch_steps or cfg["update"] in ("projected", "shortened")) and in_a is None:
@@ -420,8 +473,8 @@ def run_train(cfg):
             ev = trainer.evaluate(*train)
             record["entropy"], record["kl"] = ev["entropy"], ev["kl"]
         history.append(record)
-        if step % cfg["snapshot_every"] == 0 or step == cfg["steps"] or step == release_step:
-            snapshots[str(step)] = p.astype(np.float32).tolist()
+        if step % cfg["snapshot_every"] == 0 or step == cfg["steps"] or step == release_step or step in snap_at:
+            snapshots[str(step)] = p.astype(np.float64).tolist() if snap_at else p.astype(np.float32).tolist()
         if cfg["drift_every"] and step % cfg["drift_every"] == 0 and step < cfg["steps"]:
             d = predicted_drift(policy, prompts_t, correct_t, cfg["rule"], cfg["G"], cfg["eta"], passk=cfg["passk"])
             W = advantage_gap(p, cfg["G"], cfg["rule"], passk=cfg["passk"])
@@ -432,7 +485,17 @@ def run_train(cfg):
             }
 
     log(0)
+    # G: from anchor_step on, a KL term pulls toward the policy as it was at anchor_step (e.g. already collapsed).
+    anchor_step = None
+    if cfg["anchor_at"] is not None:
+        if cfg["update"] != "expected_full" or cfg["release_at"] is not None or not cfg["anchor_beta"]:
+            raise ValueError("anchor_at needs update='expected_full', no release, and anchor_beta > 0")
+        anchor_step = int(round(cfg["anchor_at"] * cfg["steps"]))
+        anchored_cfg = dict(cfg, beta=cfg["anchor_beta"], kl=cfg["anchor_kl"])
+        out["anchor_step"] = anchor_step
     for step in range(1, cfg["steps"] + 1):
+        if anchor_step is not None and step == anchor_step + 1:
+            trainer.reference = policy.frozen_reference()
         if step - 1 in branch_steps:
             branches[str(step - 1)] = measure_branches(policy, trainer.optimizer, prompts_t, correct_t, in_a, cfg,
                                                        branch_rng)
@@ -457,8 +520,9 @@ def run_train(cfg):
                 trainer.decreases += expected_step(policy, trainer.optimizer, *batch, released_cfg,
                                                    reference=trainer.reference, weight=only_b)
             else:
-                trainer.decreases += expected_step(policy, trainer.optimizer, *batch, cfg, reference=trainer.reference)
-        if step % cfg["log_every"] == 0 or step == cfg["steps"]:
+                now = anchored_cfg if anchor_step is not None and step > anchor_step else cfg
+                trainer.decreases += expected_step(policy, trainer.optimizer, *batch, now, reference=trainer.reference)
+        if step % cfg["log_every"] == 0 or step == cfg["steps"] or step in snap_at:
             log(step)
         elif cfg["track_every"] and step % cfg["track_every"] == 0:
             observe(step, success(policy, train))
