@@ -1,7 +1,7 @@
 # Final results (2026-11-25)
 
 The single reference for the report: every claim we can make, its status, its numbers and the file it comes from.
-All experiments have finished; T25 (permanent or plateau) is the only analysis still running.
+All experiments have finished and are analysed.
 
 **Status labels:**
 - **Confirmatory:** pre-registered as a primary test with error control, and passed.
@@ -46,7 +46,7 @@ All experiments have finished; T25 (permanent or plateau) is the only analysis s
 | Per-prompt late model | Refuted | Median Spearman 0.28 against 0.8 | `analysis/v3l/SUMMARY.md` |
 | **Theory of the fall** (class-level ODE, no fitted parameter) | In-sample: passes almost everything. **Held-out: mixed** | Unseen runs: all rules pass on the KL and warm-start grids. On the P1 grid it fails depth rank (0.755) because of large-step runs; at η ≤ 1, rank 0.988, level within 0.03–0.07 decades, accuracy 0.93–0.96, threshold right in 15/16 cells | `analysis/theory/fall_results.md` |
 | Adam follows a different (ℓ∞) geometry | Hint only | Under Adam at small ε, ℓ∞ γ ranks the late rate better (0.89–0.92 against 0.77–0.79); 10 tasks per correlation | `analysis/v3p/SUMMARY.md` |
-| Permanent or plateau (exact flow to 1e14) | **Analysis in progress** | 99 of 100 tasks integrated | `analysis/v3m/` (to be written) |
+| Permanent or plateau (exact flow to 1e14) | Per-prompt predictions refuted (T25: 1–3 fail); task-level finding post hoc | Mostly a plateau: recovery at 1e2–1e5 for ρ ≤ 0.5, 1e7.5–1e12 for ρ ≥ 0.9 (training ~1e3–1e4); nothing recovers at ρ = 0.95, m = 0.9. γ_min ≥ 1: 3 of 30 tasks recover; < 1: 51 of 70 (p 1e-11) | `analysis/v3m/SUMMARY.md` |
 
 ## 4. Prevention levers
 
@@ -87,7 +87,7 @@ All experiments have finished; T25 (permanent or plateau) is the only analysis s
 - **Not new:** the identity (Davis & Recht), the KL fixed points (Vojnovic & Yun), and interference through shared
   parameters in general (Schaul et al. 2019, "ray interference"; read before writing the related work).
 - Not "the fall is explained": the fall model is supported out of sample only in the small-step regime.
-- Not "collapse is permanent", until T25 is analysed.
+- Not "collapse is permanent" in general: it is a plateau whose length grows steeply with feature similarity; effectively permanent (to 1e14) only where γ_min ≥ 1.
 - Not "LLMs are immune": our two small models and GSM8K procedures share most steps; the toy test of that
   explanation was not fair.
 - Not "forward KL fixes it": only while the reference still solves the minority (G).
