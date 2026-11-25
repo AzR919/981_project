@@ -1,0 +1,6 @@
+test,p,stat,n,holm_p,verdict
+A1,9.5367431640625e-07,"cells with p < 0.05: 16/16; every cell 20 up, 0 down, 0 ties",16 cells × 20 tasks,4.76837158203125e-06,replicated (confirmatory)
+A2,9.5367431640625e-07,"20 up, 0 down, 0 ties; median task difference 1.000 (original 10 tasks: 10 up, median 1.000)",20 tasks,4.76837158203125e-06,replicated (confirmatory)
+A3,9.5367431640625e-07,"20 up, 0 down, 0 ties; median task difference 0.390 (original 10 tasks: 10 up, median 0.401)",20 tasks,4.76837158203125e-06,replicated (confirmatory)
+A4,9.5367431640625e-07,"20 up, 0 down, 0 ties; mean seed difference 0.887 (original 10 seeds: 10 up, 0 down, mean 0.863)",20 seeds,4.76837158203125e-06,replicated (confirmatory)
+A5,9.5367431640625e-07,"20 up, 0 down, 0 ties; median task difference 1.000 (original 10 tasks: 10 up, median 1.000)",20 tasks,4.76837158203125e-06,replicated (confirmatory)
