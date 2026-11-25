@@ -8,6 +8,148 @@ batch under `analysis/`, `analysis/theory/`, `analysis/llm/*_SUMMARY.md` and
 
 ---
 
+## H3 in detail: what it was meant to test, what we ran, what we found
+
+Sources:
+- the plan: `docs/project_guide.html` (H3 box) and `latex/milestone.tex`;
+- the run: `experiments/grids.py` (`h3`);
+- the results: `analysis/base/FINDINGS.md` (section H3), `analysis/review/SUMMARY.md`, `analysis/v3a/SUMMARY.md`, `analysis/v3d/SUMMARY.md`, `analysis/theory/odds_law.md`.
+
+### Where we started
+
+- **The identity.** For one prompt, the expected GRPO update is E[ĝ_x] = W_G(p_x)∇p_x (H1). So the size of a prompt's step is set by η, the batch size B, and the factor W_G(p)·p(1−p).
+- **Suk & Duan.** For a *single* prompt, a step above a threshold (η ≲ Δμ(1−p)/T) can drive p to 0 even when every update points the right way. They leave open what happens when many prompts share parameters.
+- **Our pilot.** The failure we saw was *absorption*: prompts pushed to a confident wrong answer (p ≈ 0). From there no sampled group contains a correct answer, so the prompt gets no learning signal. With tabular parameters this cannot happen, because a prompt's own update never lowers its own success. So we expected absorption to need parameter sharing.
+
+### The hypothesis, as planned (guide, H3, "main study")
+
+- **(a)** The outcome of training depends on η, B, G and the advantage rule mainly through **one effective step** at the start, s̄ = (η/B)·mean over prompts of W_G(p)·p(1−p).
+- **(b)** The threshold exists only with sharing. Tabular runs never collapse, and the threshold in s̄ drops as the **overlap between prompts' gradients** (interference) grows.
+- **(c)** Response length L and starting success p₀ enter only through quantities measurable at initialization: ‖∇z‖² and that overlap.
+- **The planned test:** a single "collapse plot" of absorbed fraction against s̄ × interference, with every configuration on one curve.
+- **Refuted if:** tabular runs collapse, or configurations with equal s̄ and interference end in clearly different places.
+
+### What we ran (base batch, 13,608 runs)
+
+**Task.**
+- Each prompt is a feature vector x ∈ ℝ¹⁶, and there are 512 training prompts.
+- The correct answer at each of the L positions is set by a hidden linear rule (argmax of a fixed linear score). So the task is solvable by every policy in the ladder, and any collapse is an optimization effect.
+- K = 3 tokens, L ∈ {1, 2, 4}. The reward is 1 only if all L tokens are correct.
+- Every run starts from the uniform policy, so every prompt starts at the same p = 3^(−L), i.e. 0.33, 0.11 or 0.012. Any difference in a prompt's fate therefore comes from sharing.
+
+**Policies (the sharing ladder).**
+
+| Level | Policy | Features | Sharing |
+|---|---|---|---|
+| `tab` | linear, no bias | one-hot | none |
+| `lin` | linear | Gaussian | shared W |
+| `c05`, `c09` | linear | correlated, ρ = 0.5, 0.9 | shared, prompts alike |
+| `m64`, `m256` | MLP, width 64 or 256 | Gaussian | shared, nonlinear |
+
+**Grid.**
+- 6 levels × L ∈ {1, 2, 4} × 3 rules (mean-only, RLOO, GRPO) × 3 seeds.
+- 12 step sizes η from 0.003 to 1000.
+- 7 (B, G) pairs. Five of them have a fixed budget B·G = 256: (128, 2), (64, 4), (32, 8), (16, 16), (4, 64). The other two are (8, 8) and (128, 8).
+- Sampled GRPO-style updates, plain SGD, no KL, 5,000 steps.
+
+**Measured.**
+- **Absorbed fraction:** the share of prompts that started at p ≥ 0.01 and ended below 0.01.
+- Final success.
+- At initialization: ‖∇z‖², the cosines between prompts' gradients, and each prompt's predicted first-step drift.
+
+**Pre-registered test.**
+- Four candidate x-axes:
+  - (i) s̄;
+  - (ii) s̄·‖∇z‖²;
+  - (iii) (ii)·|cos|;
+  - (iv) (ii)·(1 + B·cos).
+- For each, a logistic fit of absorption against log x, pooled over levels and checked by leaving one sharing level out.
+- **Pass:** an interference-weighted candidate beats s̄ alone on held-out levels, *and* no level's curve is shifted by more than one decade.
+
+### What the base batch showed
+
+1. **(b) holds: without sharing, nothing collapses.**
+   - 2,268 tabular runs, at every η, including η = 1000.
+   - 0 runs with any per-prompt decrease of p, and 0 absorbed prompts.
+   - This is a sanity check more than a finding, since it holds by construction.
+2. **(a) fails: no single variable lines up the levels.**
+   - The best candidate on held-out levels was plain s̄. Adding the interference terms made things worse.
+   - Even s̄ leaves the levels' curves far apart. In decades of x, relative to the pooled fit:
+
+     | Candidate | lin | c05 | c09 | m64 | m256 |
+     |---|---|---|---|---|---|
+     | (i) s̄ | +1.5 | +3.5 | **+4.7** | −2.0 | −2.0 |
+     | (iv) with interference | +0.8 | +1.6 | **+5.7** | −3.4 | −2.9 |
+
+   - Restricted to L ≤ 2 (at L = 4 a dip from 0.012 to 0.01 already counts as absorbed), the largest shift is still 2.4 decades. **Verdict: FAIL.**
+3. **(c) is not supported either.** The initialization quantities ‖∇z‖² and the mean cosine are exactly what candidates (ii)–(iv) add, and they don't fix the shifts.
+4. **Partial support for the η/B scaling.** Across 34 groups, the slope of the threshold η* against B has median 0.83 (s̄ ∝ η/B predicts 1).
+5. **Group size at a fixed budget.** Larger G lowers the threshold η*, more so for GRPO. Final success barely changes.
+6. **Absorption is early.** 88% of absorptions happen in the first 500 of 5,000 steps. In absorbing runs, pass@64 also drops, e.g. from 0.81 to 0.26 for the MLPs.
+
+### Why it failed: two different routes to absorption
+
+The post-hoc analysis (base findings, section 4b) and the four-way review found that the levels fail in two different ways. No single step variable can describe both.
+
+| | Route 1: large kicks | Route 2: drift onto the majority answer |
+|---|---|---|
+| Where | `lin`, `m64`, `m256` | `c05`, `c09` (correlated features) |
+| Needs a large η? | Yes; nothing at small η | No: `c09` absorbs about 20% already at η = 0.003, flat over 7 decades of η |
+| Threshold moves with B? | Yes, close to η/B | Hardly (slope 0 for c05) |
+| Does the first-step drift predict which prompts? | Weakly (AUC 0.62–0.77) | Almost perfectly (AUC 0.88 for c05, 1.000 for c09) |
+| What it is | Each sampled prompt gets a lump step η/B; too big a lump knocks it out. This is the Suk & Duan type of failure | Deterministic, set by the geometry. The step size only sets how fast it happens |
+
+**What route 2 really is.**
+- The review rebuilt the `c09` tasks and found that **every absorbed prompt had a minority answer**: 0 majority-answer prompts were absorbed across 10 tasks.
+- With correlated features, the hidden argmax rule gives the answer classes unequal sizes. The ~0.197 plateau in absorbed fraction is exactly one task's minority share.
+- So the drift in route 2 is not interference in general. It is the majority answer class pulling minority-answer prompts onto its answer.
+
+### What we ran to follow this up
+
+1. **P1 (v3a, pre-registered):** class imbalance controlled directly.
+   - Setup: the share m of the majority answer was set while the feature geometry was held fixed. Linear and MLP, ρ ∈ {0.5, 0.9}, SGD and Adam, exact and sampled updates, 10 task seeds.
+   - Result: persistent absorption rises with m in **16 of 16 cells** (task-level p ≤ 0.0098). It takes 54–100% of minority prompts at m = 0.9 and about 0 when the classes are balanced.
+   - Supervised training on the same tasks absorbs nothing.
+2. **P2 (v3a):** route 1 checked at equal mean drift.
+   - Absorption falls as B grows (bigger B means smaller kicks) in 3 of 4 levels.
+   - Response sampling adds absorption only at B = 8.
+3. **T11 (v3d), who pushes whom.**
+   - Setup: from one state, one step along only the majority's part of the update, only the minority's part, or both.
+   - Result: the majority's part lowers the minority, and the minority's own part raises it. The majority wins by 3.6–4.8× at m = 0.7 and 10.7–17.1× at m = 0.9, in every task.
+   - So it is **active pushing, then starvation**. Once p is near 0, the minority's own signal vanishes, since ∇p ∝ p.
+4. **The odds law** (`analysis/theory/odds_law.md`).
+   - At the first step, that push ratio is exactly R = c·m/(1 − m). c comes from the feature geometry: how similar prompts are across vs. within classes.
+   - The minority starts falling once m > 1/(1 + c).
+   - Verified with nothing fitted on 1,080 runs, and proved in Lean.
+   - It describes the first step only, not the outcome.
+5. **T12 and T18 (v3d, v3g): plateau, not a second resting point.**
+   - Remove the majority's reward and the minority comes back. The deeper it fell, the longer it takes.
+   - Under SGD at ρ = 0.9 it stays down for over 10× the training horizon. At ρ = 0.5 it often comes back.
+
+### What this means for H3
+
+| Part | Verdict |
+|---|---|
+| (a) One effective step sets the outcome | **Fails.** It works within route 1 (the two MLP widths line up under s̄) but not across routes |
+| (b) No collapse without sharing | **Holds** (by construction; 2,268 runs) |
+| (c) Initialization quantities carry L and p₀ | **Not supported**; the average gradient overlap does not tell the routes apart |
+| "Interference causes absorption" (the spirit of H3) | **Holds, in a sharper form.** What matters is not the average overlap between prompts but its **class structure**: whether prompts that look alike want the same answer. A majority answer class pushes a correct minority class down, more completely as its share grows |
+
+**For the report.**
+- H3 is stated as planned and reported as failed.
+- The two routes come next.
+- Route 2 becomes the main result: P1, T11, the odds law and the plateau.
+- Suk & Duan's step-size picture stays relevant to route 1 only.
+- Prior work to credit:
+  - Schaul et al. 2019 (ray interference: loss of correct contexts through shared parameters, plateaus);
+  - Li, Pandey & Chen 2026 (the first-step decomposition and its sign at m = 1/K).
+- What is ours:
+  - class share as a controlled driver for a correct minority under GRPO;
+  - the kernel correction c;
+  - the levers compared at matched progress.
+
+---
+
 ## 1. What happened since Nov 22, in one table
 
 | Area | New work | Main outcome |
