@@ -52,11 +52,20 @@ def parse():
     p.add_argument("--passk", type=int, default=None)
     p.add_argument("--G", type=int, default=8)
     p.add_argument("--prompts-per-step", type=int, default=64)
+    p.add_argument("--strata", default=None,
+                   help="fixed batch composition by a problem field, e.g. procedure:each=76,total=4 (overrides "
+                        "--prompts-per-step); C2 matched-minority arm")
+    p.add_argument("--denominator", type=int, default=None,
+                   help="number of prompts the loss is divided by (default: prompts in the batch)")
     p.add_argument("--steps", type=int, default=300)
     p.add_argument("--lr", type=float, default=1e-6)
     p.add_argument("--beta", type=float, default=0.0)
     p.add_argument("--kl", choices=("reverse", "forward"), default="reverse",
                    help="KL direction of the penalty gradient: reverse KL(pi||ref) or forward KL(ref||pi)")
+    p.add_argument("--drift-log", action=argparse.BooleanOptionalAction, default=True,
+                   help="log the sampler-trainer mismatch each step (vLLM log-probs of the sampled answers)")
+    p.add_argument("--tis", type=float, default=None,
+                   help="truncated importance weights min(pi_trainer / pi_sampler, C) on the policy term (off by default)")
     p.add_argument("--agg", choices=("sequence", "token"), default="sequence",
                    help="sequence: sum_i A_i log pi(y_i) / n; token: / total completion tokens (DAPO), rescaled "
                         "by the step-1 mean length so only the length weighting changes")
@@ -229,15 +238,59 @@ def token_logprobs(logits, targets):
     return logits.gather(-1, targets[..., None]).squeeze(-1) - torch.logsumexp(logits, dim=-1)
 
 
+KL_LOG_RATIO_BOUND = 20.0
+
+
 def kl_terms(logp, ref_logp, direction):
     """Per-token KL loss term and value. Samples come from pi, so only log pi carries gradient:
     differentiating k2 = (log pi - log ref)^2 / 2 gives the reverse-KL gradient, differentiating
     k3 = rho - log rho - 1 (rho = ref / pi) gives the forward-KL gradient (tested in
-    tests/test_llm_kl.py). The value logged is k3, an unbiased estimate of the reverse KL."""
-    delta = ref_logp - logp
+    tests/test_llm_kl.py). The value logged is k3, an unbiased estimate of the reverse KL.
+
+    The log-ratio is bounded to [-20, 20]. Without the bound, one sampled token that the trainer
+    scores as (nearly) impossible makes exp(delta) overflow or delta infinite, and the whole update
+    becomes NaN (this destroyed two C7/C8 runs on 2026-11-23). Tokens beyond the bound contribute no
+    KL gradient."""
+    delta = (ref_logp - logp).clamp(-KL_LOG_RATIO_BOUND, KL_LOG_RATIO_BOUND)
     value = (torch.exp(delta) - delta - 1).detach()
     loss = 0.5 * delta**2 if direction == "reverse" else torch.exp(delta) - delta - 1
     return loss, value
+
+
+def parse_strata(text):
+    """'procedure:each=76,total=4' -> ('procedure', {'each': 76, 'total': 4})."""
+    field, counts = text.split(":", 1)
+    return field, {k: int(v) for k, v in (item.split("=") for item in counts.split(","))}
+
+
+def draw_batch(rng, problems, prompts_per_step, strata=None):
+    """Indices of one batch: uniform without replacement, or a fixed count from each stratum."""
+    if strata is None:
+        return rng.choice(len(problems), size=prompts_per_step, replace=False).tolist()
+    field, counts = strata
+    picked = []
+    for value, count in counts.items():
+        members = [i for i, q in enumerate(problems) if q[field] == value]
+        picked += rng.choice(members, size=count, replace=False).tolist()
+    return picked
+
+
+def policy_loss(advantages, seq_logp, sampler_logp=None, tis=None):
+    """-(w * A * log pi).sum(). With tis = C, w = min(pi / pi_sampler, C) corrects for the samples having
+    come from vLLM's copy of the policy (bf16, possibly quantized), which can drift from the trainer's."""
+    if tis is None:
+        return -(advantages * seq_logp).sum()
+    weights = torch.exp(seq_logp.detach() - sampler_logp).clamp(max=tis)
+    return -(weights * advantages * seq_logp).sum()
+
+
+def drift_stats(trainer_logp, sampler_logp, lengths):
+    """Sampler-trainer mismatch over the sampled answers: per-token mean |gap|, per-token signed gap
+    (trainer - sampler), and the largest per-sequence |gap|, in nats."""
+    gap = np.asarray(trainer_logp, dtype=float) - np.asarray(sampler_logp, dtype=float)
+    tokens = max(float(np.sum(lengths)), 1.0)
+    return {"drift_abs_per_token": float(np.abs(gap).sum() / tokens), "drift_per_token": float(gap.sum() / tokens),
+            "drift_max_seq": float(np.abs(gap).max()) if len(gap) else 0.0}
 
 
 def completion_logprobs(model, sequences, prompt_lens, pad_id, ref=None, adapter_off=False, kl="reverse"):
@@ -360,21 +413,28 @@ def main():
     scale_path = os.path.join(args.out, "agg_scale.txt")
     agg_scale = float(open(scale_path).read()) if os.path.exists(scale_path) else None
 
+    strata = parse_strata(args.strata) if args.strata else None
     while step < args.steps:
         t0 = time.time()
-        batch = [problems[i] for i in rng.choice(len(problems), size=args.prompts_per_step, replace=False)]
+        batch = [problems[i] for i in draw_batch(rng, problems, args.prompts_per_step, strata)]
         prompts = [prompt_text(tokenizer, p) for p in batch]
+        track = args.drift_log or args.tis is not None
         params = SamplingParams(n=args.G, temperature=1.0, top_p=1.0, max_tokens=args.max_tokens,
-                                seed=int(rng.integers(2**31)))
+                                seed=int(rng.integers(2**31)), logprobs=0 if track else None)
         outputs = sampler.generate(prompts, params)
         t_sample = time.time() - t0
 
         rewards = np.zeros((len(batch), args.G))
         parsed = np.zeros_like(rewards)
-        sequences, prompt_lens, lengths = [], [], []
+        sequences, prompt_lens, lengths, sampler_logp = [], [], [], []
         for i, (problem, out) in enumerate(zip(batch, outputs)):
             for g, c in enumerate(out.outputs):
                 rewards[i, g], parsed[i, g] = reward(c.text, problem["answer"])
+                if track:
+                    total = c.cumulative_logprob
+                    if total is None:
+                        total = sum(lp[t].logprob for lp, t in zip(c.logprobs, c.token_ids))
+                    sampler_logp.append(float(total))
                 sequences.append(list(out.prompt_token_ids) + list(c.token_ids))
                 prompt_lens.append(len(out.prompt_token_ids))
                 lengths.append(len(c.token_ids))
@@ -386,7 +446,7 @@ def main():
 
         # Samples with zero advantage contribute nothing to the policy term; skip them unless KL needs them.
         active = torch.nonzero((A != 0) | torch.tensor(args.beta > 0, device="cuda")).flatten().tolist()
-        n_total = len(sequences)
+        n_total = len(sequences) if args.denominator is None else args.denominator * args.G
         norm = n_total
         if args.agg == "token":
             if agg_scale is None:
@@ -396,12 +456,16 @@ def main():
             norm = sum(lengths) / agg_scale
         optimizer.zero_grad(set_to_none=True)
         kl_sum = 0.0
+        seen_logp = {}
+        sampler_t = torch.tensor(sampler_logp, device="cuda") if track else None
         for start in range(0, len(active), args.micro_batch):
             idx = active[start: start + args.micro_batch]
             seq_logp, kl = completion_logprobs(model, [sequences[i] for i in idx], [prompt_lens[i] for i in idx],
                                                pad, ref=None if args.beta <= 0 else (model if args.lora else ref),
                                                adapter_off=bool(args.lora), kl=args.kl)
-            loss = -(A[idx] * seq_logp).sum() / norm
+            loss = policy_loss(A[idx], seq_logp, None if args.tis is None else sampler_t[idx], args.tis) / norm
+            if track:
+                seen_logp.update(zip(idx, seq_logp.detach().tolist()))
             if kl is not None:
                 kl_loss, kl_value = kl
                 loss = loss + args.beta * kl_loss.sum() / n_total
@@ -410,20 +474,34 @@ def main():
         torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], 1e9)  # norm only, no clipping
         grad_norm = float(sum(p.grad.float().norm() ** 2 for p in model.parameters()
                               if p.requires_grad and p.grad is not None) ** 0.5)
-        optimizer.step()
-        sampler.sync(model)
+        skipped = not np.isfinite(grad_norm)
+        if skipped:
+            # A non-finite gradient would destroy the weights; drop this update and keep going.
+            optimizer.zero_grad(set_to_none=True)
+        else:
+            optimizer.step()
+            sampler.sync(model)
         step += 1
 
         group = clean.mean(axis=1)
         record = {"step": step, "reward": float(clean.mean()), "reward_used": float(rewards.mean()),
                   "informative": float(((group > 0) & (group < 1)).mean()), "parsed": float(parsed.mean()),
                   "length": float(np.mean(lengths)), "active": len(active), "grad_norm": grad_norm,
-                  "kl": kl_sum / n_total, "t_sample": t_sample, "t_step": time.time() - t0,
+                  "kl": kl_sum / n_total, "skipped": int(skipped), "t_sample": t_sample, "t_step": time.time() - t0,
                   "peak_gb": torch.cuda.max_memory_allocated() / 2**30}
+        if track and seen_logp:
+            used = sorted(seen_logp)
+            record.update(drift_stats([seen_logp[i] for i in used], [sampler_logp[i] for i in used],
+                                      [lengths[i] for i in used]))
         if args.check_sync and step <= 3:
             record["sync_check"] = sync_check(sampler, model, tokenizer, problems[0], pad, 0)
         with open(log_path, "a") as f:
             f.write(json.dumps(record) + "\n")
+        # Which problems were sampled and what each group earned: per-problem exposure and, for C2,
+        # informative (mixed-reward) groups per procedure.
+        with open(os.path.join(args.out, "groups.jsonl"), "a") as f:
+            f.write(json.dumps({"step": step, "ids": [q["id"] for q in batch],
+                                "rewards": clean.astype(int).tolist()}) + "\n")
         print(json.dumps(record), flush=True)
         if step in args.save_at:
             export(model, tokenizer, os.path.join(args.work, f"step_{step}"), args)

@@ -47,6 +47,23 @@ class AnalyzeC1Tests(unittest.TestCase):
             self.assertEqual(runs.lost_heldout.tolist(), [0, 0, 0])
             text = open(f"{tmp}/out.md").read()
             self.assertIn("**PASS**", text)  # 2 of 3 seeds far above the null rate 1/201
+            self.assertIn("## Turnover", text)
+            self.assertIn(f"| a | {os.path.basename(tmp)}-s0 | train | 200 | 0 | 20 | 20 | 20 | 0 | 20 |", text)  # gained, declined, lost, strict, new, locked
+
+    def test_partial_conjunction_and_band(self):
+        sys.path.insert(0, ROOT)
+        import numpy as np
+
+        from llm.analyze_c1 import partial_conjunction, passk_gap_band
+
+        self.assertAlmostEqual(partial_conjunction([0.001, 0.02, 0.9]), 0.04)
+        self.assertEqual(partial_conjunction([0.001, 0.6, 0.9]), 1.0)
+        rng = np.random.default_rng(0)
+        k_before = rng.binomial(256, 0.3, size=400)
+        df = pd.DataFrame({"k_before": k_before, "n_before": 256, "k_after": rng.binomial(256, 0.3, size=400),
+                           "n_after": 256})
+        band = passk_gap_band(df, draws=500)
+        self.assertTrue(((band.lo < 0) & (band.hi > 0)).all())  # no change: the band covers zero at every k
 
     def test_partial_inputs_are_refused(self):
         ids = [f"train-{i}" for i in range(10)]

@@ -234,3 +234,6 @@ latex/*.toc
 # Experiment outputs (large; fetched from the lab machines)
 results/
 jobs_*.jsonl
+
+# Third-party code fetched by experiments/third_party/fetch_wsw.sh
+experiments/third_party/wsw/

@@ -1,0 +1,149 @@
+"""
+How many problems does an unchanged model appear to lose? Calibration of per-problem census rules.
+
+usage:
+    python llm/census_calibration.py --before base_s0.json.gz --after base_s1.json.gz \\
+        [--unfiltered-before a.json.gz --unfiltered-after b.json.gz] --out analysis/llm/census_calibration.md
+
+--before and --after are two evaluations of the same model with different sampling seeds (evaluate.py
+outputs with N samples per problem). For N' <= N, N' samples per problem are drawn without replacement
+from each evaluation, so no model call is needed.
+
+Rules compared, per problem with (correct, N') before and after:
+  locked    correct_before > 0 and correct_after = 0                  (naive)
+  halved    p_after <= p_before / 2 and p_before >= 0.1               (naive)
+  decline   one-sided Fisher exact test with Benjamini-Hochberg at 10% (ours)
+  lost      decline ending at p_after <= 0.05                          (ours)
+Power: a true drop is planted in a random 5% of the problems (success multiplied by 1 - delta) and the
+share of them each rule flags is reported.
+"""
+
+import argparse
+import gzip
+import json
+import os
+import sys
+
+import numpy as np
+import pandas as pd
+from scipy.stats import hypergeom
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from llm.analyze_c0 import markdown  # noqa: E402
+from llm.declines import bh  # noqa: E402
+
+FDR = 0.1
+
+
+def counts(path):
+    with gzip.open(path, "rt") as f:
+        c = json.load(f)["counts"]
+    ids = sorted(c)
+    return ids, np.array([c[i][0] for i in ids]), np.array([c[i][2] for i in ids])
+
+
+def fisher_less(k_before, n_before, k_after, n_after):
+    """One-sided Fisher exact p-values for p_after < p_before (vectorised; equals scipy's fisher_exact)."""
+    return hypergeom.cdf(k_after, n_before + n_after, k_before + k_after, n_after)
+
+
+def flags(k1, n1, k2, n2):
+    p1, p2 = k1 / n1, k2 / n2
+    decline = bh(fisher_less(k1, n1, k2, n2), FDR)
+    return {"locked": (k1 > 0) & (k2 == 0), "halved": (p1 >= 0.1) & (p2 <= p1 / 2), "decline": decline,
+            "lost": decline & (p2 <= 0.05)}
+
+
+def subsample(rng, k, n, size):
+    """Correct answers among `size` of the n samples, drawn without replacement."""
+    return rng.hypergeometric(k, n - k, size)
+
+
+def null_table(k1, n1, k2, n2, sizes, draws, rng):
+    rows = []
+    for size in sizes:
+        tallies = {name: [] for name in ("locked", "halved", "decline", "lost")}
+        for _ in range(1 if size == n1[0] else draws):
+            a = k1 if size == n1[0] else subsample(rng, k1, n1, size)
+            b = k2 if size == n2[0] else subsample(rng, k2, n2, size)
+            for name, f in flags(a, np.full_like(a, size), b, np.full_like(b, size)).items():
+                tallies[name].append(int(f.sum()))
+        row = {"samples per problem": size}
+        for name, v in tallies.items():
+            row[name] = f"{np.mean(v):.1f}" + ("" if len(v) == 1 else f" ({np.quantile(v, 0.025):.0f}–{np.quantile(v, 0.975):.0f})")
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def power_table(k1, n1, k2, n2, sizes, deltas, draws, rng):
+    """Before: a subsample of evaluation 1. After: binomial draws at the pooled rate, lowered on 5% of problems."""
+    rate = (k1 + k2) / (n1 + n2)
+    rows = []
+    for size in sizes:
+        for delta in deltas:
+            hit = {name: [] for name in ("locked", "halved", "decline", "lost")}
+            false = {name: [] for name in hit}
+            for _ in range(draws):
+                planted = rng.random(len(rate)) < 0.05
+                a = subsample(rng, k1, n1, size)
+                b = rng.binomial(size, np.where(planted, rate * (1 - delta), rate))
+                for name, f in flags(a, np.full_like(a, size), b, np.full_like(b, size)).items():
+                    hit[name].append(f[planted].mean())
+                    false[name].append(int(f[~planted].sum()))
+            row = {"samples per problem": size, "true drop": f"{int(delta * 100)}%"}
+            for name in hit:
+                row[f"{name}: found"] = f"{np.mean(hit[name]):.2f}"
+                row[f"{name}: false"] = f"{np.mean(false[name]):.1f}"
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--before", required=True)
+    parser.add_argument("--after", required=True)
+    parser.add_argument("--unfiltered-before", default=None)
+    parser.add_argument("--unfiltered-after", default=None)
+    parser.add_argument("--draws", type=int, default=200)
+    parser.add_argument("--out", required=True)
+    args = parser.parse_args()
+    rng = np.random.default_rng(0)
+
+    ids, k1, n1 = counts(args.before)
+    ids2, k2, n2 = counts(args.after)
+    assert ids == ids2 and len(set(n1)) == 1 and len(set(n2)) == 1
+    sizes = [s for s in (8, 16, 32, 64, 128, 256) if s <= n1[0]]
+    lines = ["# Census calibration: what an unchanged model looks like", "",
+             "Generated by `llm/census_calibration.py`. Two evaluations of the same base model with different "
+             "sampling seeds are compared as if they were \"before\" and \"after\" training. Every flagged problem "
+             "is a false alarm.", "",
+             f"## Pool with base success in [0.1, 0.9] ({len(ids)} problems)", "",
+             "Mean number of flagged problems (95% range over subsamples):", "",
+             markdown(null_table(k1, n1, k2, n2, sizes, args.draws, rng)), ""]
+    lines += ["**Scope.** These counts describe our models, problems and decoding (temperature 1), at the sample "
+              "counts shown. A naive rule's false alarms fall quickly as the number of samples per problem grows, and "
+              "they come almost entirely from problems with low base success, which the filtered pool excludes. So "
+              "the tables say what a census at a given sample count needs to guard against; they are not a "
+              "re-analysis of any other paper, whose sample counts and problems differ.", ""]
+    if args.unfiltered_before:
+        uid, u1, m1 = counts(args.unfiltered_before)
+        uid2, u2, m2 = counts(args.unfiltered_after)
+        assert uid == uid2
+        usizes = [s for s in (8, 16, 32) if s <= m1[0]]
+        lines += [f"## Unfiltered problems ({len(uid)} problems, another model, at most {m1[0]} samples per problem)", "",
+                  markdown(null_table(u1, m1, u2, m2, usizes, args.draws, rng)), "",
+                  f"No evaluation of unfiltered problems with more than {m1[0]} samples exists yet, so this table "
+                  "cannot be compared with work that uses 128 or 256 samples per problem.", ""]
+    lines += ["## Power: a true drop planted in 5% of the problems", "",
+              "\"found\": share of the planted problems flagged. \"false\": flagged problems that were not planted.", "",
+              markdown(power_table(k1, n1, k2, n2, [s for s in sizes if s >= 32], (0.5, 0.75, 1.0), min(args.draws, 50), rng)),
+              ""]
+    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+    with open(args.out, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    print("\n".join(lines))
+
+
+if __name__ == "__main__":
+    main()

@@ -474,6 +474,51 @@ def v3_t19():
                 yield dict(base, G=G, B=256 // G, update="sampled", level=f"{arch}-rho{rho}-grpo-sampled")
 
 
+def v3_t20():
+    """Correct minority in the enumerable transformer environment of Li, Pandey and Chen (experiments/enum_env.py)."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)] + [(2, n, "random") for n in (32, 40, 48, 56, 60)]
+    tasks.append((2, 48, "parity"))
+    steppers = [("sgd", 0.3), ("sgd", 1), ("sgd", 3), ("adam", 1e-3), ("adam", 3e-3)]
+    common = dict(mode="enum", steps=2000, log_every=20, G=8)
+    for (K, n_major, partition), (optimizer, eta), seed in itertools.product(tasks, steppers, range(10)):
+        job = dict(common, K=K, n_major=n_major, partition=partition, optimizer=optimizer, eta=eta, seed=seed)
+        for algo in ("pg", "grpo"):
+            yield dict(job, enum_policy="shared", algo=algo, level=f"shared-{algo}")
+        yield dict(job, enum_policy="tabular", algo="pg", level="tabular-pg")
+    for (K, n_major, partition), seed in itertools.product([(3, 22, "random"), (3, 56, "random"), (2, 48, "parity")], range(3)):
+        yield dict(common, K=K, n_major=n_major, partition=partition, optimizer="adam", eta=1e-3, seed=seed,
+                   enum_policy="copies", algo="pg", level="copies-pg")
+
+
+def v3_t21():
+    """Prevention levers in the enumerable transformer environment: KL anchors and pass@k weighting."""
+    arms = [dict()] + [dict(enum_beta=b, enum_kl=d) for d in ("reverse", "forward") for b in (0.03, 0.3)]
+    arms += [dict(enum_passk=k) for k in (2, 4)]
+    tasks = [(3, 56, "random"), (2, 48, "parity")]
+    for (K, n_major, partition), algo, (optimizer, eta), arm, seed in itertools.product(
+            tasks, ("pg", "grpo"), (("adam", 1e-3), ("sgd", 0.3)), arms, range(10)):
+        yield dict(mode="enum", steps=2000, log_every=20, G=8, K=K, n_major=n_major, partition=partition,
+                   enum_policy="shared", algo=algo, optimizer=optimizer, eta=eta, seed=seed, level=f"shared-{algo}", **arm)
+
+
+def v3_a4():
+    """A4: T20's share effect under Adam (lr 1e-3, shared transformer, exact) on fresh partition seeds 10-29."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)] + [(2, n, "random") for n in (32, 40, 48, 56, 60)]
+    for (K, n_major, partition), algo, seed in itertools.product(tasks, ("pg", "grpo"), range(10, 30)):
+        yield dict(mode="enum", steps=2000, log_every=20, G=8, K=K, n_major=n_major, partition=partition,
+                   optimizer="adam", eta=1e-3, seed=seed, enum_policy="shared", algo=algo, level=f"shared-{algo}")
+
+
+def v3_t29():
+    """J: the T20 share grid under SGD at small step sizes (flow time matched to SGD 0.3 x 2,000 steps)."""
+    tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)]
+    for (K, n_major, partition), (eta, steps), algo, seed in itertools.product(
+            tasks, ((0.03, 20_000), (0.1, 6_000)), ("pg", "grpo"), range(10)):
+        yield dict(mode="enum", steps=steps, log_every=max(steps // 100, 1), G=8, K=K, n_major=n_major,
+                   partition=partition, optimizer="sgd", eta=eta, seed=seed, enum_policy="shared", algo=algo,
+                   level=f"shared-{algo}-sgd{eta}")
+
+
 def v3_t22():
     """Junk answers: two answer classes with prompts, and K - 2 tokens that are never correct."""
     for K, arch, update, task_seed, m in itertools.product(
@@ -517,6 +562,61 @@ def v3_t26():
                    branch_at=[0, 0.1, 0.5], level=f"{arch}-rho{rho}-k{k}")
 
 
+REPLICATION_SEEDS = list(range(10, 30))
+
+
+def fresh(jobs, keep=lambda job: True):
+    """The task-0 jobs of a grid that pass `keep`, repeated on task seeds 10-29 (fresh tasks)."""
+    for job in jobs:
+        if job["task_seed"] == 0 and keep(job):
+            for task_seed in REPLICATION_SEEDS:
+                yield dict(job, task_seed=task_seed)
+
+
+def v3_a1():
+    """A1: P1 (absorption rises with the majority share) on fresh tasks."""
+    yield from fresh(v3_t1())
+
+
+def v3_a2():
+    """A2: forward-KL floor on fresh tasks (no anchor and forward KL at beta 0.03, 0.1, 0.3)."""
+    yield from fresh(v3_t17(), lambda j: j["beta"] == 0 or (j["kl"] == "forward" and j["beta"] in (0.03, 0.1, 0.3)))
+
+
+def v3_a3():
+    """A3: pass@4 protection at matched progress on fresh tasks (GRPO, pass@4 and its unbiased form)."""
+    yield from fresh(v3_t16(), lambda j: j["rule"] == "grpo" or j["passk"] == 4)
+
+
+def v3_a5():
+    """A5: warm start p0 = 0.5 against the uniform start at m = 0.7, on fresh tasks."""
+    yield from fresh(v3_t23(), lambda j: j["majority"] == 0.7 and (j["init"] == "uniform" or j.get("p0") == 0.5))
+
+
+def v3_t27():
+    """G: forward KL toward a collapsed reference. The anchor is the policy at 0.5%, 5% or 25% of training;
+    controls: no anchor, and forward KL toward the start policy (as in T17)."""
+    for arch, task_seed in itertools.product(("linear", "mlp"), TASK_SEEDS):
+        base = dict(t1_base(arch, 0.9, 0.9, task_seed), optimizer="sgd", eta=0.1, update="expected_full",
+                    steps=20_000, log_every=100, snapshot_every=20_000, track_every=5)
+        yield dict(base, level=f"{arch}-control")
+        for beta in (0.01, 0.1, 1):
+            yield dict(base, beta=beta, kl="forward", level=f"{arch}-start-anchor")
+            for anchor_at in (0.005, 0.05, 0.25):
+                yield dict(base, anchor_at=anchor_at, anchor_beta=beta, anchor_kl="forward", level=f"{arch}-late-anchor")
+
+
+def v3_t28():
+    """H: Adam's epsilon. Large epsilon removes the per-coordinate normalisation (Adam tends to momentum SGD
+    with step eta/eps), so the learning rate grows with epsilon to keep progress comparable. Control: SGD."""
+    arms = [("adam", max(1e-3, 0.1 * eps), eps) for eps in (1e-8, 1e-5, 1e-3, 1e-2, 1e-1, 1.0)] + [("sgd", 0.1, 1e-8)]
+    for arch, rho, m, (optimizer, eta, eps), task_seed in itertools.product(
+            ("linear", "mlp"), (0.5, 0.9), (0.7, 0.9), arms, TASK_SEEDS):
+        yield dict(t1_base(arch, rho, m, task_seed), optimizer=optimizer, eta=eta, adam_eps=eps,
+                   update="expected_full", steps=10_000, log_every=100, snapshot_every=10_000, track_every=5,
+                   level=f"{arch}-rho{rho}-{optimizer}")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -528,10 +628,15 @@ BATCHES = {
     "v3e": [("v3_t15", v3_t15)],
     "v3f": [("v3_t16", v3_t16)],
     "v3g": [("v3_t17", v3_t17), ("v3_t18", v3_t18), ("v3_t19", v3_t19)],
+    "v3h": [("v3_t20", v3_t20)],
+    "v3i": [("v3_t21", v3_t21)],
+    "v3q": [("v3_a4", v3_a4), ("v3_t29", v3_t29)],
     "v3j": [("v3_t22", v3_t22)],
     "v3k": [("v3_t23", v3_t23)],
     "v3l": [("v3_t24", v3_t24)],
     "v3n": [("v3_t26", v3_t26)],
+    "v3o": [("v3_a1", v3_a1), ("v3_a2", v3_a2), ("v3_a3", v3_a3), ("v3_a5", v3_a5)],
+    "v3p": [("v3_t27", v3_t27), ("v3_t28", v3_t28)],
 }
 
 

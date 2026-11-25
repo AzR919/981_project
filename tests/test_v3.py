@@ -260,6 +260,28 @@ class SharedSkillTests(unittest.TestCase):
         self.assertTrue((plain[1] == again[1]).all())                          # default unchanged
 
 
+class AnchorAndEpsTests(unittest.TestCase):
+    def test_late_anchor_switches_on_and_holds_the_policy(self):
+        base = config(arch="linear", features="correlated", rho=0.9, majority=0.9, K=3, n_train=64, n_test=8,
+                      diagnostics=False, optimizer="sgd", eta=0.1, update="expected_full", steps=400, log_every=100,
+                      snapshot_every=400)
+        plain = run.run_train(dict(base))
+        held = run.run_train(dict(base, anchor_at=0.25, anchor_beta=100.0, anchor_kl="forward"))
+        self.assertEqual(held["anchor_step"], 100)
+        same = [h for h in held["history"] if h["step"] <= 100]
+        self.assertEqual(same, [h for h in plain["history"] if h["step"] <= 100])   # identical before
+        at = next(h for h in held["history"] if h["step"] == 100)["class_mean"]
+        end = held["history"][-1]["class_mean"]
+        self.assertAlmostEqual(end[1], at[1], delta=0.02)                           # pinned after
+        with self.assertRaises(ValueError):
+            run.run_train(dict(base, anchor_at=0.25))
+
+    def test_adam_eps_reaches_the_optimizer(self):
+        _, _, _, policy = run.build(config(arch="linear", K=3, n_train=8, n_test=4, diagnostics=False))
+        opt = run.make_optimizer(dict(run.DEFAULTS, optimizer="adam", eta=1e-3, adam_eps=0.5), policy)
+        self.assertEqual(opt.param_groups[0]["eps"], 0.5)
+
+
 class SnapshotAtTests(unittest.TestCase):
     def test_extra_snapshots_are_stored_and_the_run_is_unchanged(self):
         base = config(arch="linear", features="correlated", rho=0.9, majority=0.9, L=1, n_train=64, n_test=8, eta=0.1,
