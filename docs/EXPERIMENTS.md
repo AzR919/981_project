@@ -14,8 +14,14 @@ The raw results are not in git. Each batch is packed as one archive, `<batch>_ra
 `<batch>_MANIFEST.txt` next to it (file count, result-file count, hosts, launch commit and job digest, archive
 size, SHA-256).
 
-- **Shared drive:** LINK TO BE ADDED
-- **Archives and manifests:** LINK TO BE ADDED (folder `rlvr-share/`; its `README.txt` explains the layout)
+- **Google Drive (all raw results, one zip):** [CMPT981_raw_results_2026-11-25.zip](https://drive.google.com/file/d/1_CJhksy4fW8L8Y7cFIobi8Q5NaFyZX9p/view?usp=sharing)
+  (1.75 GB). Access is by request: open the link and click "Request access"; Ankush approves.
+  - It holds the folder `rlvr-share/`: all 23 per-batch archives (`<batch>_raw.tar.gz`, LLM runs included,
+    model checkpoints excluded), one `<batch>_MANIFEST.txt` each, and a `README.txt` explaining the layout.
+  - Check the download: `shasum -a 256 CMPT981_raw_results_2026-11-25.zip` should print
+    `56f8023713002c67c3e385d247bf43a41c8369ca6fbf3b764b2c10dbff40c01e`. Each inner archive's SHA-256 is in its
+    manifest.
+  - Unpack: `unzip CMPT981_raw_results_2026-11-25.zip`, then `tar -xzf rlvr-share/<batch>_raw.tar.gz`.
 - **Ankush's laptop:** `~/rlvr-data/<batch>/`, and `~/rlvr-data/lab_home/<batch>/` (a copy of the lab results
   for base, stretch, v3a–v3f and llm).
 - **SFU lab network home** (user `asa715`): `~/rlvr_results/<batch>/<host>/`, one folder per lab machine
@@ -285,4 +291,4 @@ and are not indexed as experiments.
 - `analysis/FINAL_RESULTS.md`.
 - Report outline, figures script, LaTeX skeleton.
 - Team writes, Claude fact-checks.
-- Raw-archive links (replace every LINK TO BE ADDED above).
+- ~~Raw-archive links~~: done 11-25 (Google Drive, access by request).
