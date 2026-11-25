@@ -30,7 +30,7 @@ def task_arrays(cfg):
     return np.asarray(train[0], dtype=float), np.asarray(train[1][:, 0]), full["K"], full
 
 
-def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10):
+def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10, method="LSODA"):
     """Integrate from a uniform start (W = 0) to each tau in `taus` (increasing). Returns per-prompt
     log-success (n_taus x n) and the class labels."""
     phi, c, K, full = task_arrays(cfg)
@@ -50,7 +50,7 @@ def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10):
 
     W0 = tau0 * rhs_tau(np.zeros(K * d))   # one tiny Euler step from W = 0, then log time
     us = np.log(np.asarray(taus, dtype=float))
-    sol = solve_ivp(rhs_u, (np.log(tau0), us[-1]), W0, t_eval=us, method="LSODA", rtol=rtol, atol=atol)
+    sol = solve_ivp(rhs_u, (np.log(tau0), us[-1]), W0, t_eval=us, method=method, rtol=rtol, atol=atol)
     if not sol.success:
         raise RuntimeError(sol.message)
     logp = np.stack([log_softmax(phi @ Wt.reshape(K, d).T, axis=1)[np.arange(n), c] for Wt in sol.y.T])
