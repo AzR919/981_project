@@ -173,3 +173,62 @@ Everything else goes in an appendix or is left out:
    - Ankush: mechanism, levers, LLM;
    - Simon: H1/H2 and the transformer environment;
    - Azaan: introduction, theory (odds law), related work, synthesis.
+
+---
+
+## 5. Against the original plan (milestone + `TODO.md` + guide), toy only
+
+Decision (2026-11-25): the LLM work is set aside for now. This section covers only what the milestone,
+`TODO.md` sections 1–3 and `docs/project_guide.html` planned. Sources: `analysis/base/FINDINGS.md` (the H1–H5
+batch, about 17k runs), `analysis/stretch/FINDINGS.md`, `analysis/phase_a/`, `analysis/v3a`–`v3g`.
+
+### Hypotheses (milestone section 3)
+
+| | Planned | Done? | Result |
+|---|---|---|---|
+| **H1** | The identity E[ĝ] = W_G(p)∇p holds at finite G, in every configuration. Rules whose W_G differ by a constant match after rescaling the step (RLOO at η = mean-only at ηG/(G−1); GRPO = RLOO at G = 2) | Identity: **yes.** Rescaling equivalence: **not run** as a same-seed trajectory test | **Holds.** 414 runs comparing full vectors (mean, RLOO, GRPO, pass@k; tab/lin/m64; L = 1, 2, 4; G = 2–32): median z² ≈ 0.93–0.98, cosine ≥ 0.989. The calibrated tighter test (T7) is not rejected. Simon's norm plots (tabular; MLP code added, plots pending) give the figure. Known result (Davis & Recht) |
+| **H2** | Group size alone moves GRPO's surrogate from p (G = 2) toward 2 arcsin√p. Per-prompt progress follows W_G(p) (warm-started MLP, mixed difficulty) | **Yes** | **Holds without sharing.** Tabular runs sit on the W_G line (slope 1.000, R² 1.000). λ(G) = 0, 0.015, 0.22, 0.63 at G = 2, 4, 16, 64, matching exact theory. **With sharing, more than 90% of a prompt's drift comes from other prompts,** so its own W_G no longer sets its progress; the full shared drift explains it (R² 0.999) |
+| **H3** (main) | Stability is set by one effective step s = ηW_G p(1−p)/B, together with interference. Collapse plot: absorbed fraction against s̄ × interference. Grid: η, B, G (fixed-budget pairs), rule, L, sharing levels | **Yes,** 13,608 runs over the full planned grid (6 sharing levels × L × 7 (B, G) pairs × 3 rules × 12 η × 3 seeds) | **The single-variable claim fails:** no candidate lines up the levels (off by up to 4.7 decades on held-out levels). **Tabular never loses a prompt** (2,268 runs, 0 decreases). With sharing, absorption has two routes: (1) large per-prompt kicks η/B at small batches; (2) at correlated features, collapse already at the smallest η, which turned out to be minority-answer collapse. Route 2 became the main result (P1 and T11–T18; section 2 above) |
+| **H4** | (a) KL sets where training stops: the finite-G p\*, reverse and forward. (b, c) KL raises the stability threshold, more so for forward KL | **Yes** | **(a) Holds:** median error 1e-4 over 960 runs, both directions; the guide's 0.109 reproduced. **(b) Fails:** the spread did not scale as η/β. New: at G ≥ 16, with a low reference, there are two stable resting points, and SGD lands on the side of the unstable root it starts on (60 of 60). **(c) Forward vs. reverse** answered on the minority task instead: forward KL prevents absorption at far smaller β than reverse (T17, T18) |
+| **H5** | Group size, budget N = BG and escape from p ≈ 0, as a separate study (p₀ × G under fixed budget, tabular then shared) | **Yes** | The first best-G table was a tie-break artefact. With a wide enough η grid, the best G is 2 almost everywhere, often with η at the grid edge, so it's undetermined. Group size does not move the collapse threshold (T19). Fixes for all-wrong groups (Heckel) help only at small steps (T9). Bay & Yearick's group-size law checked against exact theory (Phase A) |
+
+Other promises in the milestone's synthesis:
+- **Heckel weights as a test of the absorption mechanism:** done (T9). They help at small η only.
+- **Huang et al.'s reference resets:** dropped, because their collapse needs graded rewards.
+- **The arcsin shift:** delivered (λ(G), above).
+
+### Code planned in `TODO.md` section 3
+
+| Item | Status |
+|---|---|
+| Tabular parameterization, reproducing `main.py` at L = 1 | ✅ Simon (`architecture="linear"` + one-hot prompts); `tests/test_tabular_bandit.py` passes |
+| Warm-start to a target p₀, before the `Trainer` is built | ✅ `synthetic_rl/warmstart.py`; `sft_up`, `sft_down`, `sft_mixed` and tabular p₀ in `experiments/run.py` |
+| Exact W_G(p) and diagnostics (per-prompt p, gradient overlap, absorbed fraction, informative fraction) | ✅ `synthetic_rl/theory.py` and the run logs (cross-share, absorption at several thresholds, persistent absorption) |
+| Pass@k rules (RLOO_k, GRPO_k) | ✅ `passk2`, `passk4`, `rloo_k` |
+| Forward KL alongside reverse | ✅ |
+| Sweep runner (configs in, per-prompt logs out, seeds, SGD) | ✅ `experiments/run.py`, `experiments/grids.py` |
+| Plotting script for the collapse plots | ✅ `experiments/analyze*.py` (figures under `analysis/*/figures`) |
+| Cluster scripts | ✅ for the SFU lab machines (`cluster/`), not DRAC |
+| Tests for the new options | ✅ (`tests/`) |
+
+### Decisions planned in `TODO.md`
+
+- **Keep H2 or H5 if time is short:** both were kept.
+- **Default task size:** base batch K = 4, L ∈ {1, 2, 4}, d = 16; the v3 batches use L = 1, K = 3.
+- **Symbol for response length:** L in the code. Still to fix in the report.
+- **Optimizer:** plain SGD as planned, with ≥ 3 seeds. Adam was added later as a second arm.
+
+### Housekeeping still open
+
+- `torch` is not pinned in `requirements.txt`.
+- The commented-out `logits` and `log_ref` lines are still in `main.py`.
+- The pilot scripts were not moved into the repo (`run_pilot.py` is at the root).
+
+### In short
+
+Everything the plan asked for was run on the planned toy. The verifications (H1, H2, H4(a)) hold.
+The main hypothesis (H3) failed as stated, and following its interference half led to the
+minority-collapse result, which goes beyond the plan. Still missing from the plan:
+- the H1 rescaling equivalence as a trajectory test;
+- Simon's MLP plots;
+- the housekeeping items.
