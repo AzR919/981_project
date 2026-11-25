@@ -49,6 +49,55 @@ test decides.
 - `check_fall.py` gained `--batches`, `--tag` and `--linear-sgd` for the held-out run. `fall_ode.py` is unchanged
   since `afef9a4`.
 
-## Part 2: held-out test on v3o
+## Part 2: held-out test on v3o (the test that counts)
 
-To be added after the held-out predictions are committed and compared (`fall_*_heldout.*`).
+Order of events:
+- Predictions for the 1,360 in-scope v3o runs were made from configurations and starting success only. Scope:
+  linear policy, exact update, SGD, β = 0.
+- They were committed (`9421c44`) before any v3o outcome was read, with the model unchanged since `afef9a4`.
+- Tables: `fall_compare_heldout.md`, `fall_runs_heldout.csv`.
+
+| Test (pass if) | v3_a1, P1 grid (1,280 runs) | v3_a2, β = 0 arm (40) | v3_a5, warm start (40) |
+|---|---|---|---|
+| P1 depth rank (≥ 0.8) | **0.755: fails** | 0.992 | 0.972 |
+| P2 level (within ±0.5 decades) | 0.10 | 0.18 | 0.15 |
+| P3 within cell (≥ 0.5) | 0.94 | 0.97 | 0.89 |
+| P4 absorbed or not (≥ 0.85) | 0.879 | 1.000 | 1.000 |
+| P6 per prompt (≥ 0.6) | 0.99 (879 runs) | 1.00 | 1.00 |
+| P5 analogue: threshold in m, within one grid step (≥ 5 of 6 cells; here 16 cells) | 15 of 16 | — | — |
+
+**Verdict as registered:** the model passes every rule on two of the three grids. On the P1 grid it passes P2–P6,
+and the P5 analogue, but **fails P1**.
+
+**Why P1 fails: step size.** This breakdown is reported in addition; it does not change the registered verdict. The
+P1 grid is the only one with large SGD steps (η up to 30):
+
+| η | ≤ 1 (800 runs) | 3 | 10 | 30 |
+|---|---|---|---|---|
+| Depth Spearman | 0.988 | 0.908 | 0.905 | 0.866 |
+| Median error (decades) | +0.03 to +0.07 | +1.07 | +8.25 | +31.8 |
+| Absorbed accuracy | 0.93–0.96 | 0.93 | 0.73 | 0.61 |
+
+The model is the small-step (gradient-flow) limit, with no step size in it. With η ≥ 3, discrete SGD overshoots and
+falls far deeper than the flow, and the model predicts falls that are too shallow. The registered scope did not
+exclude large steps. That was an oversight: the model's own derivation assumes the flow limit.
+
+## Reading
+
+- **Within its own regime, the small-step flow, the class-level model predicts the minority's fall on unseen tasks.**
+  Depth rank is 0.99, the level is right to within a tenth of a decade, which runs collapse is right 95% of the
+  time, prompt order within a run is 0.99, and the collapse threshold in the majority share is right in 15 of 16
+  cells. It has no fitted parameter.
+- **Outside that regime (η ≥ 3) it fails, in the predicted direction:** large discrete steps add a fall the flow
+  does not have.
+- **For the report:** "the fall theory is supported out of sample in the flow regime (exploratory; the registered
+  rank test failed on the full grid because of large-step runs)." Not "the fall is fully explained".
+
+## Deviations (part 2)
+
+- **Scope narrowed:** the held-out scope (`PREREG_fall_heldout.md`) named the linear exact-update runs of `v3_a1`,
+  `v3_a2` (β = 0) and `v3_a5`. We also restricted to SGD (excluding Adam, about which the model says nothing) and to
+  β = 0 in `v3_a1`. This was decided before reading outcomes, by `--linear-sgd`.
+- **P5 adapted:** P5 was defined on v3e. Its held-out analogue is the same threshold rule per (ρ, η) cell of
+  `v3_a1`, with 16 cells instead of 6.
+- **The step-size breakdown** is post hoc and reported only as an explanation.
