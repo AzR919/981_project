@@ -2,8 +2,13 @@
 
 Every experiment in the project's experiment index (`docs/EXPERIMENTS.md`), written up in the format of
 `docs/Simon.md`: why it was run, what I did, the fixed settings, and the result with its status and a link to the full
-write-up. 81 entries, in the order they were run. Three pilots by Azaan and Simon are included for completeness and
+write-up. 82 entries, in the order they were run. Three pilots by Azaan and Simon are included for completeness and
 marked as theirs. The battery A tests (v3o) get one entry each, because each has its own grid and statistic.
+
+**Promised vs extra:** every entry carries a scope line. Search this page for `Scope: Promised`, `Scope: Core follow-up` or `Scope: Extra` to filter.
+- **Promised** (21): in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+- **Core follow-up** (31): not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+- **Extra** (30): beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Shared conventions:**
 - **Toy simulator defaults** (`DEFAULTS` in `experiments/run.py`): $K = 3$, $d = 16$ Gaussian features, answers set
@@ -22,97 +27,100 @@ marked as theirs. The battery A tests (v3o) get one entry each, because each has
 ## Contents
 
 **Part 1: pilots, the milestone batches and the first pre-registered tests** (31 entries)
-- Guide §7 pilots: does the framework point at something real?
-- p₀ pilot: group size against starting success
-- H1 gradient-norm check: a visual test of the H1 identity
-- H1: the advantage-gap identity
-- H2: does sharing distort the finite-G surrogate?
-- H3: one effective step, sharing and absorption
-- H4: KL fixed points, fluctuations and the threshold
-- H5: group size at a fixed budget and escape from low p₀
-- S_H1: H1 with a calibrated null and the projected bias
-- S_DRIFT: drift or noise?
-- S_PRED: predicting which prompts are absorbed
-- S_ABL: which condition of the tabular proposition matters?
-- S_EQ: two stable KL fixed points
-- A1: GRPO's weight between the mean rule and the arcsin surrogate
-- A4: lost problems and coverage
-- BAY: Bay and Yearick's group-size law
-- ADAM: absorption time against η under Adam
-- A2, A3, A6: re-scored ablations, H4 slopes, Barakat write-up
-- T1 / P1: imbalance at fixed geometry
-- T2 / P2: kick size against response noise
-- T4: H5 rerun with a deterministic tie-break
-- T6: tabular ablations under realistic training
-- T8: KL bistability without noise
-- T5 / P3: does initial drift predict absorption on balanced tasks?
-- T7: bootstrap null for the H1 medium tier
-- T9: all-wrong-group fixes
-- T1 seed 1: P1 with a second initialisation
-- T2 groups: does the B = 8 noise excess shrink with G?
-- T6 KL: declines toward or below the reference
-- T4 edge: wider η for the T4 grid-edge cells
-- T10: pass@k training rules
+- Guide §7 pilots: does the framework point at something real? — *Promised*
+- p₀ pilot: group size against starting success — *Promised*
+- H1 gradient-norm check: a visual test of the H1 identity — *Promised*
+- H1: the advantage-gap identity — *Promised*
+- H2: does sharing distort the finite-G surrogate? — *Promised*
+- H3: one effective step, sharing and absorption — *Promised*
+- H4: KL fixed points, fluctuations and the threshold — *Promised*
+- H5: group size at a fixed budget and escape from low p₀ — *Promised*
+- S_H1: H1 with a calibrated null and the projected bias — *Promised*
+- S_DRIFT: drift or noise? — *Promised*
+- S_PRED: predicting which prompts are absorbed — *Promised*
+- S_ABL: which condition of the tabular proposition matters? — *Promised*
+- S_EQ: two stable KL fixed points — *Promised*
+- A1: GRPO's weight between the mean rule and the arcsin surrogate — *Promised*
+- A4: lost problems and coverage — *Extra*
+- BAY: Bay and Yearick's group-size law — *Promised*
+- ADAM: absorption time against η under Adam — *Extra*
+- A2, A3, A6: re-scored ablations, H4 slopes, Barakat write-up — *Promised*
+- T1 / P1: imbalance at fixed geometry — *Core follow-up*
+- T2 / P2: kick size against response noise — *Core follow-up*
+- T4: H5 rerun with a deterministic tie-break — *Promised*
+- T6: tabular ablations under realistic training — *Core follow-up*
+- T8: KL bistability without noise — *Promised*
+- T5 / P3: does initial drift predict absorption on balanced tasks? — *Core follow-up*
+- T7: bootstrap null for the H1 medium tier — *Promised*
+- T9: all-wrong-group fixes — *Promised*
+- T1 seed 1: P1 with a second initialisation — *Core follow-up*
+- T2 groups: does the B = 8 noise excess shrink with G? — *Core follow-up*
+- T6 KL: declines toward or below the reference — *Core follow-up*
+- T4 edge: wider η for the T4 grid-edge cells — *Promised*
+- T10: pass@k training rules — *Core follow-up*
 
-**Part 2: mechanism, theory, levers, the transformer environment and the final phase** (33 entries)
-- T12 (v3d): plateau or permanent
-- T13 (v3d): projection control
-- M2 (v3d addendum): is the minority still sinking at 10× the horizon?
-- M4 (v3d addendum): imbalance or margin?
-- T15 (v3e): threshold in class share
-- T16 (v3f): pass@k at matched progress
-- T17 (v3g): KL anchor on the minority task
-- T18 (v3g): release test
-- T19 (v3g): group size and the threshold
-- T20 (v3h): correct minority in Li, Pandey and Chen's environment
-- T21 (v3i): levers in the transformer environment
-- T22 (v3j): junk answers
-- v3j2: rerun of lost T22 runs
-- T23 (v3k): class-balanced warm start
-- T24 (v3l): the late phase, prompt by prompt
-- Odds law (theory check)
-- Lean proofs (theory check)
-- SymPy checks (theory check)
-- Late-time probe (theory check)
-- Optimizer geometry (theory check)
-- Fall model (theory check)
-- wsw: replication of Li, Pandey and Chen
-- wsw2: replication, seeds 5–9
-- T25 (v3m): exact long-time flow
-- T26 (v3n): shared skills
-- A1 (v3o): P1 on fresh tasks
-- A2 (v3o): forward-KL floor on fresh tasks
-- A3 (v3o): pass@4 at matched progress on fresh tasks
-- A5 (v3o): warm start on fresh tasks
-- G (v3p, T27): forward KL toward a collapsed reference
-- H (v3p, T28): Adam's epsilon
-- A4 (v3q): T20's share effect on fresh seeds
-- J (v3q, T29): transformer environment under small-step SGD
+**Part 2: mechanism, theory, levers, the transformer environment and the final phase** (34 entries)
+- T11 (v3d): who pushes whom — *Core follow-up*
+- T12 (v3d): plateau or permanent — *Core follow-up*
+- T13 (v3d): projection control — *Core follow-up*
+- M2 (v3d addendum): is the minority still sinking at 10× the horizon? — *Core follow-up*
+- M4 (v3d addendum): imbalance or margin? — *Core follow-up*
+- T15 (v3e): threshold in class share — *Core follow-up*
+- T16 (v3f): pass@k at matched progress — *Core follow-up*
+- T17 (v3g): KL anchor on the minority task — *Core follow-up*
+- T18 (v3g): release test — *Core follow-up*
+- T19 (v3g): group size and the threshold — *Core follow-up*
+- T20 (v3h): correct minority in Li, Pandey and Chen's environment — *Extra*
+- T21 (v3i): levers in the transformer environment — *Extra*
+- T22 (v3j): junk answers — *Core follow-up*
+- v3j2: rerun of lost T22 runs — *Core follow-up*
+- T23 (v3k): class-balanced warm start — *Core follow-up*
+- T24 (v3l): the late phase, prompt by prompt — *Core follow-up*
+- Odds law (theory check) — *Core follow-up*
+- Lean proofs (theory check) — *Extra*
+- SymPy checks (theory check) — *Extra*
+- Late-time probe (theory check) — *Core follow-up*
+- Optimizer geometry (theory check) — *Extra*
+- Fall model (theory check) — *Core follow-up*
+- wsw: replication of Li, Pandey and Chen — *Extra*
+- wsw2: replication, seeds 5–9 — *Extra*
+- T25 (v3m): exact long-time flow — *Core follow-up*
+- T26 (v3n): shared skills — *Extra*
+- A1 (v3o): P1 on fresh tasks — *Core follow-up*
+- A2 (v3o): forward-KL floor on fresh tasks — *Core follow-up*
+- A3 (v3o): pass@4 at matched progress on fresh tasks — *Core follow-up*
+- A5 (v3o): warm start on fresh tasks — *Core follow-up*
+- G (v3p, T27): forward KL toward a collapsed reference — *Core follow-up*
+- H (v3p, T28): Adam's epsilon — *Extra*
+- A4 (v3q): T20's share effect on fresh seeds — *Extra*
+- J (v3q, T29): transformer environment under small-step SGD — *Extra*
 
 **Part 3: small language models** (17 entries)
-- C0: pilot runs before the census
-- Model probes: which models fit one GPU
-- Census calibration: what an unchanged model looks like
-- Llama calibration: learning rate and pool for the second family
-- C1 Qwen / P4: does GRPO lose problems beyond the null?
-- C1 Llama: the second family
-- C1 control: are the held-out declines specific to GRPO?
-- C5: the toy's loss drivers in the LLM
-- C2 / P5: does a majority procedure collapse a minority procedure?
-- C2 matched minority: majority pressure or minority sample count?
-- C2 seed replication of the degraded run
-- C2 extras: samples per step, a long run, and a supervised control
-- SmolLM2 diagnostic: why the SmolLM2 pilots collapsed
-- C10: who pushes whom in the LLM
-- C9: token-level loss aggregation
-- C7 / C8: the KL penalty in the LLM
-- C3 and C11: planned, not run
+- C0: pilot runs before the census — *Extra*
+- Model probes: which models fit one GPU — *Extra*
+- Census calibration: what an unchanged model looks like — *Extra*
+- Llama calibration: learning rate and pool for the second family — *Extra*
+- C1 Qwen / P4: does GRPO lose problems beyond the null? — *Extra*
+- C1 Llama: the second family — *Extra*
+- C1 control: are the held-out declines specific to GRPO? — *Extra*
+- C5: the toy's loss drivers in the LLM — *Extra*
+- C2 / P5: does a majority procedure collapse a minority procedure? — *Extra*
+- C2 matched minority: majority pressure or minority sample count? — *Extra*
+- C2 seed replication of the degraded run — *Extra*
+- C2 extras: samples per step, a long run, and a supervised control — *Extra*
+- SmolLM2 diagnostic: why the SmolLM2 pilots collapsed — *Extra*
+- C10: who pushes whom in the LLM — *Extra*
+- C9: token-level loss aggregation — *Extra*
+- C7 / C8: the KL penalty in the LLM — *Extra*
+- C3 and C11: planned, not run — *Extra*
 
 ---
 
 # Part 1: pilots, the milestone batches and the first pre-registered tests
 
 ## Guide §7 pilots: does the framework point at something real?
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 *Run by Azaan (`docs/project_guide.html` §7); listed here for completeness.*
 
@@ -145,6 +153,8 @@ A step-size threshold exists. Failure is absorption: end states are bimodal, wit
 
 ## p₀ pilot: group size against starting success
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 *Run by Simon (`run_pilot.py`); listed here for completeness.*
 
 **Why:** Simon's first look at how $G$ and the starting success $p_0$ affect GRPO, the question that became H5.
@@ -174,6 +184,8 @@ A step-size threshold exists. Failure is absorption: end states are bimodal, wit
 No write-up found; see `run_pilot.py`. Exploratory.
 
 ## H1 gradient-norm check: a visual test of the H1 identity
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 *Run by Simon (`experiments/h1.py`, written up in `docs/Simon.md`); listed here for completeness.*
 
@@ -206,6 +218,8 @@ The sampled norm tracks the predicted norm over the whole run for all three rule
 
 ## H1: the advantage-gap identity
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** The milestone's identity $\mathbb{E}[\hat g] = W_G(p)\nabla p$ is the foundation of every later test, so we checked it on every rule, sharing level and group size.
 
 ### What I did
@@ -235,6 +249,8 @@ PASS on group medians (median ratio 0.97–0.99, cosine $\ge 0.989$). The litera
 
 ## H2: does sharing distort the finite-G surrogate?
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** Group size changes what GRPO optimises; we asked whether the measured change in $p$ still follows $W_G$ once prompts share parameters.
 
 ### What I did
@@ -263,6 +279,8 @@ PASS on group medians (median ratio 0.97–0.99, cosine $\ge 0.989$). The litera
 PASS. Tabular runs sit on the line ($R^2 = 1.000$); with sharing 93% (`lin`) and 97% (`m64`) of each prompt's drift comes from other prompts. The review noted H2 was run as a different question from the promised arcsin shift (done later in A1). See `analysis/base/sections/h2.md`.
 
 ## H3: one effective step, sharing and absorption
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 **Why:** The main milestone claim was that stability is set by one effective step $\bar s = (\eta/B)\,W_G\,p(1-p)$, and that only shared parameters lose prompts.
 
@@ -297,6 +315,8 @@ Tabular runs never lose a prompt (0 of 2,268 runs with any decrease; PASS). One 
 
 ## H4: KL fixed points, fluctuations and the threshold
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** To test where GRPO with a KL penalty settles (Mroueh; Vojnovic and Yun), how much it fluctuates, and whether KL moves the absorption threshold.
 
 ### What I did
@@ -323,6 +343,8 @@ Tabular runs never lose a prompt (0 of 2,268 runs with any decrease; PASS). One 
 (a) PASS: fixed points match to median error $10^{-4}$, and the guide value 0.109 is reproduced. (b) FAIL: slope 0.40 (forward) and 0.79 (reverse); at fixed $\beta$ the slope in $\eta$ is about 1. Known (Vojnovic and Yun). See `analysis/base/sections/h4.md`.
 
 ## H5: group size at a fixed budget and escape from low p₀
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 **Why:** The instructor asked for a separate group-size study: at a fixed sample budget, which $G$ escapes fastest from a low start?
 
@@ -353,6 +375,8 @@ PASS as computed (Spearman $-0.95$), but the review found the best-$G$ table was
 
 ## S_H1: H1 with a calibrated null and the projected bias
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** The base H1 per-run band was miscalibrated, so we reran H1 with more samples and tests that know their own noise.
 
 ### What I did
@@ -376,6 +400,8 @@ PASS as computed (Spearman $-0.95$), but the review found the best-$G$ table was
 Loose PASS. Medium FAIL (miss rate 0.034, but the split by $L$ has $\chi^2$ $p = 0.004$). Tight FAIL because 36 runs have a 95% CI that leaves $\pm 2\%$; no run has $|b_\parallel/\text{SE}| > 3.9$. No bias detected. See `analysis/stretch/sections/s_h1.md`.
 
 ## S_DRIFT: drift or noise?
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 **Why:** To find whether shared-parameter absorption is driven by the mean drift or by sampling noise.
 
@@ -406,6 +432,8 @@ Loose PASS. Medium FAIL (miss rate 0.034, but the split by $L$ has $\chi^2$ $p =
 
 ## S_PRED: predicting which prompts are absorbed
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** H3 stretch goal: can the step-0 predicted drift tell, within a run, which prompts will be absorbed?
 
 ### What I did
@@ -434,6 +462,8 @@ PASS on `c05`/`c09` (step-0 drift AUC 0.897/0.999), FAIL on the MLPs. The review
 
 ## S_ABL: which condition of the tabular proposition matters?
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** The tabular proposition says $p$ never falls under a deterministic verifier, a zero-sum rule and SGD; we broke one condition at a time.
 
 ### What I did
@@ -461,6 +491,8 @@ PASS on `c05`/`c09` (step-0 drift AUC 0.897/0.999), FAIL on the MLPs. The review
 PASS: the control never lowers $p$; a noisy verifier and the sign rule cause absorption (up to 35% and 27%). The review found the PASS over-credited: momentum and Adam "decreases" are round-off (max drop 0). See `analysis/stretch/sections/s_abl.md`.
 
 ## S_EQ: two stable KL fixed points
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 **Why:** H4 stretch goal: at $G \ge 16$ the KL fixed-point equation has two stable roots; does training land on the side it starts?
 
@@ -492,6 +524,8 @@ Bistability confirmed: the basin boundary sits at the predicted root and end sta
 
 ## A1: GRPO's weight between the mean rule and the arcsin surrogate
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** The milestone promised that GRPO's weight moves toward the $2\arcsin\sqrt p$ surrogate as $G$ grows; the review showed this was testable from existing data.
 
 ### What I did
@@ -514,6 +548,8 @@ $\lambda$ rises with $G$: 0, 0.015, 0.215, 0.627 at $G$ = 2, 4, 16, 64, matching
 
 ## A4: lost problems and coverage
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** To test coverage narrowing (Yue et al.) on existing toy data: does pass@1 rise while pass@64 falls?
 
 ### What I did
@@ -534,6 +570,8 @@ $\lambda$ rises with $G$: 0, 0.015, 0.215, 0.627 at $G$ = 2, 4, 16, 64, matching
 In every cell pass@1 rises (0.06 to 0.65) and pass@64 falls (−0.08 to −0.52). GRPO lowers pass@64 more than the mean rule in 10 of 10 pairs. Exploratory; some losses are overshoot. See `analysis/phase_a/A4.md`.
 
 ## BAY: Bay and Yearick's group-size law
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 **Why:** To check a published group-size law against our exact $W_G$, our learned policies and our speed results.
 
@@ -557,6 +595,8 @@ Our identity gives their fidelity exactly; the law is within 0.01–0.05 of meas
 
 ## ADAM: absorption time against η under Adam
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** The review listed the Adam timing fit as never run: is Adam absorption drift-driven (time $\propto 1/\eta$)?
 
 ### What I did
@@ -578,6 +618,8 @@ Slope about $-1$ for `c05` and `c09` under Adam ($-0.95$ to $-0.99$, 13 points e
 
 ## A2, A3, A6: re-scored ablations, H4 slopes, Barakat write-up
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** Planned in `NEXT_PLAN.md` Phase A: re-score the ablations with a material-drop threshold, report H4 fixed-$\beta$ slopes, and write up the Barakat test from H2.
 
 ### What I did
@@ -595,6 +637,8 @@ Slope about $-1$ for `c05` and `c09` under Adam ($-0.95$ to $-0.99$, 13 points e
 No write-up; `HANDOFF.md` notes "A3 needs one sentence in the report".
 
 ## T1 / P1: imbalance at fixed geometry
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** The review found `c05`/`c09` absorption was minority-answer collapse. P1 asks whether the majority share $m$ itself causes it when the feature geometry is held fixed.
 
@@ -629,6 +673,8 @@ Confirmatory PASS in 16/16 cells. Absorption takes the whole minority set, at sm
 
 ## T2 / P2: kick size against response noise
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** The review said the "batch noise" result was really per-kick size $\eta/B$. P2 tests this at equal mean drift.
 
 ### What I did
@@ -658,6 +704,8 @@ Confirmatory FAIL. Kick size matters in 3 of 4 levels (Spearman −0.87, −0.72
 
 ## T4: H5 rerun with a deterministic tie-break
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** The review found the H5 best-$G$ table was a tie-break artefact with $\eta$ at the grid edge.
 
 ### What I did
@@ -684,6 +732,8 @@ Confirmatory FAIL. Kick size matters in 3 of 4 levels (Spearman −0.87, −0.72
 Tabular GRPO's best $G$ is 2 at every $p_0$ (CIs within {2, 4}), but often at the $\eta$-grid edge, so a saturation point. Shared levels: 2–8, wide CIs. Exploratory. See `analysis/v3a/SUMMARY.md`.
 
 ## T6: tabular ablations under realistic training
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** To learn which realistic training conditions (momentum, clipping, Adam, KL, PPO epochs) break the tabular "no decrease" result.
 
@@ -712,6 +762,8 @@ No drops with PPO clipping or batch reuse (both predicted to drop), so the predi
 
 ## T8: KL bistability without noise
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** To see whether the deterministic expected update can switch KL basins on its own, or whether S_EQ's switching needs sampling noise.
 
 ### What I did
@@ -739,6 +791,8 @@ No drops with PPO clipping or batch reuse (both predicted to drop), so the predi
 PASS: 60/60 runs at $\eta \le 3$ end in the predicted basin, and 99/99 overall stay on their starting side, even at $\eta = 10$. Switching needs sampling noise. See `analysis/v3a/SUMMARY.md`.
 
 ## T5 / P3: does initial drift predict absorption on balanced tasks?
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** The review found the S_PRED drift predictor no better than answer rarity. P3 tests it on balanced tasks, beyond rarity and $p_{\text{init}}$.
 
@@ -771,6 +825,8 @@ Confirmatory FAIL: $\Delta$AUC 0.009 (CI 0.004–0.014), below the 0.03 bar. Pos
 
 ## T7: bootstrap null for the H1 medium tier
 
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
+
 **Why:** The S_H1 medium tier failed; T7 checks whether a bootstrap null is calibrated before using it.
 
 ### What I did
@@ -794,6 +850,8 @@ Confirmatory FAIL: $\Delta$AUC 0.009 (CI 0.004–0.014), below the 0.03 bar. Pos
 PASS: the null is calibrated (tabular KS $p = 0.73$); `lin` KS $p = 0.84$, `m64` 0.055. Exploratory. See `analysis/v3b/SUMMARY.md`.
 
 ## T9: all-wrong-group fixes
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 **Why:** A milestone promise and the only causal test of the absorption mechanism: do rules that give all-wrong groups a gradient protect minority prompts?
 
@@ -821,6 +879,8 @@ Prediction too strong. Heckel cuts minority collapse 0.102 → 0.059 at $\eta = 
 
 ## T1 seed 1: P1 with a second initialisation
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** Follow-up (a) to P1: does the MLP result depend on the init seed?
 
 ### What I did
@@ -841,6 +901,8 @@ Prediction too strong. Heckel cuts minority collapse 0.102 → 0.059 at $\eta = 
 P1 replicates in 8/8 MLP cells. Exploratory. See `analysis/v3b/SUMMARY.md`.
 
 ## T2 groups: does the B = 8 noise excess shrink with G?
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** Follow-up (b) to P2: the response-noise excess appeared only at $B = 8$; does a larger group remove it?
 
@@ -865,6 +927,8 @@ Yes: the excess shrinks as $G$ grows (Spearman −0.33, $p = 5\times10^{-10}$). 
 
 ## T6 KL: declines toward or below the reference
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** Follow-up (c): T6's KL prediction could not be tested because the running maximum of $p$ was not logged.
 
 ### What I did
@@ -887,6 +951,8 @@ Yes: the excess shrinks as $G$ grows (Spearman −0.33, $p = 5\times10^{-10}$). 
 KL runs drop below $p_{\text{ref}}$ only at $\eta \ge 30$; the control never falls from a peak. Exploratory. See `analysis/v3b/SUMMARY.md`.
 
 ## T4 edge: wider η for the T4 grid-edge cells
+
+**Scope: Promised** — in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
 
 **Why:** Follow-up (d): many T4 optima sat at the top of the $\eta$ grid.
 
@@ -912,6 +978,8 @@ KL runs drop below $p_{\text{ref}}$ only at $\eta \ge 30$; the control never fal
 Best $G$ stays 2 (`lin` at $p_0 = 0.01$: 4); most former edge cells now have an interior optimum. Descriptive. See `analysis/v3b/SUMMARY.md`.
 
 ## T10: pass@k training rules
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** Rules that weight hard prompts by about $k(1-p)^{k-1}$ have a low-to-high-$p$ weight ratio far above GRPO's, so they should resist minority collapse.
 
@@ -942,7 +1010,45 @@ GRPO absorbs the whole minority set; both pass@k rules absorb 0–5% at every $k
 
 # Part 2: mechanism, theory, levers, the transformer environment and the final phase
 
+## T11 (v3d): who pushes whom
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
+**Why:** v3a showed the minority collapses at $m \ge 0.7$, but end states cannot tell whether the minority gets too little signal or is actively pushed down by the majority.
+
+### What I did
+1. Trained the T1 class-share task from a uniform start (every $p = 1/3$) with GRPO, for linear and MLP policies.
+2. At 0, 10%, 50% and 90% of training, copied the policy and optimizer state and took one step along each of: nothing, the majority's part $g_A$ of the exact expected update, the minority's part $g_B$, and the full step $g_A + g_B$.
+3. Recorded the exact change in each class's mean success, $\Delta_B(A)$, $\Delta_B(B)$ and $\Delta_B(\text{mixed})$, and the push ratio $R = -\Delta_B(A)/\Delta_B(B)$.
+4. Checked the mixed branch against the simulator's own step, and repeated the branch test with 16 sampled batches per branch point for the sampled arm.
+5. Scored five predictions per cell (a cell agrees if at least 9 of 10 tasks agree).
+
+### Fixed settings
+| Setting | Value |
+| --- | --- |
+| Policy | Linear, and MLP with width 64 (`t1_base`) |
+| Features | Correlated, pairwise cosine about $\rho$, $\rho \in \{0.5, 0.9\}$; $d = 16$ plus a constant feature; 512 training prompts |
+| Answer classes $K$, length $L$ | $K = 3$, $L = 1$ |
+| Majority share $m$ | $\{1/3, 0.7, 0.9\}$ |
+| Group size $G$, batch $B$ | $G = 8$, $B = 32$ |
+| Advantage rule | GRPO (`rule="grpo"`) |
+| Arms (optimizer, $\eta$, update) | SGD 0.01 exact (`expected_full`); SGD 0.01 sampled with 16 batches per branch point; Adam $10^{-3}$ exact; Adam $10^{-4}$ exact |
+| Steps | SGD 10,000 (flow time $\eta t = 100$, `flow_steps`); Adam 5,000 |
+| Branch points | `branch_at = [0, 0.1, 0.5, 0.9]` |
+| Start | Uniform |
+| Tasks and seeds | Task seeds 0–9 (`TASK_SEEDS`), sampling seed 0 |
+| KL $\beta$ | 0 |
+| Absorption threshold | Success below $10^{-3}$ over the last 20% of steps |
+| Runs | 480 |
+| Pre-registration | `analysis/review/PREREG_v3d.md` (`review` `f22540c`), exploratory |
+| Grid and launch commit | `v3_t11`; `toy-v3` `7a49348`, job digest `d497e591db3a` |
+
+### Result
+All five predictions hold. Before collapse the majority's step lowers the minority, the minority's own step raises it, and the mixed step lowers it (16/16 cells). The push is $R$ = 3.6–4.8 at $m = 0.7$ and 10.7–17.1 at $m = 0.9$ (0.78–0.93 at $m = 1/3$). After collapse the minority's own step is below 1% of its start value (125/125 branch points). Collapse is active reversal, then starvation. Exploratory. See `analysis/v3d/SUMMARY.md`.
+
 ## T12 (v3d): plateau or permanent
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** the T1 collapse lasted the whole run, and we needed to know whether it is permanent or a long plateau.
 
@@ -977,6 +1083,8 @@ Prediction 1 (no recovery under SGD) fails: 34 of 409 runs that fell below $10^{
 
 ## T13 (v3d): projection control
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** if the majority's step hurts the minority through one direction, removing that direction should prevent the collapse.
 
 ### What I did
@@ -1010,6 +1118,8 @@ Projection removes the collapse in 16/16 cells (minority absorbed 0.00–0.01 at
 
 ## M2 (v3d addendum): is the minority still sinking at 10× the horizon?
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** T12 could not say whether runs at $\rho = 0.9$ were still sinking or about to recover.
 
 ### What I did
@@ -1031,6 +1141,8 @@ Projection removes the collapse in 16/16 cells (minority absorbed 0.00–0.01 at
 At $\rho = 0.9$ under SGD the median $g$ is 0.99–1.01 in all 12 cells, and no run is recovering (0 of 120). At $\rho = 0.5$, $m = 0.7$ it is −0.5 to 0.4, with 4–8 of 10 runs recovering. At strong correlation $g$ cannot separate "permanent" from "a plateau far longer than the run". Descriptive. See `analysis/v3d/SUMMARY.md`.
 
 ## M4 (v3d addendum): imbalance or margin?
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** a prompt might be absorbed because of its class or because it has a small score margin, and the two had not been separated.
 
@@ -1054,6 +1166,8 @@ At $\rho = 0.9$ under SGD the median $g$ is 0.99–1.01 in all 12 cells, and no 
 The prediction holds. Majority prompts are absorbed at 0.000 in every tercile of every cell. Minority terciles are within 0.15 of each other in 7 of 8 cells (for example 0.96, 0.95, 0.95 for linear at $\rho = 0.9$, $m = 0.7$). The class decides, not the margin. See `analysis/v3d/SUMMARY.md`.
 
 ## T15 (v3e): threshold in class share
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** T11 showed $R$ crosses 1 between $m = 1/3$ and $m = 0.7$, and we wanted to find where, for several $K$.
 
@@ -1089,6 +1203,8 @@ The odds law: $R \propto m/(1-m)$ in 12/12 cells, with slope 0.98–1.05. $m^*$ 
 
 ## T16 (v3f): pass@k at matched progress
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** in v3c pass@k rules protected the minority, but they also learned the majority more slowly, so protection could not be told apart from slow learning.
 
 ### What I did
@@ -1122,6 +1238,8 @@ A trade-off. Under pass@2 the minority dips to 0.03–0.08 at the matched point,
 
 ## T17 (v3g): KL anchor on the minority task
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** H4 (KL penalty) had never been tested as a way to protect the minority.
 
 ### What I did
@@ -1153,6 +1271,8 @@ A trade-off. Under pass@2 the minority dips to 0.03–0.08 at the matched point,
 Direction matters. Forward KL keeps the minority above a floor: at most 2% absorbed at $10^{-3}$ from $\beta = 0.01$, with the majority still at 0.99. At $10^{-2}$ it absorbs 34% at $\beta = 0.01$ and 11% at 0.03. Reverse KL absorbs 100% in every run up to $\beta = 0.1$. Forward is at least as good as reverse in 48/48 comparisons. Later caveat: the reference still solves the minority (see G). Exploratory. See `analysis/v3g/SUMMARY.md`.
 
 ## T18 (v3g): release test
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** collapsed prompts stay down, and the plan's guess was a second resting point.
 
@@ -1186,6 +1306,8 @@ There is no second resting point. The control never returns (0 of 20). Without K
 
 ## T19 (v3g): group size and the threshold
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** H5 (group size) had never been tested as a way to protect the minority.
 
 ### What I did
@@ -1217,6 +1339,8 @@ There is no second resting point. The control never returns (0 of 20). Without K
 Group size is not a lever. $m^*$ does not depend on $G$ (largest range 0.00002, true by construction at a uniform start). The absorption threshold moves by at most 0.15 in $m$, with no consistent direction (predictions 2 and 3 fail, 2 of 4 cells each). Exploratory. See `analysis/v3g/SUMMARY.md`.
 
 ## T20 (v3h): correct minority in Li, Pandey and Chen's environment
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** we needed to know whether the mechanism holds beyond feature-vector prompts and linear or MLP policies, with token prompts and a transformer.
 
@@ -1251,6 +1375,8 @@ The first step follows the odds law exactly (slope 1.00 for both $K$, $c = K - 1
 
 ## T21 (v3i): levers in the transformer environment
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** we needed to know whether the toy's levers (forward KL, reverse KL, pass@k) behave the same way with a transformer on token prompts.
 
 ### What I did
@@ -1280,6 +1406,8 @@ The first step follows the odds law exactly (slope 1.00 for both $K$, $c = K - 1
 Forward KL transfers: at $\beta = 0.3$ no minority prompt is absorbed in 8/8 cells, and at 0.03 in 6 of 8. Reverse KL at 0.03 does not help (7/7 collapsing cells). pass@k works only with Adam (prediction 4 fails, 3 of 7). Exploratory. See `analysis/v3i/SUMMARY.md`.
 
 ## T22 (v3j): junk answers
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** an LLM's wrong answers are spread out and rarely the other class's answer, so the review asked whether that stops the competition.
 
@@ -1313,6 +1441,8 @@ The first step moves exactly as the formula says: measured $m^*$ within 0.02 of 
 
 ## v3j2: rerun of lost T22 runs
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** host `secb1013-d01` rebooted four minutes after the v3j launch and lost its 106 runs.
 
 ### What I did
@@ -1332,6 +1462,8 @@ The first step moves exactly as the formula says: measured $m^*$ within 0.02 of 
 Complete; included in T22's 1,280 runs. Raw data in `v3j2_raw.tar.gz`. See `analysis/v3j/SUMMARY.md`.
 
 ## T23 (v3k): class-balanced warm start
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** every toy run started from a policy that cannot tell the classes apart, while the LLM already solves minority problems about half the time.
 
@@ -1364,6 +1496,8 @@ Complete; included in T22's 1,280 runs. Raw data in `v3j2_raw.tar.gz`. See `anal
 A head start protects, and a larger majority needs a larger one. $p_0 = 0.5$ removes or greatly reduces the collapse at $m = 0.7$ (0–0.14 absorbed against 1.00), but not at $m = 0.9$ (0.99 linear, 0.69–0.70 MLP). The first step still lowers the minority at every start (6/6 cells). Predictions 2 and 3 hold for the linear policy only (4 of 8 cells each). Exploratory. See `analysis/v3k/SUMMARY.md`.
 
 ## T24 (v3l): the late phase, prompt by prompt
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** to test the per-prompt late-phase model from `analysis/theory/late_time.md` on fresh runs, with the prediction rule fixed before launch.
 
@@ -1399,6 +1533,8 @@ The per-prompt model fails (median Spearman 0.28, needed 0.8), and it does not b
 
 ## Odds law (theory check)
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** T11 and T15 measured that $R$ scales with the odds $m/(1-m)$ and that $m^*$ sits just above $1/K$, and we wanted an explanation.
 
 ### What I did
@@ -1420,6 +1556,8 @@ The per-prompt model fails (median Spearman 0.28, needed 0.8), and it does not b
 The relative error of $R$ has median $1.43 \times 10^{-3}$ and maximum $1.7 \times 10^{-2}$ (the second-order term of the finite step). Predicted and measured $m^*$ agree within 0.0002 in all 12 cells. This is a first-step identity only: it verifies the algebra and code, and says nothing about the outcome (T22, T23). Its leading order is in Li, Pandey and Chen. See `analysis/theory/odds_law.md`.
 
 ## Lean proofs (theory check)
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** to check the algebra behind the odds law formally, not only numerically.
 
@@ -1444,6 +1582,8 @@ The relative error of $R$ has median $1.43 \times 10^{-3}$ and maximum $1.7 \tim
 
 ## SymPy checks (theory check)
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** to check the first-step algebra and the late-phase algebra symbolically, including the scalar late model.
 
 ### What I did
@@ -1462,6 +1602,8 @@ The relative error of $R$ has median $1.43 \times 10^{-3}$ and maximum $1.7 \tim
 All 8 tests pass (`HANDOFF.md`, 11-23 21:40; rerun here: 8 passed). Permanent absorption needs $\gamma > 1$ and a deep enough fall. See `tests/test_theory_symbolic.py` and `analysis/theory/late_time.md`.
 
 ## Late-time probe (theory check)
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** to see whether implicit bias (Soudry et al.) explains the late phase: late in training the majority's update tends to its max-margin direction $\hat u$.
 
@@ -1484,6 +1626,8 @@ Run level supported: Spearman 0.89 (SGD, exact), 0.85 (SGD, sampled), 0.76 and 0
 
 ## Optimizer geometry (theory check)
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** to see whether Adam's $\ell_\infty$ max-margin geometry explains why it recovers more often than SGD.
 
 ### What I did
@@ -1503,6 +1647,8 @@ Run level supported: Spearman 0.89 (SGD, exact), 0.85 (SGD, sampled), 0.76 and 0
 Not supported. Under SGD, $\ell_2$ beats $\ell_\infty$ as expected (within-cell 0.81 against 0.72). Under Adam, $\ell_\infty$ adds nothing (0.60 against 0.62, exact update). The two geometries correlate at 0.75 across tasks, so the test had power. See `analysis/theory/late_time.md`.
 
 ## Fall model (theory check)
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** T24 showed that each prompt's outcome is decided during the fall (phase 1), and there was no theory of it.
 
@@ -1532,6 +1678,8 @@ In-sample (fit only): passes every rule in every batch except P1 in v3l (0.799).
 
 ## wsw: replication of Li, Pandey and Chen
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** their environment is the base of T20, so we checked it before building on it.
 
 ### What I did
@@ -1556,6 +1704,8 @@ Their figure code on their results reproduces 494/494 numbers. Our rerun: of 506
 
 ## wsw2: replication, seeds 5–9
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** their README runs E1 and E8 with ten seeds, but the script default is five.
 
 ### What I did
@@ -1576,6 +1726,8 @@ Their figure code on their results reproduces 494/494 numbers. Our rerun: of 506
 Every job exited cleanly; included in the 506-number comparison. See `tools/literature/replication/RESULT.md`.
 
 ## T25 (v3m): exact long-time flow
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** T12 could not tell at $\rho = 0.9$ whether the collapse is permanent or a long plateau.
 
@@ -1606,6 +1758,8 @@ Every job exited cleanly; included in the 506-number comparison. See `tools/lite
 All 100 tasks were integrated (98 with LSODA). The per-prompt predictions fail (48% of "never" prompts recover; timing Spearman 0.34). Mostly a plateau whose length grows with $\rho$: recovery at $10^2$–$10^5$ for $\rho \le 0.5$, up to $10^{12}$ for $\rho \ge 0.9$. Nothing recovers at $\rho = 0.95$, $m = 0.9$. Post hoc, $\gamma_{\min} \ge 1$ marks the tasks that stay collapsed (27 of 30). Exploratory. See `analysis/v3m/SUMMARY.md`.
 
 ## T26 (v3n): shared skills
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** in the LLM (C10), training only on the majority procedure raises the minority, and shared steps between procedures were the leading explanation.
 
@@ -1641,6 +1795,8 @@ The first-step identity holds with multi-token answers (320/320, median error 0.
 
 ## A1 (v3o): P1 on fresh tasks
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** to turn P1 (absorption rises with the majority share, v3a) from exploratory into confirmatory.
 
 ### What I did
@@ -1672,6 +1828,8 @@ The first-step identity holds with multi-token answers (320/320, median error 0.
 Confirmed: 20 of 20 tasks go up in every one of the 16 cells, $p = 9.5 \times 10^{-7}$, Holm $p = 4.8 \times 10^{-6}$. At $m = 0.9$ the rate is 0.37–1.00 (originally 0.54–1.00). It is a little smaller in three $\rho = 0.5$ cells. Confirmatory. See `analysis/v3o/SUMMARY.md`.
 
 ## A2 (v3o): forward-KL floor on fresh tasks
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** to make T17's forward-KL result confirmatory.
 
@@ -1706,6 +1864,8 @@ Confirmed: 20/20 tasks, median difference 1.00, Holm $p = 4.8 \times 10^{-6}$. N
 
 ## A3 (v3o): pass@4 at matched progress on fresh tasks
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** to make T16's pass@4 result confirmatory.
 
 ### What I did
@@ -1738,6 +1898,8 @@ Confirmed: 20/20 tasks, median difference 0.39 (range 0.27–0.45), Holm $p = 4.
 
 ## A5 (v3o): warm start on fresh tasks
 
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+
 **Why:** to make T23's result (a warm start at $p_0 = 0.5$ protects at $m = 0.7$) confirmatory.
 
 ### What I did
@@ -1769,6 +1931,8 @@ Confirmed: 20/20 tasks, median difference 0.39 (range 0.27–0.45), Holm $p = 4.
 Confirmed: 20/20 tasks, median difference 1.00 (lowest 0.79), Holm $p = 4.8 \times 10^{-6}$. The uniform start absorbs every minority prompt in all 80 runs. At $p_0 = 0.5$ the absorbed share is 0.022 (linear) and 0.0003–0.003 (MLP). Confirmatory. See `analysis/v3o/SUMMARY.md`.
 
 ## G (v3p, T27): forward KL toward a collapsed reference
+
+**Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
 **Why:** a review caveat: T17's reference (the start policy) still solved the minority, while a real reference may already be collapsed.
 
@@ -1803,6 +1967,8 @@ Holds. Anchors taken after the fall never restore the minority (180/180), and th
 
 ## H (v3p, T28): Adam's epsilon
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** Adam recovers the minority more often than SGD (T12), and per-coordinate normalisation was the suspected cause.
 
 ### What I did
@@ -1835,6 +2001,8 @@ Fails as registered (4 of 8 cells): half the cells have no Adam recovery to remo
 
 ## A4 (v3q): T20's share effect on fresh seeds
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** to make the transformer-environment share effect under Adam confirmatory, as part of the battery.
 
 ### What I did
@@ -1863,6 +2031,8 @@ Fails as registered (4 of 8 cells): half the cells have no Adam recovery to remo
 Confirmed: 20/20 seeds, mean difference 0.89 (original 0.86), Holm $p = 4.8 \times 10^{-6}$. The minority is absorbed while class 0 is not in 152 of 160 high-share runs, and in 5 of 80 balanced runs. Per prompt, about a fifth of each class is still absorbed at balance. Confirmatory. See `analysis/v3o/SUMMARY.md` (A4 is part of the battery).
 
 ## J (v3q, T29): transformer environment under small-step SGD
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** a review caveat: in T20 large SGD steps absorbed both classes, so the share effect looked clean only under Adam.
 
@@ -1895,6 +2065,8 @@ Holds. At small SGD steps class 0 is never absorbed at high share (0/80), the mi
 # Part 3: small language models
 
 ## C0: pilot runs before the census
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** Before C1 we needed to know whether the GPU pipeline works, how fast it is, which learning rate to use, and whether our per-problem decline test gives false alarms.
 
@@ -1930,6 +2102,8 @@ The base model against itself gives 0 declines on 3,000 problems. At 32 samples,
 
 ## Model probes: which models fit one GPU
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** We had to choose models and fine-tuning modes that train with vLLM on one 24 GB RTX 4090, and check that the sampler stays in step with the trainer.
 
 ### What I did
@@ -1957,6 +2131,8 @@ The base model against itself gives 0 declines on 3,000 problems. At 32 samples,
 Six set-ups work: Qwen2.5-0.5B int8, Qwen2.5-1.5B LoRA, Qwen2.5-3B int8, SmolLM2-360M full, and Llama-3.2-1B full and LoRA. The other set-ups failed (see the table). Llama-3.2-1B full fine-tuning (base $\hat p$ 0.30, sync gap 0.14 nats, about 21 GPU-hours per arm) later became the second family for C1. See `analysis/llm/model_probe.md`.
 
 ## Census calibration: what an unchanged model looks like
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** Other work counts "locked" problems (some correct before, none after). We wanted to know how many problems such naive rules flag when nothing has changed, compared with our decline and lost tests.
 
@@ -1986,6 +2162,8 @@ Our decline and lost tests flag 0 problems at every sample count. The naive rule
 
 ## Llama calibration: learning rate and pool for the second family
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** P4 needs a second model family. SmolLM2 failed its lr rule, so Llama-3.2-1B replaced it (amendment 1), and its lr had to be chosen by the same pre-registered rule.
 
 ### What I did
@@ -2013,6 +2191,8 @@ Our decline and lost tests flag 0 problems at every sample count. The naive rule
 lr $10^{-6}$ meets the rule: a rise of +0.490 with 0 declines. $3\cdot10^{-6}$ also meets it (+0.478, 1 decline), and $10^{-5}$ fails it (+0.105, 72 declines). The base $\hat p$ is 0.33 on train and 0.26 on test. See `~/rlvr-queue/llama/pick_lr.log` and `c0_llama.md` (not in git; that file labels the base seeds "0 and 1", but the job list uses seeds 2 and 3).
 
 ## C1 Qwen / P4: does GRPO lose problems beyond the null?
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** This is the confirmatory test of P4. The toy loses minority prompts under GRPO. Does small-LLM GRPO lose GSM8K training problems beyond what sampling noise alone produces?
 
@@ -2046,6 +2226,8 @@ lr $10^{-6}$ meets the rule: a rise of +0.490 with 0 declines. $3\cdot10^{-6}$ a
 
 ## C1 Llama: the second family
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** P4 is registered over two model families. This run tests whether the Qwen result holds for Llama-3.2-1B.
 
 ### What I did
@@ -2076,6 +2258,8 @@ Fails for this family too ($p = 1$): 0 training problems lost in all 3 seeds (0.
 
 ## C1 control: are the held-out declines specific to GRPO?
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** C1 showed a few held-out declines in every run. This control asks whether any fine-tuning on the same 1,000 problems produces them.
 
 ### What I did
@@ -2104,6 +2288,8 @@ Fails for this family too ($p = 1$): 0 training problems lost in all 3 seeds (0.
 By the registered count rule the declines are specific to GRPO: the control has 0, 0 and 0 held-out declines, against 12, 8 and 9 for GRPO. **But the comparison is confounded:** the control reached training success of only 0.65 (bar 0.75; GRPO 0.98). Exploratory. See `analysis/llm/c1_control.md`, `c1_control_runs.csv` and `C1_C5_SUMMARY.md`.
 
 ## C5: the toy's loss drivers in the LLM
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** In the toy (T6), a noisy verifier and the sign rule cause absorption. We tested whether they cause lost problems in the LLM, together with a 10× learning rate.
 
@@ -2135,6 +2321,8 @@ The toy's predictions are not supported. Flip and sign learn less ($\hat p$ 0.90
 
 ## C2 / P5: does a majority procedure collapse a minority procedure?
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** This is the confirmatory test of P5. A toy answer class corresponds to a solution procedure in the LLM. Does training mostly on one procedure push down a minority procedure that shares the same template?
 
 ### What I did
@@ -2164,6 +2352,8 @@ The toy's predictions are not supported. Flip and sign learn less ($\hat p$ 0.90
 **P5 fails (refuted).** The role "each" gives $p = 0.0536$ (Spearman 0.64), the role "total" gives $p = 0.0071$; P5 needs both below 0.05. Exploratory evidence against the toy's mechanism: the minority procedure improves by +0.36 to +0.45 in 15 of 16 runs. Only 2–9% of problems decline, and none switches to the other procedure's answer. After Holm over P1–P5, only P1 holds. See `analysis/llm/C2_SUMMARY.md`, `c2.md` and `c2_runs.csv`.
 
 ## C2 matched minority: majority pressure or minority sample count?
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** In C2, a larger $m$ also means fewer minority samples per step. This arm holds the minority's exposure fixed and changes only the amount of majority data.
 
@@ -2195,6 +2385,8 @@ The decline rate does not depend on the number of majority prompts (Spearman −
 
 ## C2 seed replication of the degraded run
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** One C2 run (majority "each", $m = 0.95$, seed 1) lost 45 of 300 held-out minority problems. Three seeds cannot tell a 1-in-3 event from a 1-in-20 one.
 
 ### What I did
@@ -2223,6 +2415,8 @@ The decline rate does not depend on the number of majority prompts (Spearman −
 0 of 10 new runs degrade, so the original run is one outlier in eight at $m = 0.95$. A moderate share effect does show on this draw: held-out minority declines are 17–23 at $m = 0.95$ against 6–11 at $m = 0.5$. That comparison was not registered. Exploratory; P5 is unchanged. See `analysis/llm/c2_seeds.md`, `c2_seeds_runs.csv` and `C2_SUMMARY.md`.
 
 ## C2 extras: samples per step, a long run, and a supervised control
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** These runs test three rival explanations for the C2 declines: too few samples per step, a loss that appears only later, and declines from any fine-tuning rather than from GRPO.
 
@@ -2253,6 +2447,8 @@ Going from 64 to 256 prompts changes nothing (16–22 declines). At 16 prompts o
 
 ## SmolLM2 diagnostic: why the SmolLM2 pilots collapsed
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** The SmolLM2 LoRA pilots rose and then collapsed after about 100 steps. We tested whether a mismatch between the vLLM sampler and the trainer causes this.
 
 ### What I did
@@ -2280,6 +2476,8 @@ Going from 64 to 256 prompts changes nothing (16–22 declines). At 16 prompts o
 Without the correction, the reward collapses to 0.02 by step 50 and answers run to the length limit. With it, training is normal (reward 0.81–0.84). The earlier SmolLM2 failures were a sampler–trainer mismatch, not a property of the model. Exploratory. See `analysis/llm/EXTRAS_2026-11-24.md`.
 
 ## C10: who pushes whom in the LLM
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** C2 measured the majority's effect only through the outcome of full runs. C10 measures the sign directly, as the toy's T11 does: does training on the majority alone lower the minority?
 
@@ -2311,6 +2509,8 @@ Prediction 1 fails in all 6 runs: majority-only training **raises** the minority
 
 ## C9: token-level loss aggregation
 
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
+
 **Why:** Many GRPO implementations average the loss over tokens rather than sequences. We checked whether this changes the C1 census.
 
 ### What I did
@@ -2340,6 +2540,8 @@ Prediction 1 fails in all 6 runs: majority-only training **raises** the minority
 The same as sequence aggregation: 0 training problems lost, and 5, 13 and 12 held-out declines (C1: 12, 8, 9). Mean answer length over the last 50 steps is also similar (250–264 tokens against 251–262); the full length trajectory is not compared in the write-up. Exploratory. See `analysis/llm/c9.md` and `c9_runs.csv`.
 
 ## C7 / C8: the KL penalty in the LLM
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** This is the LLM stretch goal for H4. Does a KL penalty prevent the held-out losses? Does each problem settle at the toy's finite-$G$ fixed point? Does forward KL keep more problems near base than reverse KL (C8)?
 
@@ -2372,6 +2574,8 @@ The same as sequence aggregation: 0 training problems lost, and 5, 13 and 12 hel
 Any $\beta \ge 0.02$ removes the held-out declines (0–4 declines, 0 lost, against 14–26 and 3–10 without KL). The cost grows with $\beta$. The fixed point tracks the end state ($R^2$ 0.71–0.96) but adds nothing beyond base success alone, and $\beta_{eff}$ grows roughly like $\sqrt\beta$. $G = 16$ settles above $G = 4$ at every $\beta$. The C8 prediction is not supported: forward and reverse KL behave the same. Exploratory. See `analysis/llm/C7_C8_SUMMARY.md`, `c78.md`, `c78_runs.csv` and `c78_fixed_points.md`.
 
 ## C3 and C11: planned, not run
+
+**Scope: Extra** — beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Why:** C3 would have tested natural-data rarity without training. C11 would have tested a fix in the LLM, gated on a P5 pass or a push-down in C10.
 
