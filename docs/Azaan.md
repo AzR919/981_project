@@ -148,6 +148,44 @@ The post-hoc analysis (base findings, section 4b) and the four-way review found 
   - the kernel correction c;
   - the levers compared at matched progress.
 
+### Original H3 and restated H3 (kept apart in the report)
+
+| | Original H3 (pre-registered, milestone) | Restated H3 (after the base batch) |
+|---|---|---|
+| Claim | Stability is set by one effective step, s = ηW_G(p)p(1−p)/B, plus interference through shared parameters | With shared parameters, a prompt's progress is set by the drift that other prompts' updates cause, (η/B)Σ_x W_G(p_x)⟨∇p_y, ∇p_x⟩, not by its own step. When prompts form answer classes, a majority class pushes a correct minority down with strength c·m/(1 − m) and absorbs it |
+| Status | **Failed** (base batch, 13,608 runs). Reported as failed | Exploratory evidence: H2 cross-share (> 90% of drift from other prompts; full drift R² 0.999), T11, the odds law, P1. **Confirmatory test: A1** (P1 on 20 fresh tasks, pre-registered in `PREREG_v3d_addendum9.md`) |
+| Runs still needed | None. Its runs are done | A1 (required). A2, A3 and A5 confirm the levers and warm start (wanted, not required for H3 itself) |
+
+### Compute for the runs still needed
+
+Per-run times measured on this laptop (single thread, 2026-11-25), on jobs from the `v3o` job list:
+
+| Job | Steps | Seconds |
+|---|---|---|
+| linear, exact, SGD | 1,000 | 28 |
+| linear, exact, SGD | 10,000 | 94 |
+| linear, sampled, Adam | 5,000 | 64 |
+| MLP, sampled, SGD | 3,333 | 58 |
+| MLP, sampled, Adam | 5,000 | 79 |
+| MLP, exact, Adam | 5,000 | 87 |
+| A2: linear, exact, SGD, forward KL | 20,000 | 184 |
+| A2: MLP, sampled, SGD, forward KL | 20,000 | 104 |
+| A5: linear, exact, SGD | 10,000 | 32 |
+
+A1 jobs work out to about 20 s of setup plus 7 ms per step (linear) or 12–15 ms per step (MLP). Some longer jobs finish faster than that, apparently because of the runs' early-stop rule.
+
+| Batch | Runs | Steps per run | Estimated CPU-hours |
+|---|---|---|---|
+| A1 (required) | 9,280 | 1,000–20,000 (mean 3,471) | about 140 (6 jobs timed; range 120–160) |
+| A2 (forward KL) | 640 | 20,000 | about 25 |
+| A3 (pass@4) | 360 | 20,000 | about 15 (not timed; taken from A2) |
+| A5 (warm start) | 160 | 10,000 | about 2 |
+| **All of `v3o`** | 10,440 | | **about 180** |
+
+- **This laptop** (4 logical cores): A1 alone is about 35–50 hours of wall clock with every core busy. Not practical.
+- **A cluster:** the jobs are independent and single-threaded, so they fit a CPU job array. On 64 cores, A1 is about 2–3 hours and all of `v3o` about 3 hours. Follow the DRAC rules in `CLAUDE.md`: a virtualenv, absolute paths, the `_cpu` account suffix, flushed logs. `experiments/run.py --jobs <list> --index <i>` already runs one job per index and skips finished outputs, so it maps directly onto `--array`.
+- **Check first:** the `v3o` batch was pre-registered and its job list committed on Nov 24 "before launch". Ankush may already have run it on the lab machines (`~/rlvr-data`). If so, the compute needed is zero, and only the analysis remains.
+
 ---
 
 ## 1. What happened since Nov 22, in one table
