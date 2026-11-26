@@ -1,8 +1,8 @@
 # The fall: a reduced class-level ODE for phase 1 (working note, 2026-11-24)
 
 **Status:** derivation and model. Predictions fixed before comparison are in section 5; the comparison is in
-`fall_results.md`. Code: `experiments/fall_ode.py` (model), `experiments/check_fall.py` (comparison),
-`tests/test_fall_ode.py`.
+`fall_results.md`. Code: `extra/experiments/fall_ode.py` (model), `extra/experiments/check_fall.py` (comparison),
+`extra/tests/test_fall_ode.py`.
 
 ## 1. Why phase 1
 
@@ -15,7 +15,7 @@ phase: the trajectory of the class success levels from the start until the major
 
 Linear policy, logits z_y = W φ_y, one answer token, K answers, U ≤ K of them with prompts (the other
 J = K − U are "junk", never correct). Under the exact expected update with plain SGD, in flow time τ = η t
-(`experiments/exact_flow.py`):
+(`extra/experiments/exact_flow.py`):
 
   dW/dτ = (1/n) Σ_x w(p_x) (e_{c(x)} − π_x) φ_xᵀ,  w(p) = W_G(p) · p,
 
@@ -76,7 +76,7 @@ The start is the pooled class-mean logits of W0 (zero for the uniform start; the
    proportional to p_B once p_B is small: the deeper the minority, the less it resists.
 3. **First step.** At the uniform start d log p_B/dτ = −(dL_B + (M − 1) dr_B)/K, which is negative exactly
    when c m/(1 − m) > 1 with c = M k_AB / (M k_same − (M − 1) k_diff): the odds law (test in
-   `tests/test_fall_ode.py`).
+   `extra/tests/test_fall_ode.py`).
 4. **Late time.** Once p_A → 1, (1 − p_A) ≈ M e^{−u_A} and du_A/dτ ≈ m k_AA W_G(1) e^{−u_A}(M + 1), so
    u_A ≈ log τ + const and dL_B/dτ ≈ κ/τ − c_B e^{−L_B}: the scalar late model of `late_time.md` with
    γ = κ. For class means the majority's max-margin direction is φ̄_A, so κ is the class-level version of

@@ -1,8 +1,8 @@
 """
-Analysis of v3c (pass@k training rules, T10), implementing analysis/review/PREREG_v3c.md.
+Analysis of v3c (pass@k training rules, T10), implementing extra/analysis/review/PREREG_v3c.md.
 
 usage:
-    python experiments/analyze_v3c.py [--raw results/v3c] [--out analysis/v3c]
+    python extra/experiments/analyze_v3c.py [--raw results/v3c] [--out extra/analysis/v3c]
 
 Per run, from the final snapshot (exact p): mean pass@1, pass@8, pass@64, persistent
 absorption at tau = 1e-3, and for the minority task the share of minority prompts
@@ -21,7 +21,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from experiments.analyze import markdown  # noqa: E402
 
@@ -63,7 +64,7 @@ def compare(runs, value, alternative):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--raw", default="results/v3c")
-    parser.add_argument("--out", default="analysis/v3c")
+    parser.add_argument("--out", default="extra/analysis/v3c")
     parser.add_argument("--jobs", type=int, default=8)
     args = parser.parse_args()
     paths = sorted(glob.glob(os.path.join(args.raw, "*", "results", "*", "*.json.gz")))

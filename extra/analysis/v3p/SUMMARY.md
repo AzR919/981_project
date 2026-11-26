@@ -1,7 +1,7 @@
 # v3p: a collapsed KL reference (G, T27) and Adam's epsilon (H, T28)
 
 All 820 runs returned and none failed (260 G, 560 H). Launched from `toy-v3` `4391e1a`. Pre-registered in
-`PREREG_v3d_addendum10.md` (`review` `e9510e4`); exploratory. `experiments/analyze_v3p.py` regenerates
+`PREREG_v3d_addendum10.md` (`review` `e9510e4`); exploratory. `extra/experiments/analyze_v3p.py` regenerates
 `FINDINGS.md`, `runs.csv`, `cells.csv` and `h_gamma_corr.csv` (the per-cell γ correlations behind H2).
 
 ## G (T27): forward KL toward a collapsed reference

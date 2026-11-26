@@ -8,7 +8,7 @@ so none enters the Holm family P1–P5. The code is on `toy-v3` (`7759008`) and 
 - One local 200-step smoke run per (level, rule) checked only that the code runs; outcomes were not
   inspected.
 - `rloo_k`'s W_G(p) = (1 − p)^(k−1) was derived and tested before any run.
-- **KL fix.** `llm/train.py` previously differentiated the k3 estimator, which gives the
+- **KL fix.** `extra/llm/train.py` previously differentiated the k3 estimator, which gives the
   forward-KL gradient. No run with β > 0 had been made. `--kl reverse` (the default) now uses k2.
 
 ## v3c: pass@k training rules (T10)

@@ -1,8 +1,8 @@
 # v3e: where does the majority start to push the minority down? (T15)
 
 All 1,080 runs returned and none failed. They were launched from a clean commit (`toy-v3` `779297f`;
-job digest `1dcf342238dd`). Pre-registered in `analysis/review/PREREG_v3d_addendum1.md` (`review`
-`2401287`); exploratory. `experiments/analyze_v3e.py` regenerates `FINDINGS.md`.
+job digest `1dcf342238dd`). Pre-registered in `extra/analysis/review/PREREG_v3d_addendum1.md` (`review`
+`2401287`); exploratory. `extra/experiments/analyze_v3e.py` regenerates `FINDINGS.md`.
 
 **Setup:** K answer classes; class A has share m and the other K − 1 classes split the rest; uniform
 start; SGD at η = 0.01 with the exact expected update.
@@ -49,7 +49,7 @@ So the statement for the report has two parts:
 
 None. Prediction 1 is reported as failing for K = 2.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 - `absorption_from` here is "median minority absorption above 0.5"; v3g uses "mean ≥ 0.05". The two
   give different values for the same configuration; the report should use one.

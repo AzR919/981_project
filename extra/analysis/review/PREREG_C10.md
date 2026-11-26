@@ -1,7 +1,7 @@
 # Pre-registration: C10, who pushes whom in the LLM (2026-11-23)
 
 Committed before any C10 run starts. Code: branch `llm-transfer` ("C10 branch test" commit);
-analysis `llm/analyze_branch.py`. Exploratory.
+analysis `extra/llm/analyze_branch.py`. Exploratory.
 
 ## Why
 
@@ -11,8 +11,8 @@ the outcome of full training runs. C10 tests it directly: which class's updates 
 
 ## What has been seen
 
-- Toy: T11–T16 (`analysis/v3d`, `v3e`, `v3f`).
-- LLM: C1 and C5 (`analysis/llm/C1_C5_SUMMARY.md`); training curves of the C2 main runs (reward and
+- Toy: T11–T16 (`extra/analysis/v3d`, `v3e`, `v3f`).
+- LLM: C1 and C5 (`extra/analysis/llm/C1_C5_SUMMARY.md`); training curves of the C2 main runs (reward and
   drift only). No C2 evaluation has been analysed, and no C10 run exists.
 
 ## Design

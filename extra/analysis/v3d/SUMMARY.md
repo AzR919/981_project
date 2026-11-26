@@ -1,8 +1,8 @@
 # v3d: who pushes whom, plateau or permanent, projection control
 
 All 1,760 runs returned and none failed. They were launched from a clean commit (`toy-v3` `7a49348`;
-job digest `d497e591db3a`). The tests follow `analysis/review/PREREG_v3d.md` (`review` `f22540c`) and
-are exploratory. `experiments/analyze_v3d.py` regenerates `FINDINGS.md`.
+job digest `d497e591db3a`). The tests follow `extra/analysis/review/PREREG_v3d.md` (`review` `f22540c`) and
+are exploratory. `extra/experiments/analyze_v3d.py` regenerates `FINDINGS.md`.
 
 Class A is answer class 0 (share m). Class B is the rest: the minority when m > 1/3.
 
@@ -113,7 +113,7 @@ Which class a prompt belongs to decides whether it is absorbed; its margin does 
 - **T12 prediction 2** was stated for both m values, and is reported per cell.
 - **T13** is interpreted because T11 prediction 1 holds, as pre-registered.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 - **Recovery and the optimizer.** At ρ = 0.9, 24 of 80 runs with the exact update and Adam recover
   within 10× the horizon; none of the sampled Adam runs and none of the 240 SGD runs do

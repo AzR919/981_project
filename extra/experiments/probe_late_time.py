@@ -5,7 +5,8 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 from experiments.run import DEFAULTS, build
 
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
     with Pool(8) as pool:
         rows = [r for out in pool.map(one, ps, chunksize=4) if out for r in out]
     df = pd.DataFrame(rows)
-    df.to_csv("analysis/theory/late_time_probe_rows.csv", index=False)
+    df.to_csv("extra/analysis/theory/late_time_probe_rows.csv", index=False)
     print("prompts:", len(df), "runs:", len(df.groupby(["rho", "m", "opt", "eta", "update", "task"])))
     df["fell"] = df.p_min < 1e-3
     df["recovered"] = df.fell & (df.p_final > 0.1)

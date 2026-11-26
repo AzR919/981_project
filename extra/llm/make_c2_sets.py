@@ -2,8 +2,8 @@
 Build the C2 problem sets from base-evaluated candidates (gen_procedures.py + evaluate.py).
 
 usage:
-    python llm/make_c2_sets.py --range ml --seed 1 --per-procedure 3000 \\
-        --base c2_candidates_base.json.gz --out llm/pools/c2
+    python extra/llm/make_c2_sets.py --range ml --seed 1 --per-procedure 3000 \\
+        --base c2_candidates_base.json.gz --out extra/llm/pools/c2
 
 1. Keep candidates with base p-hat (N = 32) in [0.15, 0.85].
 2. Stratify: in each of 7 equal-width p-hat bins keep the same number of
@@ -24,7 +24,8 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from llm.gen_procedures import PROCEDURES, generate, make_mix  # noqa: E402
 

@@ -1,8 +1,8 @@
 """
-Draw the C1 problem sets from a model's pool (llm/analyze_c0.py --pool).
+Draw the C1 problem sets from a model's pool (extra/llm/analyze_c0.py --pool).
 
 usage:
-    python llm/make_sets.py llm/pools/qwen.json --train 1000 --heldout 300 --seed 0
+    python extra/llm/make_sets.py extra/llm/pools/qwen.json --train 1000 --heldout 300 --seed 0
 
 Writes <pool>_c1_train.json (problems trained on), <pool>_c1_heldout.json (pool
 problems never trained on) and <pool>_c1_eval.json (both, for evaluate.py --ids).

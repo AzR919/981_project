@@ -1,7 +1,7 @@
 # PREREG_C2, amendment 2 (2026-11-23): how often does a run degrade broadly at m = 0.95?
 
 Committed before the replication runs start. Exploratory. **It does not change P5**, which failed
-as registered (`analysis/llm/C2_SUMMARY.md`) and stays failed whatever these runs show.
+as registered (`extra/analysis/llm/C2_SUMMARY.md`) and stays failed whatever these runs show.
 
 ## What has been seen
 

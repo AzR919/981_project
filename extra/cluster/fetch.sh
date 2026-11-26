@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copy one batch's results from the network home to the laptop.
-# usage: cluster/fetch.sh <tag> <local-folder> <any-lab-host>
+# usage: extra/cluster/fetch.sh <tag> <local-folder> <any-lab-host>
 # The home is shared by all lab machines, so one host serves every result.
 TAG=$1; OUT=$2; H=$3
 mkdir -p "$OUT"

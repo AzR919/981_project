@@ -1,7 +1,7 @@
 # C2: does a majority procedure collapse a minority procedure in the LLM? (P5)
 
 All 16 main runs and the 12 matched-minority runs finished (queue `r2`, 0 failed; code commit
-`8002345`). Tests as pre-registered in `PREREG_C2.md` and amendment 1; `llm/analyze_c2.py`
+`8002345`). Tests as pre-registered in `PREREG_C2.md` and amendment 1; `extra/llm/analyze_c2.py`
 regenerates `c2.md` and `c2_runs.csv`.
 
 Setup: Qwen2.5-0.5B, GRPO, 500 steps, lr 1e-6. Two procedures share one problem template. The
@@ -83,7 +83,7 @@ After Holm's correction only P1 holds at 0.05.
 - Two runs (`r2_26`, `r2_27`) were cut off by a reboot at 03:00 and restarted from their
   checkpoints by the queue.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 1. **Why there is no collapse is not settled.** Two candidate reasons fit the data: the procedures
    share most of their skills, so their updates are aligned; and the base model already separates

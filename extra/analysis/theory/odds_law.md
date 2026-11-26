@@ -60,7 +60,7 @@ threshold is the solution of m = 1/(1 + c(m)).
 
 ## Check against the simulator
 
-`experiments/check_odds_law.py` computes the prediction from each task's features and compares it
+`extra/experiments/check_odds_law.py` computes the prediction from each task's features and compares it
 with the step-0 changes the simulator measured in the v3e runs (K ∈ {2, 3, 5}, linear and MLP,
 ρ ∈ {0.5, 0.9}, nine values of m, ten tasks). Nothing is fitted.
 
@@ -79,7 +79,7 @@ with the step-0 changes the simulator measured in the v3e runs (K ∈ {2, 3, 5},
 - It is a statement about the first step from a uniform start, for a softmax output layer on fixed
   features. It is exact for the linear policy and for an MLP whose output layer starts at zero.
 - It says nothing about the outcome of training. Persistent absorption starts at a clearly larger
-  share than m\* (`analysis/v3e/SUMMARY.md`). A formula for that second threshold is open.
+  share than m\* (`extra/analysis/v3e/SUMMARY.md`). A formula for that second threshold is open.
 - Away from the uniform start the weights W_G(p_x) differ across prompts and the class factor
   (δ − 1/K) becomes (e_c − π_y)·(e_{c′} − π_x); the same steps give a weighted version of the
   result, not derived here.
@@ -92,7 +92,7 @@ with the step-0 changes the simulator measured in the v3e runs (K ∈ {2, 3, 5},
 - Ours: the closed form for a *correct* minority class with the kernel correction, the odds law
   as an identity, and a parameter-free check against exact simulation.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 - **What kind of statement this is.** A first-order identity for the first step from a uniform
   start. The factor m/(1 − m) is n_A/n_B, which any first-order model has; the content is c. The

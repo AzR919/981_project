@@ -2,7 +2,7 @@
 Yang (arXiv 2609.22547), check 2: the no-change null for "locked" prompts, from the released per-prompt counts.
 
 usage:
-    python tools/literature/checks/yang_2609_22547_check2_exact_null.py <dir with base.jsonl and rl.jsonl>
+    python extra/tools/literature/checks/yang_2609_22547_check2_exact_null.py <dir with base.jsonl and rl.jsonl>
 
 Data: github.com/cafferychen777/passk-inference, examples/deepscaler32k (MIT): 1,060 prompts, c_i correct of
 n = 128 for the base model and d_i of 128 for the RL model. A prompt is "locked" if c_i > 0 and d_i = 0.

@@ -2,7 +2,7 @@
 Estimate each problem's success probability by sampling N answers with vLLM.
 
 usage:
-    python llm/evaluate.py --model Qwen/Qwen2.5-0.5B-Instruct --split train --limit 2000 \\
+    python extra/llm/evaluate.py --model Qwen/Qwen2.5-0.5B-Instruct --split train --limit 2000 \\
         --n 32 --out results/llm/base_qwen05.json.gz
 
 Writes per-problem counts {id: [correct, parsed, n]} plus the config, the
@@ -21,7 +21,8 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from llm.data import extract_answer, load_gsm8k, prompt_text, reward  # noqa: E402
 

@@ -1,5 +1,9 @@
 """The weights sent to vLLM must carry the current LoRA update (needs torch, transformers, peft; CPU only)."""
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import copy
 import os
 import sys
@@ -7,7 +11,8 @@ import unittest
 
 import torch
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 try:
     from peft import LoraConfig, get_peft_model

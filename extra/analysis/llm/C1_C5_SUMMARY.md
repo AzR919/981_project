@@ -1,8 +1,8 @@
 # C1 (Qwen) and C5: what the results say
 
-- **Pre-registration:** tests follow `analysis/review/PREREG_C1.md` and `PREREG_C1_amendment1.md`
+- **Pre-registration:** tests follow `extra/analysis/review/PREREG_C1.md` and `PREREG_C1_amendment1.md`
   (`review` branch, `2bdc507`), committed before any comparison was computed.
-- **Generated tables:** `c1_qwen.md` and `c5_qwen.md`, produced by `llm/analyze_c1.py` (`llm-transfer`).
+- **Generated tables:** `c1_qwen.md` and `c5_qwen.md`, produced by `extra/llm/analyze_c1.py` (`llm-transfer`).
 - **Setup:** Qwen2.5-0.5B-Instruct, full fine-tuning, GRPO with G = 8 and 64 prompts per step, 500
   steps on 1,000 GSM8K training problems. 256 samples per problem before and after, on the 1,000
   training problems and 300 held-out problems.
@@ -85,7 +85,7 @@
 - **The held-out declines replicate.** In both families a few percent of unseen problems decline,
   and 0.3–3% end at success ≤ 0.05 (Qwen 1–5 of 300; Llama 4–9), while every training problem improves.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 - **Scope.** "No training problem is lost" is the result at lr 1e-6. At lr 3e-6 Qwen loses 15, 12
   and 1 training problems.

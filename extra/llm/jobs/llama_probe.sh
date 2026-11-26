@@ -13,5 +13,5 @@ print(\"yes\")" 2>/dev/null')
   sleep 300
 done
 N=$(cat queue.txt.started)
-{ head -n "$N" queue.txt; cat llm/jobs/probe_llama.txt; tail -n +"$((N + 1))" queue.txt; } > queue.tmp && mv queue.tmp queue.txt
+{ head -n "$N" queue.txt; cat extra/llm/jobs/probe_llama.txt; tail -n +"$((N + 1))" queue.txt; } > queue.tmp && mv queue.tmp queue.txt
 echo "$(date +%H:%M) token and Llama access found; Llama probes queued" >> llama_probe.log

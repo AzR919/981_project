@@ -2,7 +2,7 @@
 Job list for the replication of Li, Pandey and Chen, "Wrong the Same Way" (NeurIPS 2026 workshop; code
 github.com/Rohan-Pandey1729/RLVR-Reward-Hacking, MIT, pinned commit 05ef005).
 
-usage:  python tools/literature/replication/wsw_jobs.py [--part 2] > jobs_wsw.txt
+usage:  python extra/tools/literature/replication/wsw_jobs.py [--part 2] > jobs_wsw.txt
 
 One line per job: the command to run from their src/ folder, in a fresh copy of their code with an empty
 results/ and cache/. Their scripts take --shard/--nshards and split the work into disjoint shards; figures.py

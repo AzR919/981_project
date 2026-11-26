@@ -4,9 +4,9 @@ Committed before batch `v3i` launches. Code: `enum-env`, "T21" commit. Explorato
 
 ## Why
 
-T20 showed the minority collapse in Li, Pandey and Chen's environment (`analysis/v3h/SUMMARY.md`).
+T20 showed the minority collapse in Li, Pandey and Chen's environment (`extra/analysis/v3h/SUMMARY.md`).
 In our toy, a forward KL anchor and pass@k weighting prevent absorption, and a reverse KL anchor at
-usual strengths does not (`analysis/v3g/SUMMARY.md`, `analysis/v3f/SUMMARY.md`). T21 asks whether
+usual strengths does not (`extra/analysis/v3g/SUMMARY.md`, `extra/analysis/v3f/SUMMARY.md`). T21 asks whether
 the same levers behave the same way with a transformer on token prompts.
 
 ## What has been seen

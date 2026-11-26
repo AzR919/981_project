@@ -1,6 +1,6 @@
 #!/bin/bash
 # Show load, sessions and progress of one batch on each lab machine.
-# usage: cluster/status.sh <tag> host1 ... hostN
+# usage: extra/cluster/status.sh <tag> host1 ... hostN
 TAG=$1; shift
 for H in "$@"; do
   ssh -o ConnectTimeout=20 "$H" "printf '%s load=%s users=%s results=%s failed=%s done=%s\n' \

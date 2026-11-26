@@ -1,9 +1,9 @@
 # v3m: permanent or plateau? Exact long-time flow (T25)
 
 Pre-registered in `PREREG_v3d_addendum7.md` (`review` `15a86b0`), with the prediction rule fixed before the
-integrations; exploratory. Code: `experiments/exact_flow.py`, the exact gradient flow of the linear policy under the
+integrations; exploratory. Code: `extra/experiments/exact_flow.py`, the exact gradient flow of the linear policy under the
 exact expected GRPO update, integrated in log time (`toy-v3`; matches discrete SGD to within 0.015 decades).
-`experiments/check_permanence.py` regenerates `FINDINGS.md`, `runs.csv` and `prompts.csv` from the saved
+`extra/experiments/check_permanence.py` regenerates `FINDINGS.md`, `runs.csv` and `prompts.csv` from the saved
 integrations (`~/rlvr-data/v3m/*.npz`; archive `v3m_raw.tar.gz`).
 
 **Setup:** linear policy, K = 3, ρ ∈ {0.3, 0.5, 0.7, 0.9, 0.95}, m ∈ {0.7, 0.9}, 10 tasks each (100 tasks), flow time
@@ -65,7 +65,7 @@ that recovered:
 - **Which applies is predicted by γ_min:** below 1, a plateau; at or above 1, permanent to within 1e14, in 27 of 30
   tasks. This is a task-level, post hoc reading of the pre-registered quantity γ_min, not a registered test.
 - **The per-prompt late model fails over long times, as in T24.** Prompt-level outcomes need the collective
-  dynamics; the class-level fall model (`analysis/theory/fall.md`) is the step in that direction.
+  dynamics; the class-level fall model (`extra/analysis/theory/fall.md`) is the step in that direction.
 
 ## Deviations
 

@@ -1,9 +1,9 @@
 """
-Reproduce the main-session checks behind analysis/review/SUMMARY.md and the
+Reproduce the main-session checks behind extra/analysis/review/SUMMARY.md and the
 plan critique, from the result caches.
 
 usage (from 981_project/, after `analyze.py collect` for base and stretch):
-    python3 analysis/review/checks/verify_summary.py
+    python3 extra/analysis/review/checks/verify_summary.py
 
 Each section prints the numbers quoted in SUMMARY.md.
 """
@@ -15,7 +15,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))  # repo root (extra/analysis/review/checks/)
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "experiments"))
 

@@ -5,13 +5,13 @@ Exploratory, but with a quantitative prediction rule fixed here.
 
 ## What has been seen
 
-- T12 (`analysis/v3d`): a run's smallest γ_y = û·φ_y (û: the majority's ℓ2 max-margin direction)
+- T12 (`extra/analysis/v3d`): a run's smallest γ_y = û·φ_y (û: the majority's ℓ2 max-margin direction)
   ranks the late margin growth (Spearman 0.89; within cells, median 0.78). A per-prompt rule
   "γ_y < 1 recovers" failed (0 of 147 such prompts recovered under SGD). A depth comparison on the same
   data was partly circular (a prompt that never recovered is deepest at the end by construction) and
-  is not used as evidence. (`analysis/theory/late_time.md`.)
+  is not used as evidence. (`extra/analysis/theory/late_time.md`.)
 - S1: the ℓ∞ max-margin geometry does not predict Adam's late sinking better than ℓ2 does.
-- SymPy (`tests/test_theory_symbolic.py`): the scalar late model dL/dτ = γ/τ − c e^{−L} has an exact
+- SymPy (`extra/tests/test_theory_symbolic.py`): the scalar late model dL/dτ = γ/τ − c e^{−L} has an exact
   solution. No T24 run has been made.
 
 ## Runs

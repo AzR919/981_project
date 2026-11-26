@@ -1,5 +1,9 @@
 """The vectorised Fisher test equals scipy's, and the rules flag what they should."""
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import os
 import sys
 import unittest
@@ -7,7 +11,8 @@ import unittest
 import numpy as np
 from scipy.stats import fisher_exact
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from llm.census_calibration import fisher_less, flags  # noqa: E402
 

@@ -1,7 +1,7 @@
 """
 Reduced class-level ODE for phase 1 (the fall) of the linear policy under the exact expected GRPO update.
 
-Theory: analysis/theory/fall.md. Two reductions of the exact flow (experiments/exact_flow.py):
+Theory: extra/analysis/theory/fall.md. Two reductions of the exact flow (extra/experiments/exact_flow.py):
 
 - "class" model: every prompt of class a is replaced by its class-mean feature phi_a, weighted by the class share
   f_a. With W = W0 + sum_a C_a phi_a^T the flow is exactly

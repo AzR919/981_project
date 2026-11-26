@@ -1,6 +1,6 @@
 """
 A correct minority class in the enumerable RLVR environment of Li, Pandey and Chen (2026),
-"Wrong the Same Way" (MIT licence; fetched by experiments/third_party/fetch_wsw.sh at a pinned commit).
+"Wrong the Same Way" (MIT licence; fetched by extra/experiments/third_party/fetch_wsw.sh at a pinned commit).
 
 Their environment: 64 prompts (a, b), a 2-layer transformer shared by all prompts, and a response space of
 100 two-digit strings, small enough that pi(.|x) is computed exactly. Their verifier accepts each prompt's
@@ -35,7 +35,7 @@ ENUM_DEFAULTS = {"partition": "random", "enum_policy": "shared", "algo": "pg", "
 
 def load():
     if not os.path.isdir(WSW):
-        raise FileNotFoundError(f"{WSW} is missing; run experiments/third_party/fetch_wsw.sh")
+        raise FileNotFoundError(f"{WSW} is missing; run extra/experiments/third_party/fetch_wsw.sh")
     if WSW not in sys.path:
         sys.path.insert(0, WSW)
     import base

@@ -2,7 +2,7 @@
 
 All 480 runs returned and none failed. They were launched from a clean commit (`toy-v3` `e45b533`;
 job digest `879c78be6482`). Pre-registered in `PREREG_v3d_addendum2.md` (`review` `a9c0980`);
-exploratory. `experiments/analyze_v3f.py` regenerates `FINDINGS.md`.
+exploratory. `extra/experiments/analyze_v3f.py` regenerates `FINDINGS.md`.
 
 - **Task:** linear, ρ = 0.9, m = 0.9; sampled updates; 20,000 steps (4× v3c).
 - **Matched point:** the first logged step at which the majority class mean reaches 0.80.

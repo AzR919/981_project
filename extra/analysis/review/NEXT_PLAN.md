@@ -12,8 +12,8 @@ Two CPU batches have run: 24,638 runs on the synthetic task. A four-way review
 - the H5 table was a tie-break artifact;
 - the one-step-size law (H3) was refuted.
 
-A draft plan was pressure-tested (`analysis/review/plan_critique.md`) and revised to v2
-(`analysis/review/NEXT_PLAN.md`, commit `ac2edd7`).
+A draft plan was pressure-tested (`extra/analysis/review/plan_critique.md`) and revised to v2
+(`extra/analysis/review/NEXT_PLAN.md`, commit `ac2edd7`).
 
 This v3 makes two changes to v2:
 1. **New LLM stretch goal C7, KL in LLMs.** v2 had listed KL as an unaddressed limitation.
@@ -138,7 +138,7 @@ exploratory, including C7.
 - Use only machines with no other logged-in user.
 
 **Loop:**
-- a new `llm/` package in `981_project`;
+- a new `extra/llm/` package in `981_project`;
 - vLLM sampling and a PyTorch update;
 - **our own `calculate_advantages`**;
 - sequence-mean loss aggregation (stated, not TRL's default);

@@ -8,7 +8,7 @@ Review finding 5 (`ADVERSARIAL_v5.md`): every toy run starts from a policy that 
 answer classes apart, while the base LLM in C2 already answers minority problems correctly about
 half the time and almost never gives the other procedure's answer. T22 tested one version of this
 ("the wrong mass is on junk answers") and it failed: junk delays the collapse and does not prevent
-it (`analysis/v3j/SUMMARY.md`). T23 tests the other version directly: start the toy from a policy
+it (`extra/analysis/v3j/SUMMARY.md`). T23 tests the other version directly: start the toy from a policy
 that already answers every class.
 
 ## What has been seen

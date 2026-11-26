@@ -2,7 +2,7 @@
 
 All 320 runs returned and none failed. Launched from a clean commit (`toy-v3` `a717aab`; job digest
 `04c06c4b14a9`). Pre-registered in `PREREG_v3d_addendum5.md` (`review` `2a24e93`); exploratory.
-`experiments/analyze_v3k.py` regenerates `FINDINGS.md`, `runs.csv` and `cells.csv`. (In
+`extra/experiments/analyze_v3k.py` regenerates `FINDINGS.md`, `runs.csv` and `cells.csv`. (In
 `FINDINGS.md`, a value of −1 in the first-step table marks the sampled arm, where the first step was
 not measured.)
 

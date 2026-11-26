@@ -1,6 +1,6 @@
 # Theory of the fall: results, part 1 (in-sample)
 
-**Read this as in-sample.** The model (`analysis/theory/fall.md`, code `experiments/fall_ode.py` at `afef9a4`) was
+**Read this as in-sample.** The model (`extra/analysis/theory/fall.md`, code `extra/experiments/fall_ode.py` at `afef9a4`) was
 written by an agent who had read the summaries of v3e, v3g, v3j, v3k and v3l. The comparison below is therefore a fit
 check, not evidence, whatever the result (`PREREG_fall_heldout.md`, `review` `5275c11`). The test that counts is
 the held-out one on v3o (part 2, below, once run).
@@ -9,7 +9,7 @@ Order of events:
 - Predictions for all 6,980 runs were computed on 11-24 from each run's configuration and starting success alone,
   and committed on 11-25 (`fb7c0d2`), before any comparison.
 - The model has no fitted parameter.
-- Tables: `fall_compare.md`, `fall_runs.csv`, `fall_thresholds.csv` (`experiments/check_fall.py compare`).
+- Tables: `fall_compare.md`, `fall_runs.csv`, `fall_thresholds.csv` (`extra/experiments/check_fall.py compare`).
 
 ## The registered tests (primary model: class-symmetric; linear policy, exact update)
 

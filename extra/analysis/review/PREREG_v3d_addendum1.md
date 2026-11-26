@@ -4,7 +4,7 @@ Committed before batch `v3e` launches. Exploratory; nothing here enters the Holm
 
 ## What has been seen
 
-- **The v3d results** (`analysis/v3d/SUMMARY.md`, `analysis-v3` `79d2161`).
+- **The v3d results** (`extra/analysis/v3d/SUMMARY.md`, `analysis-v3` `79d2161`).
   - **T11:** at step 0 the ratio R = −Δ_B(A)/Δ_B(B) is the majority's push on the minority over the
     minority's own gain. At K = 3 it is 0.78–0.93 for m = 1/3, 3.6–4.8 for m = 0.7 and 10.7–17.1 for
     m = 0.9.

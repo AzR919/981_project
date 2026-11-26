@@ -2,8 +2,8 @@
 C0 pilot analysis for one model: false-decline rate, problem pool, learning-rate pilots.
 
 usage:
-    python llm/analyze_c0.py --name qwen --base s0.json.gz s1.json.gz --test test.json.gz \\
-        --pilot 1e-6=run_dir 3e-6=run_dir ... --out analysis/llm/c0_qwen.md --pool llm/pools/qwen.json
+    python extra/llm/analyze_c0.py --name qwen --base s0.json.gz s1.json.gz --test test.json.gz \\
+        --pilot 1e-6=run_dir 3e-6=run_dir ... --out extra/analysis/llm/c0_qwen.md --pool extra/llm/pools/qwen.json
 
 Each pilot run_dir holds run/log.jsonl (train.py) and after.json.gz
 (evaluate.py on the training problems). The pool is every train problem whose
@@ -19,7 +19,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import fisher_exact
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from llm.declines import BINS, LABELS, compare, load  # noqa: E402
 

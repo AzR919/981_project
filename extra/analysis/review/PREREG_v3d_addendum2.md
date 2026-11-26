@@ -4,7 +4,7 @@ Committed before batch `v3f` launches. Exploratory.
 
 ## What has been seen
 
-The v3c results (`analysis/v3c/SUMMARY.md`), on the minority task (linear, ρ = 0.9, m = 0.9) at
+The v3c results (`extra/analysis/v3c/SUMMARY.md`), on the minority task (linear, ρ = 0.9, m = 0.9) at
 5,000 steps:
 - grpo absorbs the whole minority set and ends at overall success 0.897;
 - pass@2 rules absorb 2–5% and reach 0.92–0.94 at η = 1;

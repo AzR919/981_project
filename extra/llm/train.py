@@ -2,7 +2,7 @@
 GRPO-family training of a small LLM on binary-reward math problems.
 
 usage:
-    python llm/train.py --model Qwen/Qwen2.5-0.5B-Instruct --problems ids.json --rule grpo \\
+    python extra/llm/train.py --model Qwen/Qwen2.5-0.5B-Instruct --problems ids.json --rule grpo \\
         --steps 300 --lr 1e-6 --out ~/rlvr_results/llm/<run> --work /tmp/asa715/runs/<run>
 
 The update matches the toy (synthetic_rl/trainer.py): advantages come from
@@ -35,7 +35,8 @@ os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 import numpy as np
 import torch
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from llm.data import load_gsm8k, prompt_text, reward  # noqa: E402
 from synthetic_rl.trainer import calculate_advantages  # noqa: E402
@@ -245,7 +246,7 @@ def kl_terms(logp, ref_logp, direction):
     """Per-token KL loss term and value. Samples come from pi, so only log pi carries gradient:
     differentiating k2 = (log pi - log ref)^2 / 2 gives the reverse-KL gradient, differentiating
     k3 = rho - log rho - 1 (rho = ref / pi) gives the forward-KL gradient (tested in
-    tests/test_llm_kl.py). The value logged is k3, an unbiased estimate of the reverse KL.
+    extra/tests/test_llm_kl.py). The value logged is k3, an unbiased estimate of the reverse KL.
 
     The log-ratio is bounded to [-20, 20]. Without the bound, one sampled token that the trainer
     scores as (nearly) impossible makes exp(delta) overflow or delta infinite, and the whole update
@@ -514,7 +515,7 @@ def main():
     export(model, tokenizer, final, args)
     # The checkpoint (~3 GB for 0.5B) stays on the home disk until the job's evaluations are done, so a
     # job interrupted after training (03:00 /tmp wipe) resumes at the last step and only re-exports.
-    # Job lines delete it at the end (llm/jobs/*.txt).
+    # Job lines delete it at the end (extra/llm/jobs/*.txt).
     print(f"saved {final}", flush=True)
 
 

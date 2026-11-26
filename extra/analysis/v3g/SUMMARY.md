@@ -2,7 +2,7 @@
 
 All 5,540 runs returned and none failed. They were launched from a clean commit (`toy-v3` `b059c73`;
 job digest `5ab4c97ca34d`). Pre-registered in `PREREG_v3d_addendum3.md` (`review` `2df02ca`);
-exploratory. `experiments/analyze_v3g.py` regenerates `FINDINGS.md` and the tables.
+exploratory. `extra/experiments/analyze_v3g.py` regenerates `FINDINGS.md` and the tables.
 
 Task: K = 3 answer classes, uniform start, majority share m; the KL reference is the start policy.
 
@@ -118,7 +118,7 @@ Smallest share with absorption (mean minority absorption ≥ 0.05), exact update
 | forward KL, β = 0.03 (H4) | ≤ 0.2% | step 100 | 0.005 | 0.98 / 0.57 |
 | pass@2 (v3f) | 0–12% | step 100 | 0.03–0.08 | 0.98 / 0.79–0.87 |
 | pass@4 (v3f) | 0% | steps 350–3,900 | 0.31–0.42 | 0.92–0.95 / 0.67–0.72 |
-| projecting out the harmful direction (v3d) | 0–1% at m = 0.9 | not measured at the matched point | | see `analysis/v3d/SUMMARY.md` |
+| projecting out the harmful direction (v3d) | 0–1% at m = 0.9 | not measured at the matched point | | see `extra/analysis/v3d/SUMMARY.md` |
 
 Only pass@4 and the projection keep the minority up *while* the majority is learned. Forward KL and
 pass@2 let it fall and bring it back at almost no cost to the majority. Reverse KL at usual
@@ -142,7 +142,7 @@ strengths and group size do not help.
 2. **T18 predictions** were changed from the plan before launch (one resting point, not two); this
    is recorded in the pre-registration itself.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 1. **Forward KL keeps the minority above a floor; it does not remove the collapse at small β.** The
    table above uses the 1e-3 threshold. At the registered sensitivity threshold 1e-2, the share of

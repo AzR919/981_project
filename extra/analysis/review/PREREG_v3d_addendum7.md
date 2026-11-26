@@ -1,6 +1,6 @@
 # PREREG_v3d, addendum 7 (2026-11-24): permanent or plateau? (T25, exact long-time flow)
 
-Committed before the T25 runs. Code: `toy-v3` `3bf676f` (`experiments/exact_flow.py`). Exploratory, with
+Committed before the T25 runs. Code: `toy-v3` `3bf676f` (`extra/experiments/exact_flow.py`). Exploratory, with
 a fixed prediction rule.
 
 ## Why

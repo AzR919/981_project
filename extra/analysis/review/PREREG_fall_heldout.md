@@ -1,6 +1,6 @@
 # Theory of the fall: held-out test (2026-11-24)
 
-The reduced class-level ODE (`analysis/theory/fall.md`, `analysis-v3` `afef9a4`) was written by an agent that
+The reduced class-level ODE (`extra/analysis/theory/fall.md`, `analysis-v3` `afef9a4`) was written by an agent that
 had read the summaries of v3e, v3g, v3j, v3k and v3l before writing the model. Its comparison on those five
 batches is therefore **in-sample (fitting data), not a test**, whatever the result, and is reported as such.
 

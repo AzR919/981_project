@@ -1,5 +1,9 @@
 """C2 analysis on synthetic runs with a planted trend."""
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import gzip
 import json
 import os
@@ -50,7 +54,7 @@ class AnalyzeC2Tests(unittest.TestCase):
                 for m, seed in cells:
                     d = f"{tmp}/{major}_{m}_{seed}/host"
                     os.makedirs(f"{d}/run")
-                    json.dump({"problems": f"llm/pools/c2/mix_m{m}_{major}_s{seed}_train_ids.json", "seed": seed},
+                    json.dump({"problems": f"extra/llm/pools/c2/mix_m{m}_{major}_s{seed}_train_ids.json", "seed": seed},
                               open(f"{d}/run/config.json", "w"))
                     with open(f"{d}/run/groups.jsonl", "w") as f:
                         f.write(json.dumps({"step": 1, "ids": ["each-0", "total-0"], "rewards": [[1, 0], [0, 0]]}) + "\n")

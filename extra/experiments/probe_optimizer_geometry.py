@@ -5,7 +5,8 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import linprog, minimize
 from scipy.stats import spearmanr
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 from experiments.run import DEFAULTS, build
 
 
@@ -53,7 +54,7 @@ if __name__ == "__main__":
         columns={"majority": "m", "optimizer": "opt", "task_seed": "task"})
     j = run.merge(cache[["rho", "m", "opt", "eta", "update", "task", "margin_growth", "recovered"]],
                   on=["rho", "m", "opt", "eta", "update", "task"])
-    j.to_csv("analysis/theory/optimizer_geometry_runs.csv", index=False)
+    j.to_csv("extra/analysis/theory/optimizer_geometry_runs.csv", index=False)
     print("runs:", len(j), "| support margins (should be 1):", round(j.margin2.min(), 4), round(j.margininf.min(), 4))
     for (opt, upd), g in j.groupby(["opt", "update"]):
         out = []

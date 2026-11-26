@@ -16,7 +16,7 @@ So the pool of problems with p̂ in [0.1, 0.9], where losses are measurable, wou
 
 **Needed:**
 1. A MATH answer checker: normalise `\boxed{}` strings and compare with sympy where possible. The
-   current `llm/data.py` parser is numeric only.
+   current `extra/llm/data.py` parser is numeric only.
 2. A MATH subset, e.g. levels 3–5 of the MATH train split, with a fixed seed.
 3. Base-p̂ calibration (N = 32, two seeds) for Qwen2.5-3B, Llama-3.2-3B and SmolLM3-3B, then the C0
    steps.
@@ -29,7 +29,7 @@ of the probes), and the C1 results justify a size arm.
 1. **Prevention in the transformer environment (gated on T20).** If T20 shows the minority collapse
    in Li, Pandey and Chen's environment, rerun its collapsing cells with the levers that worked in
    the toy: forward and reverse KL (their loss has reverse KL only; forward is a small addition in
-   `experiments/enum_env.py`) and pass@k weighting. CPU, minutes. Pre-register as an addendum to
+   `extra/experiments/enum_env.py`) and pass@k weighting. CPU, minutes. Pre-register as an addendum to
    `PREREG_T20.md`. If T20 shows no collapse, drop this.
 2. **How often does a run degrade broadly at 95% majority? (LLM, exploratory.)** One of three seeds
    of C2 at m = 0.95 with majority `each` lost 45 of 300 held-out minority problems and 17 majority
@@ -46,7 +46,7 @@ Considered and not added:
 - more majority shares or a longer horizon for C2 (the long arm is already queued);
 - C11, a fix in the LLM (its gate is not met).
 
-## From the adversarial review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`), not scheduled
+## From the adversarial review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`), not scheduled
 
 1. **An LLM pair told apart by one token** (finding 5, the LLM-side test). C2's procedures differ by
    a cue sentence and the base model almost never confuses them. Build a pair whose prompts differ
@@ -74,7 +74,7 @@ limit); problem set and how it was filtered; number of seeds; the definition of 
 Known cases to start from:
 - **Yang (2609.22547), locked prompts.** Our "83 of 3,000" is at 32 samples per problem; Yang uses
   128–256. Not comparable, and no longer used against that paper. Done instead: a re-analysis of
-  Yang's own released counts at n = 128 (`tools/literature/checks/yang_2609_22547_check2_exact_null.py`
+  Yang's own released counts at n = 128 (`extra/tools/literature/checks/yang_2609_22547_check2_exact_null.py`
   on `literature`): 33 locked against 15–18 expected with no change. Possible addition: evaluate
   our base model twice at 256 samples on unfiltered problems (2 GPU jobs of about 2 hours).
 - **Ramesh et al. (Multi-Task GRPO).** They use Qwen2.5-3B and real task mixtures; we use 0.5B and
@@ -90,7 +90,7 @@ Known cases to start from:
 ## Other open items
 
 - **Restart C1 Qwen lr 3e-6, seed 0** (queue job `q_00`, c12). It hit a CUDA illegal-address fault at
-  step 363. Restart on c12 with `llm/relaunch.sh`; the checkpoint path is host-specific.
+  step 363. Restart on c12 with `extra/llm/relaunch.sh`; the checkpoint path is host-specific.
 - **Analyses not yet run:**
   - A2 (ablation re-score), A3 (H4 fixed-β slopes), A6 (Barakat write-up);
   - T3 (attribution of lost prompts): descriptive only, optional;

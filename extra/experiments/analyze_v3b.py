@@ -1,9 +1,9 @@
 """
-Analysis of v3 batch 2 (`v3b`), implementing analysis/review/PREREG_v3b.md.
+Analysis of v3 batch 2 (`v3b`), implementing extra/analysis/review/PREREG_v3b.md.
 
 usage:
-    python experiments/analyze_v3b.py collect [--raw results/v3b] [--jobs 8]
-    python experiments/analyze_v3b.py all [--raw results/v3b] [--v3a results/v3a] [--out analysis/v3b]
+    python extra/experiments/analyze_v3b.py collect [--raw results/v3b] [--jobs 8]
+    python extra/experiments/analyze_v3b.py all [--raw results/v3b] [--v3a results/v3a] [--out extra/analysis/v3b]
 
 collect writes <raw>/cache/<test>.csv (one row per run) and, for T5,
 t5_prompts.npz (per prompt: run row, label, p_init, step-0 drift, rarity).
@@ -24,7 +24,8 @@ import numpy as np
 import pandas as pd
 from scipy import optimize, stats
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from experiments.analyze import Report, assemble, markdown  # noqa: E402
 from experiments.analyze_v3 import (CONFIG_KEYS, PERSIST, analyze_t1, best_by_tiebreak, persistent,  # noqa: E402
@@ -398,7 +399,7 @@ def main():
     parser.add_argument("what", choices=("collect", "all"))
     parser.add_argument("--raw", default="results/v3b")
     parser.add_argument("--v3a", default="results/v3a")
-    parser.add_argument("--out", default="analysis/v3b")
+    parser.add_argument("--out", default="extra/analysis/v3b")
     parser.add_argument("--jobs", type=int, default=8)
     args = parser.parse_args()
     if args.what == "collect":
@@ -426,7 +427,7 @@ def main():
         print(f"{h}: done")
     assemble(args.out, TESTS, "v3 batch 2 (pre-registered in PREREG_v3b.md)")
     path = os.path.join(args.out, "FINDINGS.md")
-    text = open(path).read().replace("`experiments/analyze.py`", "`experiments/analyze_v3b.py`")
+    text = open(path).read().replace("`experiments/analyze.py`", "`extra/experiments/analyze_v3b.py`")
     open(path, "w").write(text)
     print(primary)
 

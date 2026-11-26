@@ -1,8 +1,8 @@
 # v3 batch 1: what the results say
 
-All 17,279 runs returned and none failed. The tests follow `analysis/review/PREREG_v3a.md` (branch
+All 17,279 runs returned and none failed. The tests follow `extra/analysis/review/PREREG_v3a.md` (branch
 `review`, commit `dc5736e`), and the code ran from `toy-v3` at `108055d`. The numbers are in
-`FINDINGS.md`, which `experiments/analyze_v3.py all` regenerates from the raw results.
+`FINDINGS.md`, which `extra/experiments/analyze_v3.py all` regenerates from the raw results.
 
 ## Verdicts
 
@@ -113,7 +113,7 @@ Holm runs across P1–P5 once P3–P5 are in. For now, P1's p-value is 3.0e-8, s
 - **T5, T7, T9 and the P3 pre-registration are still to build.** P3 has to be committed before T5
   launches.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 - **P1's p-value.** The 3.0e-8 quoted above is pseudo-replicated (it pairs task × η). The corrected
   task-level value is 0.0098 (`P1_TASK_LEVEL.md`); with Holm over P1–P5 it is 0.049 (0.039 if P2's

@@ -1,10 +1,10 @@
 # Pre-registration: C1 (P4) and C5, small-LLM lost-problem census
 
 This file is written and committed before any C1 or C5 training run starts. The code is on branch
-`llm-transfer`, and each run records its commit in `$OUT/COMMIT`. The analysis (`llm/analyze_c1.py`)
+`llm-transfer`, and each run records its commit in `$OUT/COMMIT`. The analysis (`extra/llm/analyze_c1.py`)
 must implement exactly these tests. Any later deviation is reported as a deviation.
 
-**What is already known.** The C0 pilots are known and disclosed in `analysis/llm/c0_qwen.md`
+**What is already known.** The C0 pilots are known and disclosed in `extra/analysis/llm/c0_qwen.md`
 (branch `analysis-v3`):
 - At 150 steps, Qwen at lr 1e-6 had 0 BH-significant declines at N = 32. At lr 3e-6 it had 2 (1
   lost). At lr 1e-5 it collapsed (168 lost).
@@ -23,7 +23,7 @@ must implement exactly these tests. Any later deviation is reported as a deviati
   - Sequence-level loss −Σ A · log π(completion) / (64 · 8).
 - **Problems.** 1,000 training problems and 300 held-out problems per model. Both are drawn with seed
   0 from the model's pool: GSM8K train problems with base p̂ in [0.1, 0.9], pooled over two N = 32
-  evaluations. The id lists are in `llm/pools/<model>_c1_{train,heldout}.json`.
+  evaluations. The id lists are in `extra/llm/pools/<model>_c1_{train,heldout}.json`.
 - **Arms and seeds.**
   - Qwen: lr 1e-6 is the **primary arm**; 3e-6 is a secondary arm. Seeds 0, 1 and 2 for each.
   - SmolLM2: one arm, seeds 0, 1 and 2. Its lr is set by the G0 pilot rule, fixed before C1 launches:

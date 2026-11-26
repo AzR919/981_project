@@ -1,7 +1,7 @@
 """
 Write the job list for the LLM branch test C10 (PREREG_C10.md).
 
-usage (from 981_project/):  python llm/jobs/make_v3.py
+usage (from 981_project/):  python extra/llm/jobs/make_v3.py
 
   c10.txt   18 short runs from the base model: mixed, majority-only and minority-only steps of the
             76 + 4 composition (denominator 80), both role assignments, seeds 0-2; the 600 held-out

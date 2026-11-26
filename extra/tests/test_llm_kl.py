@@ -1,12 +1,17 @@
-"""The on-policy KL loss terms in llm/train.py must have the gradient of the KL they are named after."""
+"""The on-policy KL loss terms in extra/llm/train.py must have the gradient of the KL they are named after."""
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import os
 import sys
 import unittest
 
 import torch
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from llm.train import draw_batch, drift_stats, kl_terms, parse_strata, policy_loss  # noqa: E402
 

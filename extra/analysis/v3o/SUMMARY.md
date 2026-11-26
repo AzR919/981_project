@@ -5,7 +5,7 @@
 - on tasks that had never been run: toy task seeds 10–29 and transformer partition seeds 10–29;
 - each test reuses the original batch's grid and definitions; only the seeds differ.
 
-`experiments/analyze_v3o.py` regenerates `FINDINGS.md`, `runs.csv`, `results.csv` and the per-test tables
+`extra/experiments/analyze_v3o.py` regenerates `FINDINGS.md`, `runs.csv`, `results.csv` and the per-test tables
 (`a1_cells.csv` … `a5_cells.csv`).
 
 ## Jobs
@@ -19,7 +19,7 @@
 | v3q (transformer) | `enum-env` `4b271a0`, clean, job digest `299bb326e002` | `v3_a4` | 440 | 0 |
 
 - v3o has 10,440 jobs.
-- v3q has 680 jobs: 440 for A4 and 240 for J (`v3_t29`, exploratory, analysed in `analysis/v3q/SUMMARY_J.md`).
+- v3q has 680 jobs: 440 for A4 and 240 for J (`v3_t29`, exploratory, analysed in `extra/analysis/v3q/SUMMARY_J.md`).
 - The `v3_a4` grid is 11 tasks × 2 algorithms × 20 seeds = 440 runs. The addendum's 480 was an arithmetic error
   (deviation 8).
 
@@ -114,7 +114,7 @@ All five exploratory findings replicated on fresh tasks and become confirmatory 
    every (architecture, ρ, optimizer, update) cell.
 2. **A2:** a forward-KL anchor to the start policy at β ∈ {0.03, 0.1, 0.3} prevents absorption at the 1e-3
    threshold. The scope is the same as in the original: the reference still solves the minority (see also G in
-   `analysis/v3p/SUMMARY.md`), and at 1e-2 the protection is partial at β = 0.03.
+   `extra/analysis/v3p/SUMMARY.md`), and at 1e-2 the protection is partial at β = 0.03.
 3. **A3:** pass@4 keeps the minority at about 0.4 when the majority reaches 0.80, where GRPO has it near 0. The cost is
    a slower majority, and at η = 0.03 the majority often never gets there.
 4. **A4:** in the transformer environment under Adam (lr 1e-3), the minority class is absorbed at a high majority
@@ -159,8 +159,8 @@ All five exploratory findings replicated on fresh tasks and become confirmatory 
    labels replacing their per-run rebuilds. A1 repeats the T1 branch of `analyze_v3.read_one`, because that function
    only accepts the hypothesis name `v3_t1`.
 7. **Original comparison data:**
-   - `analysis/v3f/runs.csv`, `analysis/v3h/runs.csv` and `analysis/v3k/runs.csv`;
+   - `extra/analysis/v3f/runs.csv`, `extra/analysis/v3h/runs.csv` and `extra/analysis/v3k/runs.csv`;
    - the raw v3g runs, for A2's 1e-2 measure;
-   - `analysis/v3a/P1_TASK_LEVEL.md` and `analysis/v3a/tables/v3_t1_cells.csv`, for A1.
+   - `extra/analysis/v3a/P1_TASK_LEVEL.md` and `extra/analysis/v3a/tables/v3_t1_cells.csv`, for A1.
 8. **A4's run count.** The addendum states 480 runs for `v3_a4`; the grid as committed has 440 (11 × 2 × 20). The
    difference is an arithmetic error in the addendum, not a change to the grid.

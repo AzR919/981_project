@@ -2,7 +2,7 @@
 Which problems got worse? Compare two evaluations (evaluate.py outputs).
 
 usage:
-    python llm/declines.py before.json.gz after.json.gz [--fdr 0.1] [--out table.csv]
+    python extra/llm/declines.py before.json.gz after.json.gz [--fdr 0.1] [--out table.csv]
 
 Per problem, a one-sided Fisher exact test of p_after < p_before on the
 (correct, n) counts; Benjamini-Hochberg across problems at the given FDR

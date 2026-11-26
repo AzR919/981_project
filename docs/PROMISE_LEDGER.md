@@ -1,7 +1,7 @@
 # Promise ledger: what the milestone promised, what happened, where it goes in the report
 
 Status on 2026-11-23. Sources: `latex/milestone.tex` (hypotheses H1–H5, lines 306–319), the
-pre-registrations in `analysis/review/`, and the summaries in `analysis/`. Failed predictions stay
+pre-registrations in `extra/analysis/review/`, and the summaries in `analysis/`. Failed predictions stay
 in the report as failed.
 
 ## Milestone hypotheses
@@ -30,7 +30,7 @@ in the report as failed.
 |---|---|
 | Branch test (T11) | The majority's update lowers the minority; the minority's own update raises it. It is active pushing, not starvation |
 | Long horizon and release tests (T12, T18) | The collapse is a long plateau, not a second resting point. It lasts because the majority keeps pushing and because restoring forces shrink with success |
-| Threshold grid and the odds law (T15, `analysis/theory/odds_law.md`) | At the first step from a uniform start, the push is R = c·m/(1 − m), with c from the feature geometry, and the first decline starts where m = 1/(1 + c(m)). This is a first-order identity; it was verified with nothing fitted against the simulator's first step in 1,080 runs. It is not a law of the whole training run |
+| Threshold grid and the odds law (T15, `extra/analysis/theory/odds_law.md`) | At the first step from a uniform start, the push is R = c·m/(1 − m), with c from the feature geometry, and the first decline starts where m = 1/(1 + c(m)). This is a first-order identity; it was verified with nothing fitted against the simulator's first step in 1,080 runs. It is not a law of the whole training run |
 | Margin check (M4) | Class decides, not prompt difficulty |
 | Prevention levers (T13, T16, T17, T19) | Hard-prompt weighting and a forward KL anchor (to a reference that still solves the minority) prevent absorption at different costs; forward KL at small strength leaves the minority at a low floor. Reverse KL at usual strengths and group size do not help |
 | LLM census with a calibrated null (C1, both families; census calibration) | At lr 1e-6, no training problem is lost in either family (at lr 3e-6, Qwen loses 15, 12 and 1); a few percent of unseen problems decline in every run, mostly different problems in each seed. At 32 samples per problem, a naive "locked problem" count flags 83 of 3,000 problems in an unchanged model; our test flags none. This is about our setting and that sample count; it is not a statement about other papers' counts |

@@ -1,7 +1,7 @@
 # v3q, batch J: the transformer environment under small-step SGD (T29)
 
 All 240 J runs returned and none failed. Launched from `enum-env` `4b271a0`. Pre-registered in
-`PREREG_v3d_addendum10.md` (`review` `e9510e4`); exploratory. `experiments/analyze_v3q_j.py` regenerates
+`PREREG_v3d_addendum10.md` (`review` `e9510e4`); exploratory. `extra/experiments/analyze_v3q_j.py` regenerates
 `FINDINGS_J.md` and `runs_J.csv`. `v3_a4` in the same batch belongs to battery A and is not analysed here.
 
 **Setup:**

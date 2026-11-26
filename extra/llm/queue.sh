@@ -1,6 +1,6 @@
 #!/bin/bash
 # Feed GPU jobs to idle lab machines, one job per host at a time.
-# usage: llm/queue.sh <batch> <jobs.txt> host1 ... hostN   (run from 981_project/, in the background)
+# usage: extra/llm/queue.sh <batch> <jobs.txt> host1 ... hostN   (run from 981_project/, in the background)
 # Every 2 minutes, re-reads jobs.txt (append lines to queue more work) and starts the
 # next unstarted line on each idle host: no llm_* tmux session of ours and no GPU
 # process of anyone's (other users run jobs without a login session). Job k runs as

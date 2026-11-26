@@ -7,9 +7,9 @@ connect to the minority collapse. These three experiments ask each the same ques
 protect the minority class, and at what cost to the majority?
 
 **Disclosed before writing.**
-- Outcomes seen: v3d, v3e and v3f (`analysis/v3d`, `v3e`, `v3f`), and T8 (KL bistability in the
+- Outcomes seen: v3d, v3e and v3f (`extra/analysis/v3d`, `v3e`, `v3f`), and T8 (KL bistability in the
   tabular policy at p_ref ≤ 0.2).
-- Only unit tests were run with the new code (`tests/test_v3.py::ReleaseTests`); no T17–T19 run was
+- Only unit tests were run with the new code (`extra/tests/test_v3.py::ReleaseTests`); no T17–T19 run was
   inspected.
 - The theory values below were computed from `synthetic_rl/theory.py` before launch.
 

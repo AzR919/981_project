@@ -18,7 +18,7 @@ the originals).
 
 ## Tests and p-values
 
-- **A1.** The P1 task-level test of `analysis/v3a/P1_TASK_LEVEL.md`, unchanged: per cell (architecture, ρ,
+- **A1.** The P1 task-level test of `extra/analysis/v3a/P1_TASK_LEVEL.md`, unchanged: per cell (architecture, ρ,
   optimizer, update; 16 cells), each task is averaged over the cell's no-overshoot η set; one-sided sign
   test that the per-minority-prompt absorption rate at m = 0.9 exceeds that at m = 1/3, across 20 tasks.
   A1's p-value is the largest of the 16 cell p-values (all cells must hold).

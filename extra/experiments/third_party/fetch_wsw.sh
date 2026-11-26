@@ -1,9 +1,9 @@
 #!/bin/bash
 # Fetch the environment of Li, Pandey and Chen, "Wrong the Same Way" (NeurIPS 2026 workshop), MIT licence:
 #   https://github.com/Rohan-Pandey1729/RLVR-Reward-Hacking
-# Their src/ and LICENSE are copied to experiments/third_party/wsw/ (not tracked by git; shipped to the lab
-# machines by cluster/launch.sh with the rest of experiments/). experiments/enum_env.py imports from there.
-# usage: experiments/third_party/fetch_wsw.sh [existing clone]
+# Their src/ and LICENSE are copied to extra/experiments/third_party/wsw/ (not tracked by git; shipped to the lab
+# machines by extra/cluster/launch.sh with the rest of experiments/). extra/experiments/enum_env.py imports from there.
+# usage: extra/experiments/third_party/fetch_wsw.sh [existing clone]
 set -e
 PIN=05ef005c5211ad8aff5e00d417facd32f4ea0d9a
 HERE="$(cd "$(dirname "$0")" && pwd)"

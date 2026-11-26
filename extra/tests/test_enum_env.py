@@ -1,5 +1,9 @@
 """The correct-minority task in the third-party enumerable environment (skipped when it is not fetched)."""
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import os
 import sys
 import unittest
@@ -20,7 +24,7 @@ def config(**kw):
     return dict(base, **kw)
 
 
-@unittest.skipUnless(HAVE, "run experiments/third_party/fetch_wsw.sh")
+@unittest.skipUnless(HAVE, "run extra/experiments/third_party/fetch_wsw.sh")
 class EnumEnvTests(unittest.TestCase):
     def test_verifier_has_one_accepted_string_per_prompt_and_the_requested_shares(self):
         env = enum_env.load()[0]

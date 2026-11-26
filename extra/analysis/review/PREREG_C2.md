@@ -1,8 +1,8 @@
 # Pre-registration: C2 (P5), minority-procedure collapse in a small LLM
 
 This file is written and committed before any C2 training run starts. The code is on branch
-`llm-transfer`: the generator `llm/gen_procedures.py`, the sets `llm/make_c2_sets.py`, and the SFT
-control `llm/sft.py`. The analysis must implement exactly these tests.
+`llm-transfer`: the generator `extra/llm/gen_procedures.py`, the sets `extra/llm/make_c2_sets.py`, and the SFT
+control `extra/llm/sft.py`. The analysis must implement exactly these tests.
 
 **What is already known:**
 - **Difficulty pilot** (C0, tag `c0d`, base Qwen, N = 32, 200 problems per procedure and range):

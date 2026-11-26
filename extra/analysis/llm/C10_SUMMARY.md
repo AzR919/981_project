@@ -1,7 +1,7 @@
 # C10: who pushes whom in the LLM
 
 All 18 runs finished (queue `r2`, tags `r2_41`–`r2_58`, 0 failed; code commit `b9747d1`).
-Pre-registered in `PREREG_C10.md` (`review` `75e0436`); exploratory. `llm/analyze_branch.py`
+Pre-registered in `PREREG_C10.md` (`review` `75e0436`); exploratory. `extra/llm/analyze_branch.py`
 regenerates `c10.md` and `c10_runs.csv`.
 
 Setup: Qwen2.5-0.5B from the base weights, GRPO, lr 1e-6, 100 steps. Three arms with the same loss
@@ -57,7 +57,7 @@ Every interval excludes zero on the positive side, in all 18 runs and at both st
 The composition is 76 + 4 at denominator 80, not the plan's 61 + 3; this is stated in the
 pre-registration.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 1. **The arms are not the two parts of the mixed update.** Training uses 8-bit AdamW, which
    normalises each step, so the 4-prompt arm moves its own panel almost as much as the 76-prompt arm

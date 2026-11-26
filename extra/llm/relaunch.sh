@@ -3,7 +3,7 @@
 # session, reboot, the 03:00 /tmp wipe). Same arguments as launch_gpu.sh, with
 # the hosts in the same order, so line i still maps to host i. A job whose tmux
 # session is still alive is left alone. Training resumes from $OUT/run/checkpoint.
-# usage: llm/relaunch.sh <tag> <jobs.txt> host1 ... hostN [--failed]
+# usage: extra/llm/relaunch.sh <tag> <jobs.txt> host1 ... hostN [--failed]
 #   --failed also restarts jobs that wrote FAILED (after fixing the cause).
 set -e
 TAG=$1; JOBS=$2; shift 2

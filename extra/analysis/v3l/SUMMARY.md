@@ -2,7 +2,7 @@
 
 All 120 runs returned and none failed (`toy-v3` `5487480`, clean). Pre-registered in
 `PREREG_v3d_addendum6.md` (`review` `93743f0`), with the prediction rule fixed before launch.
-`experiments/check_late_time.py` regenerates `FINDINGS.md`, `runs.csv` and `prompts.csv`.
+`extra/experiments/check_late_time.py` regenerates `FINDINGS.md`, `runs.csv` and `prompts.csv`.
 
 Setup: linear policy, SGD, exact update, K = 3, ρ ∈ {0.5, 0.7, 0.9}, m ∈ {0.7, 0.9}, η ∈ {0.1, 1},
 100,000 steps, 10 tasks; every prompt's success stored at log-spaced steps. 118 of 120 runs count.

@@ -1,8 +1,8 @@
 # Adversarial review v5 (2026-11-23)
 
 **State reviewed.** `analysis-v3` at `d7c5feb` and `review` at `f1f97f0`. Where raw results were on
-this machine (`~/rlvr-data/v3g`, `v3h`, `llm/c1q`), the reviewer recomputed numbers with the
-project's own readers (`experiments/analyze_v3g.py`, `llm/declines.py`).
+this machine (`~/rlvr-data/v3g`, `v3h`, `extra/llm/c1q`), the reviewer recomputed numbers with the
+project's own readers (`extra/experiments/analyze_v3g.py`, `extra/llm/declines.py`).
 
 **Terms.** *Absorbed*: a prompt whose success stays below τ = 1e-3 over the last 20% of steps (the
 T0 definition). *Per-prompt rate*: the share of a class's prompts that are absorbed. *Class-level*:

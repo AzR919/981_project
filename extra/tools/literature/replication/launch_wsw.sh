@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run the replication jobs of "Wrong the Same Way" on SECB lab CPUs, in tmux.
-# usage: tools/literature/replication/launch_wsw.sh <tag> <jobs.txt> <clone at the pinned commit> <workers> host1 ... hostN
+# usage: extra/tools/literature/replication/launch_wsw.sh <tag> <jobs.txt> <clone at the pinned commit> <workers> host1 ... hostN
 #   Host i runs jobs i, i+N, ... Each job runs in its own copy of their src/ with empty results/ and cache/,
 #   under ~/envs/rlvr (torch 2.15.0, the version they pin). Results are copied to the network home
 #   ~/rlvr_results/<tag>/<host>/j<index>/ as each job ends; DONE is written when the host has finished.

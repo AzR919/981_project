@@ -1,10 +1,14 @@
 """
-Symbolic checks (SymPy) of the algebra behind analysis/theory/odds_law.md and analysis/theory/late_time.md.
+Symbolic checks (SymPy) of the algebra behind extra/analysis/theory/odds_law.md and extra/analysis/theory/late_time.md.
 
 Each test states the identity it checks. Asymptotic claims are checked on the exact solution of the reduced
 model where one exists; claims about the full simulator are checked numerically elsewhere.
 """
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import unittest
 
 import sympy as sp

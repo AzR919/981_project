@@ -3,7 +3,7 @@
 All 1,809 runs returned and none failed. They were launched from a clean commit (`enum-env`
 `2f701de`; job digest `f69b99f753f9`), with their code at pinned commit `05ef005` on the torch
 version they pin (2.15). Pre-registered in `PREREG_T20.md` (`review` `edff353`); exploratory.
-`experiments/analyze_v3h.py` regenerates `FINDINGS.md`, `runs.csv` and `cells.csv`.
+`extra/experiments/analyze_v3h.py` regenerates `FINDINGS.md`, `runs.csv` and `cells.csv`.
 
 Setup: their 64 token prompts, 2-layer transformer shared by all prompts, 100 possible responses,
 exact success probabilities. Ours: K answer classes, each with one correct string; class 0 holds
@@ -92,7 +92,7 @@ use the parity.
 1. Prediction 4 for K = 3 cannot be computed as registered (no crossing on the grid).
 2. The interpretation of prediction 1a departs from its registered statistic, as explained above.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 1. **Only Adam at lr 1e-3 isolates the effect of the class share.** Per prompt (the registered
    measure), the share of the non-zero classes' prompts absorbed under the exact update is:

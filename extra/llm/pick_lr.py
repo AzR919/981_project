@@ -2,7 +2,7 @@
 Apply the pre-registered SmolLM2 learning-rate rule (PREREG_C1.md) to the C0 pilots.
 
 usage:
-    python llm/pick_lr.py --base base_s0.json.gz --ids llm/pools/smol_c1_train.json 1e-5=dir 3e-5=dir ...
+    python extra/llm/pick_lr.py --base base_s0.json.gz --ids extra/llm/pools/smol_c1_train.json 1e-5=dir 3e-5=dir ...
 
 Rule: the smallest lr whose mean p-hat on the training problems rises by >= 0.05
 over the base evaluation within 150 steps, with <= 2 BH-significant declines
@@ -14,7 +14,8 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from llm.declines import compare, load  # noqa: E402
 

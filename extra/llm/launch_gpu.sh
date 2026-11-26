@@ -1,25 +1,25 @@
 #!/bin/bash
 # Run one GPU job per lab machine in tmux.
 # usage (from 981_project/, on SFU Wi-Fi or VPN):
-#   llm/launch_gpu.sh <tag> <jobs.txt> host1 ... hostN
+#   extra/llm/launch_gpu.sh <tag> <jobs.txt> host1 ... hostN
 # jobs.txt has one shell command per line (run from the code folder with the
 # environment active); line i runs on host i. Commands should write their
 # outputs under $OUT, which is ~/rlvr_results/llm/<tag>/<host> (network home,
 # survives the 03:00 /tmp wipe). Large files (model weights, envs, HF cache)
 # stay in /tmp/asa715. Each host builds the environment first if it is missing
-# (llm/setup_env.sh), then writes $OUT/DONE (or $OUT/FAILED) at the end.
+# (extra/llm/setup_env.sh), then writes $OUT/DONE (or $OUT/FAILED) at the end.
 # With AFTER=<tag> in the environment, each job first waits (on its own host, in its tmux session)
 # until the job <tag> on that host has written DONE or FAILED, so jobs can be chained on a machine
 # without anything running on the laptop.
 set -e
 TAG=$1; JOBS=$2; shift 2; HOSTS=("$@")
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"   # repo root (this script is in extra/llm/)
 COMMIT=$(git -C "$ROOT" rev-parse --short HEAD)
 N=$(wc -l < "$JOBS")
 [ "$N" -le "${#HOSTS[@]}" ] || { echo "$N jobs but ${#HOSTS[@]} hosts"; exit 1; }
 
 STAGE=$(mktemp -d); mkdir -p "$STAGE/code"
-cp -r "$ROOT/llm" "$ROOT/synthetic_rl" "$STAGE/code/"
+mkdir -p "$STAGE/code/extra" && cp -r "$ROOT/extra/llm" "$STAGE/code/extra/" && cp -r "$ROOT/synthetic_rl" "$STAGE/code/"
 find "$STAGE/code" -name __pycache__ -prune -exec rm -rf {} +
 
 i=0

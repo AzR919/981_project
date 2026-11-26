@@ -9,10 +9,10 @@ The two answers differ by c * (a - 1), never zero since a >= 2 and c >= 1, so
 an answer tells which procedure the model applied. Each problem stores both.
 
 usage:
-    python llm/gen_procedures.py --range small --per-procedure 200 --seed 0 --out problems.json
+    python extra/llm/gen_procedures.py --range small --per-procedure 200 --seed 0 --out problems.json
 
 The C2 toy analogue: procedure = answer class; the training mix sets the
-majority share m (llm/gen_procedures.py --mix, see make_mix).
+majority share m (extra/llm/gen_procedures.py --mix, see make_mix).
 """
 
 import argparse

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build the GPU environment for the LLM experiments on one lab machine.
-# usage (on the lab machine):  bash llm/setup_env.sh
+# usage (on the lab machine):  bash extra/llm/setup_env.sh
 #
 # Everything heavy lives in /tmp/asa715 (local disk, wiped at the 03:00
 # reboot), so rerun this after a reboot; with the uv cache warm it takes a

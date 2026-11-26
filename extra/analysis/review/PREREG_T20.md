@@ -1,7 +1,7 @@
 # Pre-registration: T20, a correct minority class in Li, Pandey and Chen's environment (2026-11-23)
 
 Committed before batch `v3h` launches. Code: branch `enum-env` ("T20" commit),
-`experiments/enum_env.py`. Exploratory.
+`extra/experiments/enum_env.py`. Exploratory.
 
 ## Why
 
@@ -13,7 +13,7 @@ majority, does training push a *correct* minority class down?
 
 ## What has been seen
 
-- Our toy results (T1–T19) and the odds law (`analysis/theory/odds_law.md`).
+- Our toy results (T1–T19) and the odds law (`extra/analysis/theory/odds_law.md`).
 - Their paper and code. Two cells of their headline sweep were re-run and matched their published
   values within 0.016 (on torch 2.2.2; they pin 2.15, which the lab machines have).
 - Three local smoke runs of 100 steps (one per policy kind) checked that the code runs and how long

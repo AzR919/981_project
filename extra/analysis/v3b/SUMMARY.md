@@ -1,8 +1,8 @@
 # v3 batch 2 (`v3b`): what the results say
 
-All 5,280 runs returned and none failed. The tests follow `analysis/review/PREREG_v3b.md` (`review`,
+All 5,280 runs returned and none failed. The tests follow `extra/analysis/review/PREREG_v3b.md` (`review`,
 `aa144dc`), and the code ran from `toy-v3` at `e61626f`. The numbers are in `FINDINGS.md`, which
-`experiments/analyze_v3b.py all` regenerates.
+`extra/experiments/analyze_v3b.py all` regenerates.
 
 | Test | Pre-registered verdict | In one line |
 |---|---|---|

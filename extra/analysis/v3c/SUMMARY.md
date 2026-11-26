@@ -1,6 +1,6 @@
 # v3c: pass@k training rules (exploratory, PREREG_v3c.md)
 
-All 1,920 runs returned and none failed. `experiments/analyze_v3c.py` regenerates `FINDINGS.md`.
+All 1,920 runs returned and none failed. `extra/experiments/analyze_v3c.py` regenerates `FINDINGS.md`.
 
 | Prediction | Result |
 |---|---|
@@ -28,4 +28,4 @@ prediction: the ratio of low-p to high-p weight is ≫ grpo's 1.12.
 
 At matched majority progress, pass@2 does not stop the early push-down of the minority; it prevents
 absorption and allows recovery. pass@4 protects during learning at a speed cost. See
-`analysis/v3f/SUMMARY.md`.
+`extra/analysis/v3f/SUMMARY.md`.

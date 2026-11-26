@@ -1,10 +1,14 @@
-"""The reduced class-level ODE of the fall (experiments/fall_ode.py) against the exact flow (experiments/exact_flow.py).
+"""The reduced class-level ODE of the fall (extra/experiments/fall_ode.py) against the exact flow (extra/experiments/exact_flow.py).
 
 On a linear task whose features are replaced by their class means, the exact flow is a flow on U distinct points,
 and the class model must reproduce it to solver accuracy. With K = 2 there is one minority class, so the
 class-symmetric model must reproduce it too.
 """
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import os
 import sys
 import unittest

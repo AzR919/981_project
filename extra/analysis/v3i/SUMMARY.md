@@ -2,9 +2,9 @@
 
 All 560 runs returned and none failed. They were launched from a clean commit (`enum-env`
 `351d722`). Pre-registered in `PREREG_T20_addendum1.md` (`review` `f1f97f0`); exploratory.
-`experiments/analyze_v3i.py` regenerates `FINDINGS.md`, `runs.csv` and `cells.csv`.
+`extra/experiments/analyze_v3i.py` regenerates `FINDINGS.md`, `runs.csv` and `cells.csv`.
 
-Setup: Li, Pandey and Chen's environment with our class verifier (see `analysis/v3h/SUMMARY.md`).
+Setup: Li, Pandey and Chen's environment with our class verifier (see `extra/analysis/v3h/SUMMARY.md`).
 Two tasks (K = 3 with 56 of 64 prompts in class 0; parity, 48 of 64), exact and sampled updates,
 Adam at lr 1e-3 and SGD at lr 0.3; 10 seeds; 8 cells. Without a lever the minority is absorbed
 (mean share ≥ 0.5) in 7 of the 8 cells; the eighth is the parity task with the exact update and
@@ -62,10 +62,10 @@ Mean share of minority prompts absorbed, over the 7 collapsing cells:
 
 None. Predictions 1 and 4 are reported as partly failing.
 
-## Corrections after the review of 2026-11-23 (`analysis/review/ADVERSARIAL_v5.md`)
+## Corrections after the review of 2026-11-23 (`extra/analysis/review/ADVERSARIAL_v5.md`)
 
 1. **Reference.** The anchor is to the base model, which gives every class string 0.3. The result
-   is "an anchor to a reference that still solves the minority"; see `analysis/v3g/SUMMARY.md`,
+   is "an anchor to a reference that still solves the minority"; see `extra/analysis/v3g/SUMMARY.md`,
    corrections 1 and 3.
 2. **Threshold.** The counts above use 1e-3. The 1e-2 sensitivity counts were not computed for
    this batch.

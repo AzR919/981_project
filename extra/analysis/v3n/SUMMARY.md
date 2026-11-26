@@ -1,7 +1,7 @@
 # v3n: shared skills (T26)
 
 All 320 runs returned and none failed (`toy-v3` `c991964`). Pre-registered in `PREREG_v3d_addendum8.md`
-(`review` `2334a5d`); exploratory. `experiments/analyze_v3n.py` regenerates `FINDINGS.md`, `runs.csv`, `cells.csv`.
+(`review` `2334a5d`); exploratory. `extra/experiments/analyze_v3n.py` regenerates `FINDINGS.md`, `runs.csv`, `cells.csv`.
 
 Setup: 4-token answers; k positions carry the answer class, 4 − k follow one balanced rule shared by all prompts.
 

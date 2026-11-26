@@ -4,7 +4,7 @@ Committed before the control runs start. Exploratory.
 
 ## What has been seen
 
-The C1 Qwen results (`analysis/llm/C1_C5_SUMMARY.md`, `analysis-v3` `f25100f`):
+The C1 Qwen results (`extra/analysis/llm/C1_C5_SUMMARY.md`, `analysis-v3` `f25100f`):
 - At lr 1e-6, GRPO lost no training problem.
 - On the 300 held-out problems, 8–12 declined significantly and 1–5 were lost (null: 0).
 - Mean held-out success rose from 0.51 to 0.84.
@@ -23,7 +23,7 @@ produce them?
 - **Training.** Cross-entropy on those completions (rejection-sampling fine-tuning). Same optimizer and
   learning rate as C1 (8-bit AdamW, 1e-6), 8 epochs of batches of 64 (about 500 steps). Seeds 0–2.
 - **Evaluation.** As for C1: 256 samples per problem on the 1,300 problems, analysed with
-  `llm/analyze_c1.py`.
+  `extra/llm/analyze_c1.py`.
 
 ## Reading, fixed in advance
 

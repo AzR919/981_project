@@ -5,8 +5,8 @@ G ∈ {4, 16} at 512 samples per step. C8 is forward KL at β ∈ {0.1, 0.5}, G 
 800 steps, 2 seeds per setting. Plan: `NEXT_PLAN.md` (C7, exploratory); C8 is pre-registered in `PREREG_v3c.md`.
 
 Generated tables:
-- `c78.md` and `c78_runs.csv` (`llm/analyze_c1.py`): census and turnover per run;
-- `c78_fixed_points.md` (`llm/analyze_kl_fixed_points.py`): question 2.
+- `c78.md` and `c78_runs.csv` (`extra/llm/analyze_c1.py`): census and turnover per run;
+- `c78_fixed_points.md` (`extra/llm/analyze_kl_fixed_points.py`): question 2.
 
 `c78_partial.md` was the first look, with 11 of 20 runs.
 

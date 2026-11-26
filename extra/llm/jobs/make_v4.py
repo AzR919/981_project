@@ -1,7 +1,7 @@
 """
 Write the job list for the C2 seed replication (PREREG_C2_amendment2.md).
 
-usage (from 981_project/):  python llm/jobs/make_v4.py
+usage (from 981_project/):  python extra/llm/jobs/make_v4.py
 
   c2_seeds.txt   10 runs: the problem draw of the one broadly degraded C2 run (mix seed 1, majority "each")
                  at m = 0.95 and m = 0.5, with five new training seeds each (3-7); no hint evaluations.

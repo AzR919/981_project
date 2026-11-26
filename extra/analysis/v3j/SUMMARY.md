@@ -2,7 +2,7 @@
 
 All 1,280 runs returned and none failed. Launched from a clean commit (`toy-v3` `f0bf112`).
 Pre-registered in `PREREG_v3d_addendum4.md` (`review` `9458401`); exploratory.
-`experiments/analyze_v3j.py` regenerates `FINDINGS.md`, `runs.csv` and `cells.csv`.
+`extra/experiments/analyze_v3j.py` regenerates `FINDINGS.md`, `runs.csv` and `cells.csv`.
 
 Setup: two answer classes have prompts (class 0 with share m, class 1 the minority); the other
 K − 2 tokens are never correct ("junk"). K ∈ {2, 3, 6, 20}; uniform start; ρ = 0.9; SGD, η = 0.03;
@@ -52,7 +52,7 @@ Share of minority prompts absorbed (exact update, linear; the MLP is the same or
   no-junk case, where the majority wins from about m = 0.6. Junk delays the competition; it does
   not remove it.
 - **This is the limit of the odds law.** It is exact for the first step and silent about the rest
-  (`analysis/theory/odds_law.md`, corrections). Here the first step and the outcome disagree in
+  (`extra/analysis/theory/odds_law.md`, corrections). Here the first step and the outcome disagree in
   sign for every share between 0.6 and 0.95 at K = 20.
 - **The outcome threshold looks like a property of the two competing classes alone:** about 0.5–0.6
   whatever the number of junk answers.

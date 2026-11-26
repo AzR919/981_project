@@ -10,7 +10,7 @@ probability 1/K, while the base LLM in C2 gives the other procedure's answer on 
 of samples. The summaries read the LLM result as a boundary set by shared skills. The start is an
 untested alternative.
 
-The first-order algebra (`analysis/theory/odds_law.md`, step 2) makes this precise. For a majority
+The first-order algebra (`extra/analysis/theory/odds_law.md`, step 2) makes this precise. For a majority
 prompt x and a minority prompt y, the factor in ⟨∇p_y, ∇p_x⟩ is π_x·π_y − π_x(b) − π_y(a): the
 overlap of the two response distributions, minus the mass each puts on the other's answer. Mass on
 answers that belong to no class ("junk") adds to the overlap and to nothing else. With two answer

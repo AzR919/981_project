@@ -2,7 +2,7 @@
 C2 control: supervised fine-tuning on the same imbalanced mix that GRPO trains on.
 
 usage:
-    python llm/sft.py --model Qwen/Qwen2.5-0.5B-Instruct --problems-file mix.json \\
+    python extra/llm/sft.py --model Qwen/Qwen2.5-0.5B-Instruct --problems-file mix.json \\
         --epochs 2 --lr 1e-5 --batch 16 --out $OUT/run --work /tmp/asa715/w_sft
 
 Cross-entropy on each problem's worked solution (gen_procedures.worked), prompt
@@ -19,7 +19,8 @@ import time
 import numpy as np
 import torch
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from llm.data import load_gsm8k, prompt_text  # noqa: E402
 from llm.train import build_policy, export, token_logprobs  # noqa: E402
