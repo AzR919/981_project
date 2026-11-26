@@ -8,6 +8,26 @@ each row points to the file that has the details. If a row and its summary disag
 **Per-experiment write-ups:** `docs/Ankush.md` describes every experiment here in the format of `docs/Simon.md`
 (why it was run, what was done step by step, the fixed settings, and the result).
 
+## Promised vs extra
+
+Every experiment carries one of three labels, so the promised work can be read apart from the rest. The same label is
+on each entry in `docs/Ankush.md` (search for `Scope: Promised`, `Scope: Core follow-up` or `Scope: Extra`) and on
+each section of `analysis/FINAL_RESULTS.md`.
+
+| Label | Meaning | Count |
+|---|---|---|
+| **Promised** | In the milestone: H1–H5, their planned stretch goals, or a test the milestone named (such as Heckel's weights, T9) | 21 |
+| **Core follow-up** | Not in the milestone, but grew out of a promised result (H3's failure led to minority collapse), and the report's toy story relies on it | 31 |
+| **Extra** | Beyond what was promised: the transformer environment, the LLMs, formal verification, Adam side-questions; not needed to follow the report | 30 |
+
+- **Promised:** Guide §7 pilots, p₀ pilot, H1 gradient-norm check, H1, H2, H3, H4, H5, S_H1, S_DRIFT, S_PRED, S_ABL, S_EQ, A1, BAY, A2, A3, A6, T4, T8, T7, T9, T4 edge.
+- **Core follow-up:** T1 / P1, T2 / P2, T6, T5 / P3, T1 seed 1, T2 groups, T6 KL, T10, T11 (v3d), T12 (v3d), T13 (v3d), M2 (v3d addendum), M4 (v3d addendum), T15 (v3e), T16 (v3f), T17 (v3g), T18 (v3g), T19 (v3g), T22 (v3j), v3j2, T23 (v3k), T24 (v3l), Odds law (theory check), Late-time probe (theory check), Fall model (theory check), T25 (v3m), A1 (v3o), A2 (v3o), A3 (v3o), A5 (v3o), G (v3p, T27).
+- **Extra:** A4, ADAM, T20 (v3h), T21 (v3i), Lean proofs (theory check), SymPy checks (theory check), Optimizer geometry (theory check), wsw, wsw2, T26 (v3n), H (v3p, T28), A4 (v3q), J (v3q, T29), C0, Model probes, Census calibration, Llama calibration, C1 Qwen / P4, C1 Llama, C1 control, C5, C2 / P5, C2 matched minority, C2 seed replication of the degraded run, C2 extras, SmolLM2 diagnostic, C10, C9, C7 / C8, C3 and C11.
+
+**To review only what was promised,** read the Promised entries in `docs/Ankush.md`, section 1 of
+`analysis/FINAL_RESULTS.md`, and the base and stretch rows below. The report's main body is Promised plus Core
+follow-up; Extra appears at most as one short section (LLMs) or not at all.
+
 Written 2026-11-25 from the summaries, `HANDOFF.md`, `experiments/grids.py`, the LLM queue files and the
 branches named below. Paths are relative to the repo root on `main`.
 

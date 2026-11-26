@@ -3,6 +3,8 @@
 The single reference for the report: every claim we can make, its status, its numbers and the file it comes from.
 All experiments have finished and are analysed.
 
+**Scope labels** (promised vs extra) are given per section; definitions in `docs/EXPERIMENTS.md`, "Promised vs extra".
+
 **Status labels:**
 - **Confirmatory:** pre-registered as a primary test with error control, and passed.
 - **Replicated:** an exploratory finding that held again on fresh tasks or in a second environment, without being a
@@ -13,6 +15,8 @@ All experiments have finished and are analysed.
 - **Known:** already in the literature; we reproduce it.
 
 ## 1. The milestone hypotheses
+
+**Scope: Promised.**
 
 | | Claim | Status | Evidence | Source |
 |---|---|---|---|---|
@@ -26,6 +30,8 @@ All experiments have finished and are analysed.
 
 ## 2. Minority collapse (the main finding)
 
+**Scope: Core follow-up** (it grew out of H3's failure; the report's main finding).
+
 | Claim | Status | Evidence | Source |
 |---|---|---|---|
 | Class imbalance causes the minority to collapse under shared parameters (P1) | **Confirmatory, twice** | Original: 16/16 cells, Holm p 0.049. Fresh tasks (A1): 20/20 tasks in all 16 cells, Holm p 4.8e-6 | `analysis/v3a/P1_TASK_LEVEL.md`, `analysis/v3o/SUMMARY.md` |
@@ -38,6 +44,8 @@ All experiments have finished and are analysed.
 
 ## 3. Theory
 
+**Scope: Core follow-up**, except the Lean proofs and the Adam ℓ∞ hint (**Extra**).
+
 | Claim | Status | Evidence | Source |
 |---|---|---|---|
 | First-step law R = c·m/(1 − m), c from feature-kernel blocks | Proved (Lean, 6 theorems), plus numerical checks | Median error 0.14% (1,080 runs); out of sample in the transformer env (slope 1.00) and with junk answers; extends to 4-token answers (320/320 within 5%) | `analysis/theory/odds_law.md`, `analysis/v3h/SUMMARY.md`, `analysis/v3j/SUMMARY.md`, `analysis/v3n/SUMMARY.md` |
@@ -49,6 +57,8 @@ All experiments have finished and are analysed.
 | Permanent or plateau (exact flow to 1e14) | Per-prompt predictions refuted (T25: 1–3 fail); task-level finding post hoc | Mostly a plateau: recovery at 1e2–1e5 for ρ ≤ 0.5, 1e7.5–1e12 for ρ ≥ 0.9 (training ~1e3–1e4); nothing recovers at ρ = 0.95, m = 0.9. γ_min ≥ 1: 3 of 30 tasks recover; < 1: 51 of 70 (p 1e-11) | `analysis/v3m/SUMMARY.md` |
 
 ## 4. Prevention levers
+
+**Scope: Core follow-up** (KL comes from the promised H4, group size from H5), except Adam's normalisation (**Extra**).
 
 | Claim | Status | Evidence | Source |
 |---|---|---|---|
@@ -64,6 +74,8 @@ All experiments have finished and are analysed.
 
 ## 5. A second environment (small transformer, Li, Pandey & Chen)
 
+**Scope: Extra** (a second setting beyond the promised toy task).
+
 | Claim | Status | Evidence | Source |
 |---|---|---|---|
 | Their paper replicates | Replication | Their figure code: 494/494 numbers; our rerun: 130 identical, 193 within 2% (base models not bit-identical) | `tools/literature/replication/RESULT.md` |
@@ -72,6 +84,8 @@ All experiments have finished and are analysed.
 | Forward KL prevents it there | Exploratory | All 8 cells at β = 0.3 | `analysis/v3i/SUMMARY.md` |
 
 ## 6. Small LLMs (Qwen2.5-0.5B, Llama-3.2-1B; for the short transfer section)
+
+**Scope: Extra** (the milestone and the instructor's feedback set a toy-only project).
 
 | Claim | Status | Evidence | Source |
 |---|---|---|---|
