@@ -5,6 +5,9 @@ says what it was, why we ran it, how big it was, whether it was pre-registered, 
 results are, and what it found. It is an index, not a write-up: the numbers come from the batch summaries, and
 each row points to the file that has the details. If a row and its summary disagree, the summary wins.
 
+**Per-experiment write-ups:** `docs/Ankush.md` describes every experiment here in the format of `docs/Simon.md`
+(why it was run, what was done step by step, the fixed settings, and the result).
+
 Written 2026-11-25 from the summaries, `HANDOFF.md`, `experiments/grids.py`, the LLM queue files and the
 branches named below. Paths are relative to the repo root on `main`.
 
