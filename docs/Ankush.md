@@ -371,7 +371,7 @@ Tabular runs never lose a prompt (0 of 2,268 runs with any decrease; PASS). One 
 | Grid and commit | `h5`, batch `base`, `experiments` @ `fd8d511` |
 
 ### Result
-PASS as computed (Spearman $-0.95$), but the review found the best-$G$ table was a tie-break artefact. With the smallest tied $G$ the best $G$ still falls with $p_0$ (32, 16, 4, 2), and the best $\eta$ sat at the grid edge. Rerun as T4. See `analysis/base/sections/h5.md` and `analysis/review/SUMMARY.md`.
+PASS as computed (Spearman $-0.95$), but the review found the best-$G$ table was a tie-break artefact. With the smallest tied $G$ the best $G$ still falls with $p_0$ (32, 16, 4, 2), and the best $\eta$ sat at the grid edge. Rerun as T4. See `analysis/base/sections/h5.md` and `extra/analysis/review/SUMMARY.md`.
 
 ## S_H1: H1 with a calibrated null and the projected bias
 
@@ -631,7 +631,7 @@ Slope about $-1$ for `c05` and `c09` under Adam ($-0.95$ to $-0.99$, 13 points e
 | --- | --- |
 | Data | Base and stretch caches |
 | New runs | None |
-| All settings | See `analysis/review/NEXT_PLAN.md` and `HANDOFF.md` |
+| All settings | See `extra/analysis/review/NEXT_PLAN.md` and `HANDOFF.md` |
 
 ### Result
 No write-up; `HANDOFF.md` notes "A3 needs one sentence in the report".
@@ -665,11 +665,11 @@ No write-up; `HANDOFF.md` notes "A3 needs one sentence in the report".
 | Thresholds | $\tau = 10^{-3}$ (primary), $10^{-2}$; tail 20% |
 | Pass rule | (a) and (b) $p < 0.05$ in every included SGD and Adam cell |
 | Runs | $4{,}640$ |
-| Pre-registration | `analysis/review/PREREG_v3a.md` (`dc5736e`), confirmatory |
+| Pre-registration | `extra/analysis/review/PREREG_v3a.md` (`dc5736e`), confirmatory |
 | Grid and commit | `v3_t1`, batch `v3a`, `toy-v3` @ `108055d` |
 
 ### Result
-Confirmatory PASS in 16/16 cells. Absorption takes the whole minority set, at small $\eta$ and under the deterministic flow; the supervised control absorbs nothing. Corrected task-level $p = 0.0098$ (Holm over P1–P5: 0.049). See `analysis/v3a/SUMMARY.md` and `analysis/v3a/P1_TASK_LEVEL.md`.
+Confirmatory PASS in 16/16 cells. Absorption takes the whole minority set, at small $\eta$ and under the deterministic flow; the supervised control absorbs nothing. Corrected task-level $p = 0.0098$ (Holm over P1–P5: 0.049). See `extra/analysis/v3a/SUMMARY.md` and `extra/analysis/v3a/P1_TASK_LEVEL.md`.
 
 ## T2 / P2: kick size against response noise
 
@@ -700,7 +700,7 @@ Confirmatory PASS in 16/16 cells. Absorption takes the whole minority set, at sm
 | Grid and commit | `v3_t2`, batch `v3a`, `toy-v3` @ `108055d` |
 
 ### Result
-Confirmatory FAIL. Kick size matters in 3 of 4 levels (Spearman −0.87, −0.72, −0.31; `c05` flat). Response noise adds +0.11 absorption at $B = 8$, but only +0.008 at $B \ge 32$. See `analysis/v3a/SUMMARY.md`.
+Confirmatory FAIL. Kick size matters in 3 of 4 levels (Spearman −0.87, −0.72, −0.31; `c05` flat). Response noise adds +0.11 absorption at $B = 8$, but only +0.008 at $B \ge 32$. See `extra/analysis/v3a/SUMMARY.md`.
 
 ## T4: H5 rerun with a deterministic tie-break
 
@@ -729,7 +729,7 @@ Confirmatory FAIL. Kick size matters in 3 of 4 levels (Spearman −0.87, −0.72
 | Grid and commit | `v3_t4`, batch `v3a`, `toy-v3` @ `108055d` |
 
 ### Result
-Tabular GRPO's best $G$ is 2 at every $p_0$ (CIs within {2, 4}), but often at the $\eta$-grid edge, so a saturation point. Shared levels: 2–8, wide CIs. Exploratory. See `analysis/v3a/SUMMARY.md`.
+Tabular GRPO's best $G$ is 2 at every $p_0$ (CIs within {2, 4}), but often at the $\eta$-grid edge, so a saturation point. Shared levels: 2–8, wide CIs. Exploratory. See `extra/analysis/v3a/SUMMARY.md`.
 
 ## T6: tabular ablations under realistic training
 
@@ -758,7 +758,7 @@ Tabular GRPO's best $G$ is 2 at every $p_0$ (CIs within {2, 4}), but often at th
 | Grid and commit | `v3_t6`, batch `v3a`, `toy-v3` @ `108055d` |
 
 ### Result
-No drops with PPO clipping or batch reuse (both predicted to drop), so the prediction FAILs for those two. Drops with a noisy verifier (74–90% of runs) and the sign rule (68%). Exploratory. See `analysis/v3a/SUMMARY.md`.
+No drops with PPO clipping or batch reuse (both predicted to drop), so the prediction FAILs for those two. Drops with a noisy verifier (74–90% of runs) and the sign rule (68%). Exploratory. See `extra/analysis/v3a/SUMMARY.md`.
 
 ## T8: KL bistability without noise
 
@@ -788,7 +788,7 @@ No drops with PPO clipping or batch reuse (both predicted to drop), so the predi
 | Grid and commit | `v3_t8`, batch `v3a`, `toy-v3` @ `108055d` |
 
 ### Result
-PASS: 60/60 runs at $\eta \le 3$ end in the predicted basin, and 99/99 overall stay on their starting side, even at $\eta = 10$. Switching needs sampling noise. See `analysis/v3a/SUMMARY.md`.
+PASS: 60/60 runs at $\eta \le 3$ end in the predicted basin, and 99/99 overall stay on their starting side, even at $\eta = 10$. Switching needs sampling noise. See `extra/analysis/v3a/SUMMARY.md`.
 
 ## T5 / P3: does initial drift predict absorption on balanced tasks?
 
@@ -817,11 +817,11 @@ PASS: 60/60 runs at $\eta \le 3$ end in the predicted basin, and 99/99 overall s
 | Rarity | Share of the 10 nearest prompts with a different class |
 | Pass rule | $\Delta$AUC $\ge 0.03$ and CI lower bound $> 0$; runs need $\ge 20$ absorbed and $\ge 20$ not |
 | Runs | $200$ |
-| Pre-registration | `analysis/review/PREREG_v3b.md` (`aa144dc`), confirmatory |
+| Pre-registration | `extra/analysis/review/PREREG_v3b.md` (`aa144dc`), confirmatory |
 | Grid and commit | `v3_t5`, batch `v3b`, `toy-v3` @ `e61626f` |
 
 ### Result
-Confirmatory FAIL: $\Delta$AUC 0.009 (CI 0.004–0.014), below the 0.03 bar. Post hoc, with predictors standardised within run, 0.079. See `analysis/v3b/SUMMARY.md`.
+Confirmatory FAIL: $\Delta$AUC 0.009 (CI 0.004–0.014), below the 0.03 bar. Post hoc, with predictors standardised within run, 0.079. See `extra/analysis/v3b/SUMMARY.md`.
 
 ## T7: bootstrap null for the H1 medium tier
 
@@ -847,7 +847,7 @@ Confirmatory FAIL: $\Delta$AUC 0.009 (CI 0.004–0.014), below the 0.03 bar. Pos
 | Grid and commit | `v3_t7`, batch `v3b`, `toy-v3` @ `e61626f` |
 
 ### Result
-PASS: the null is calibrated (tabular KS $p = 0.73$); `lin` KS $p = 0.84$, `m64` 0.055. Exploratory. See `analysis/v3b/SUMMARY.md`.
+PASS: the null is calibrated (tabular KS $p = 0.73$); `lin` KS $p = 0.84$, `m64` 0.055. Exploratory. See `extra/analysis/v3b/SUMMARY.md`.
 
 ## T9: all-wrong-group fixes
 
@@ -875,7 +875,7 @@ PASS: the null is calibrated (tabular KS $p = 0.73$); `lin` KS $p = 0.84$, `m64`
 | Grid and commit | `v3_t9`, batch `v3b`, `toy-v3` @ `e61626f` |
 
 ### Result
-Prediction too strong. Heckel cuts minority collapse 0.102 → 0.059 at $\eta = 0.1$ ($p = 0.002$), but nothing helps at $\eta = 1$, and Heckel doubles absorption with big kicks (0.21 → 0.42). See `analysis/v3b/SUMMARY.md`.
+Prediction too strong. Heckel cuts minority collapse 0.102 → 0.059 at $\eta = 0.1$ ($p = 0.002$), but nothing helps at $\eta = 1$, and Heckel doubles absorption with big kicks (0.21 → 0.42). See `extra/analysis/v3b/SUMMARY.md`.
 
 ## T1 seed 1: P1 with a second initialisation
 
@@ -898,7 +898,7 @@ Prediction too strong. Heckel cuts minority collapse 0.102 → 0.059 at $\eta = 
 | Grid and commit | `v3_t1s1`, batch `v3b`, `toy-v3` @ `e61626f` |
 
 ### Result
-P1 replicates in 8/8 MLP cells. Exploratory. See `analysis/v3b/SUMMARY.md`.
+P1 replicates in 8/8 MLP cells. Exploratory. See `extra/analysis/v3b/SUMMARY.md`.
 
 ## T2 groups: does the B = 8 noise excess shrink with G?
 
@@ -923,7 +923,7 @@ P1 replicates in 8/8 MLP cells. Exploratory. See `analysis/v3b/SUMMARY.md`.
 | Grid and commit | `v3_t2g`, batch `v3b`, `toy-v3` @ `e61626f` |
 
 ### Result
-Yes: the excess shrinks as $G$ grows (Spearman −0.33, $p = 5\times10^{-10}$). Exploratory. See `analysis/v3b/SUMMARY.md`.
+Yes: the excess shrinks as $G$ grows (Spearman −0.33, $p = 5\times10^{-10}$). Exploratory. See `extra/analysis/v3b/SUMMARY.md`.
 
 ## T6 KL: declines toward or below the reference
 
@@ -948,7 +948,7 @@ Yes: the excess shrinks as $G$ grows (Spearman −0.33, $p = 5\times10^{-10}$). 
 | Grid and commit | `v3_t6kl`, batch `v3b`, `toy-v3` @ `e61626f` |
 
 ### Result
-KL runs drop below $p_{\text{ref}}$ only at $\eta \ge 30$; the control never falls from a peak. Exploratory. See `analysis/v3b/SUMMARY.md`.
+KL runs drop below $p_{\text{ref}}$ only at $\eta \ge 30$; the control never falls from a peak. Exploratory. See `extra/analysis/v3b/SUMMARY.md`.
 
 ## T4 edge: wider η for the T4 grid-edge cells
 
@@ -975,7 +975,7 @@ KL runs drop below $p_{\text{ref}}$ only at $\eta \ge 30$; the control never fal
 | Grid and commit | `v3_t4e`, batch `v3b`, `toy-v3` @ `e61626f` |
 
 ### Result
-Best $G$ stays 2 (`lin` at $p_0 = 0.01$: 4); most former edge cells now have an interior optimum. Descriptive. See `analysis/v3b/SUMMARY.md`.
+Best $G$ stays 2 (`lin` at $p_0 = 0.01$: 4); most former edge cells now have an interior optimum. Descriptive. See `extra/analysis/v3b/SUMMARY.md`.
 
 ## T10: pass@k training rules
 
@@ -1000,11 +1000,11 @@ Best $G$ stays 2 (`lin` at $p_0 = 0.01$: 4); most former edge cells now have an 
 | Seeds | 10 (task seeds; plain seeds for `tab`) |
 | Threshold | $\tau = 10^{-3}$ |
 | Runs | $1{,}920$ |
-| Pre-registration | `analysis/review/PREREG_v3c.md`, exploratory |
+| Pre-registration | `extra/analysis/review/PREREG_v3c.md`, exploratory |
 | Grid and commit | `v3_t10`, batch `v3c`, `toy-v3` @ `7759008` |
 
 ### Result
-GRPO absorbs the whole minority set; both pass@k rules absorb 0–5% at every $k$. rloo_k raises pass@64 in 12/12 shared cells. "No speed cost at $k = 2$" was later revised by v3f. Exploratory. See `analysis/v3c/SUMMARY.md`.
+GRPO absorbs the whole minority set; both pass@k rules absorb 0–5% at every $k$. rloo_k raises pass@64 in 12/12 shared cells. "No speed cost at $k = 2$" was later revised by v3f. Exploratory. See `extra/analysis/v3c/SUMMARY.md`.
 
 ---
 
@@ -1040,11 +1040,11 @@ GRPO absorbs the whole minority set; both pass@k rules absorb 0–5% at every $k
 | KL $\beta$ | 0 |
 | Absorption threshold | Success below $10^{-3}$ over the last 20% of steps |
 | Runs | 480 |
-| Pre-registration | `analysis/review/PREREG_v3d.md` (`review` `f22540c`), exploratory |
+| Pre-registration | `extra/analysis/review/PREREG_v3d.md` (`review` `f22540c`), exploratory |
 | Grid and launch commit | `v3_t11`; `toy-v3` `7a49348`, job digest `d497e591db3a` |
 
 ### Result
-All five predictions hold. Before collapse the majority's step lowers the minority, the minority's own step raises it, and the mixed step lowers it (16/16 cells). The push is $R$ = 3.6–4.8 at $m = 0.7$ and 10.7–17.1 at $m = 0.9$ (0.78–0.93 at $m = 1/3$). After collapse the minority's own step is below 1% of its start value (125/125 branch points). Collapse is active reversal, then starvation. Exploratory. See `analysis/v3d/SUMMARY.md`.
+All five predictions hold. Before collapse the majority's step lowers the minority, the minority's own step raises it, and the mixed step lowers it (16/16 cells). The push is $R$ = 3.6–4.8 at $m = 0.7$ and 10.7–17.1 at $m = 0.9$ (0.78–0.93 at $m = 1/3$). After collapse the minority's own step is below 1% of its start value (125/125 branch points). Collapse is active reversal, then starvation. Exploratory. See `extra/analysis/v3d/SUMMARY.md`.
 
 ## T12 (v3d): plateau or permanent
 
@@ -1079,7 +1079,7 @@ All five predictions hold. Before collapse the majority's step lowers the minori
 | Grid and launch commit | `v3_t12`; `toy-v3` `7a49348` |
 
 ### Result
-Prediction 1 (no recovery under SGD) fails: 34 of 409 runs that fell below $10^{-3}$ recovered (8.3%; the limit was 5%), all at $\rho = 0.5$. At $\rho = 0.9$ no SGD run recovered in 10× the horizon (0 of 240). A later correction found that 24 of 80 exact Adam runs at $\rho = 0.9$ do recover. Linear Adam at $10^{-4}$ does collapse at 50,000 steps (3 of 4 cells), and the matched-progress test holds in 16/16 cells. Exploratory. See `analysis/v3d/SUMMARY.md`.
+Prediction 1 (no recovery under SGD) fails: 34 of 409 runs that fell below $10^{-3}$ recovered (8.3%; the limit was 5%), all at $\rho = 0.5$. At $\rho = 0.9$ no SGD run recovered in 10× the horizon (0 of 240). A later correction found that 24 of 80 exact Adam runs at $\rho = 0.9$ do recover. Linear Adam at $10^{-4}$ does collapse at 50,000 steps (3 of 4 cells), and the matched-progress test holds in 16/16 cells. Exploratory. See `extra/analysis/v3d/SUMMARY.md`.
 
 ## T13 (v3d): projection control
 
@@ -1114,7 +1114,7 @@ Prediction 1 (no recovery under SGD) fails: 34 of 409 runs that fell below $10^{
 | Grid and launch commit | `v3_t13`; `toy-v3` `7a49348` |
 
 ### Result
-Projection removes the collapse in 16/16 cells (minority absorbed 0.00–0.01 at $m = 0.9$, against 0.81–1.00 unmodified). Prediction 2 fails: the shortened step also removes the collapse at $m = 0.7$ and reduces it at $m = 0.9$ (0.47–0.89), so down-weighting the majority is a second lever. Prediction 3 fails for linear policies (majority falls to 0.45–0.86). Exploratory. See `analysis/v3d/SUMMARY.md`.
+Projection removes the collapse in 16/16 cells (minority absorbed 0.00–0.01 at $m = 0.9$, against 0.81–1.00 unmodified). Prediction 2 fails: the shortened step also removes the collapse at $m = 0.7$ and reduces it at $m = 0.9$ (0.47–0.89), so down-weighting the majority is a second lever. Prediction 3 fails for linear policies (majority falls to 0.45–0.86). Exploratory. See `extra/analysis/v3d/SUMMARY.md`.
 
 ## M2 (v3d addendum): is the minority still sinking at 10× the horizon?
 
@@ -1135,10 +1135,10 @@ Projection removes the collapse in 16/16 cells (minority absorbed 0.00–0.01 at
 | Measure | $g$ from class-mean success over $[T/10, T]$ |
 | Status | Descriptive; written after T12 was seen |
 | Pre-registration | `PREREG_v3d_addendum1.md` (`review` `2401287`) |
-| Code | Analysis only, `experiments/analyze_v3d.py` |
+| Code | Analysis only, `extra/experiments/analyze_v3d.py` |
 
 ### Result
-At $\rho = 0.9$ under SGD the median $g$ is 0.99–1.01 in all 12 cells, and no run is recovering (0 of 120). At $\rho = 0.5$, $m = 0.7$ it is −0.5 to 0.4, with 4–8 of 10 runs recovering. At strong correlation $g$ cannot separate "permanent" from "a plateau far longer than the run". Descriptive. See `analysis/v3d/SUMMARY.md`.
+At $\rho = 0.9$ under SGD the median $g$ is 0.99–1.01 in all 12 cells, and no run is recovering (0 of 120). At $\rho = 0.5$, $m = 0.7$ it is −0.5 to 0.4, with 4–8 of 10 runs recovering. At strong correlation $g$ cannot separate "permanent" from "a plateau far longer than the run". Descriptive. See `extra/analysis/v3d/SUMMARY.md`.
 
 ## M4 (v3d addendum): imbalance or margin?
 
@@ -1160,10 +1160,10 @@ At $\rho = 0.9$ under SGD the median $g$ is 0.99–1.01 in all 12 cells, and no 
 | Absorption threshold | $10^{-3}$, last 20% of steps |
 | Status | Descriptive analysis with one stated prediction |
 | Pre-registration | `PREREG_v3d_addendum1.md` (`review` `2401287`) |
-| Code | Analysis only, `experiments/analyze_v3d.py` |
+| Code | Analysis only, `extra/experiments/analyze_v3d.py` |
 
 ### Result
-The prediction holds. Majority prompts are absorbed at 0.000 in every tercile of every cell. Minority terciles are within 0.15 of each other in 7 of 8 cells (for example 0.96, 0.95, 0.95 for linear at $\rho = 0.9$, $m = 0.7$). The class decides, not the margin. See `analysis/v3d/SUMMARY.md`.
+The prediction holds. Majority prompts are absorbed at 0.000 in every tercile of every cell. Minority terciles are within 0.15 of each other in 7 of 8 cells (for example 0.96, 0.95, 0.95 for linear at $\rho = 0.9$, $m = 0.7$). The class decides, not the margin. See `extra/analysis/v3d/SUMMARY.md`.
 
 ## T15 (v3e): threshold in class share
 
@@ -1199,7 +1199,7 @@ The prediction holds. Majority prompts are absorbed at 0.000 in every tercile of
 | Grid and launch commit | `v3_t15`; `toy-v3` `779297f`, job digest `1dcf342238dd` |
 
 ### Result
-The odds law: $R \propto m/(1-m)$ in 12/12 cells, with slope 0.98–1.05. $m^*$ is just above $1/K$ for $K = 3$ and 5 (0.02–0.11 above), but not for $K = 2$ (0.498–0.529), so prediction 1 holds in 8 of 12 cells. Persistent absorption needs clearly more imbalance than $m^*$ (12/12 cells). Exploratory. See `analysis/v3e/SUMMARY.md`.
+The odds law: $R \propto m/(1-m)$ in 12/12 cells, with slope 0.98–1.05. $m^*$ is just above $1/K$ for $K = 3$ and 5 (0.02–0.11 above), but not for $K = 2$ (0.498–0.529), so prediction 1 holds in 8 of 12 cells. Persistent absorption needs clearly more imbalance than $m^*$ (12/12 cells). Exploratory. See `extra/analysis/v3e/SUMMARY.md`.
 
 ## T16 (v3f): pass@k at matched progress
 
@@ -1234,7 +1234,7 @@ The odds law: $R \propto m/(1-m)$ in 12/12 cells, with slope 0.98–1.05. $m^*$ 
 | Grid and launch commit | `v3_t16`; `toy-v3` `e45b533`, job digest `879c78be6482` |
 
 ### Result
-A trade-off. Under pass@2 the minority dips to 0.03–0.08 at the matched point, then recovers (0.79–0.87 at the end, $\eta = 1$). Under pass@4 it stays at 0.31–0.42, but the majority takes 4–40× longer to reach 0.80. pass@8 protects by hardly moving. GRPO and mean absorb 100%. Predictions 1–3 hold only in part (12 of 36, 4 of 8, 2 of 12 cells). Exploratory. See `analysis/v3f/SUMMARY.md`.
+A trade-off. Under pass@2 the minority dips to 0.03–0.08 at the matched point, then recovers (0.79–0.87 at the end, $\eta = 1$). Under pass@4 it stays at 0.31–0.42, but the majority takes 4–40× longer to reach 0.80. pass@8 protects by hardly moving. GRPO and mean absorb 100%. Predictions 1–3 hold only in part (12 of 36, 4 of 8, 2 of 12 cells). Exploratory. See `extra/analysis/v3f/SUMMARY.md`.
 
 ## T17 (v3g): KL anchor on the minority task
 
@@ -1268,7 +1268,7 @@ A trade-off. Under pass@2 the minority dips to 0.03–0.08 at the matched point,
 | Grid and launch commit | `v3_t17`; `toy-v3` `b059c73`, job digest `5ab4c97ca34d` |
 
 ### Result
-Direction matters. Forward KL keeps the minority above a floor: at most 2% absorbed at $10^{-3}$ from $\beta = 0.01$, with the majority still at 0.99. At $10^{-2}$ it absorbs 34% at $\beta = 0.01$ and 11% at 0.03. Reverse KL absorbs 100% in every run up to $\beta = 0.1$. Forward is at least as good as reverse in 48/48 comparisons. Later caveat: the reference still solves the minority (see G). Exploratory. See `analysis/v3g/SUMMARY.md`.
+Direction matters. Forward KL keeps the minority above a floor: at most 2% absorbed at $10^{-3}$ from $\beta = 0.01$, with the majority still at 0.99. At $10^{-2}$ it absorbs 34% at $\beta = 0.01$ and 11% at 0.03. Reverse KL absorbs 100% in every run up to $\beta = 0.1$. Forward is at least as good as reverse in 48/48 comparisons. Later caveat: the reference still solves the minority (see G). Exploratory. See `extra/analysis/v3g/SUMMARY.md`.
 
 ## T18 (v3g): release test
 
@@ -1302,7 +1302,7 @@ Direction matters. Forward KL keeps the minority above a floor: at most 2% absor
 | Grid and launch commit | `v3_t18`; `toy-v3` `b059c73` |
 
 ### Result
-There is no second resting point. The control never returns (0 of 20). Without KL the minority returns from step 100 (20/20) and step 1,000 (15/20), but not from step 5,000 (0/20). Prediction 3 fails: reverse KL does bring it back, slowly. Forward KL returns it in 100–600 steps from any depth. Exploratory. See `analysis/v3g/SUMMARY.md`.
+There is no second resting point. The control never returns (0 of 20). Without KL the minority returns from step 100 (20/20) and step 1,000 (15/20), but not from step 5,000 (0/20). Prediction 3 fails: reverse KL does bring it back, slowly. Forward KL returns it in 100–600 steps from any depth. Exploratory. See `extra/analysis/v3g/SUMMARY.md`.
 
 ## T19 (v3g): group size and the threshold
 
@@ -1336,7 +1336,7 @@ There is no second resting point. The control never returns (0 of 20). Without K
 | Grid and launch commit | `v3_t19`; `toy-v3` `b059c73` |
 
 ### Result
-Group size is not a lever. $m^*$ does not depend on $G$ (largest range 0.00002, true by construction at a uniform start). The absorption threshold moves by at most 0.15 in $m$, with no consistent direction (predictions 2 and 3 fail, 2 of 4 cells each). Exploratory. See `analysis/v3g/SUMMARY.md`.
+Group size is not a lever. $m^*$ does not depend on $G$ (largest range 0.00002, true by construction at a uniform start). The absorption threshold moves by at most 0.15 in $m$, with no consistent direction (predictions 2 and 3 fail, 2 of 4 cells each). Exploratory. See `extra/analysis/v3g/SUMMARY.md`.
 
 ## T20 (v3h): correct minority in Li, Pandey and Chen's environment
 
@@ -1354,7 +1354,7 @@ Group size is not a lever. $m^*$ does not depend on $G$ (largest range 0.00002, 
 ### Fixed settings
 | Setting | Value |
 | --- | --- |
-| Environment | Li, Pandey and Chen's code at `05ef005`, torch 2.15; `experiments/enum_env.py` (`mode="enum"`) |
+| Environment | Li, Pandey and Chen's code at `05ef005`, torch 2.15; `extra/experiments/enum_env.py` (`mode="enum"`) |
 | Policies | Shared 2-layer transformer; tabular; per-prompt copies (`enum_policy`) |
 | Tasks ($K$, `n_major`, partition) | $K = 3$: 22, 32, 40, 48, 56, 60 (random); $K = 2$: 32, 40, 48, 56, 60 (random); $K = 2$, 48, parity |
 | Base model | SFT target with `floor` 0.1, 600 steps, lr $3 \times 10^{-3}$ (`ENUM_DEFAULTS`) |
@@ -1367,11 +1367,11 @@ Group size is not a lever. $m^*$ does not depend on $G$ (largest range 0.00002, 
 | KL | none |
 | Absorption threshold | Per-prompt maximum over the last 20% of steps below $10^{-3}$ |
 | Runs | 1,809 |
-| Pre-registration | `analysis/review/PREREG_T20.md` (`review` `edff353`), exploratory |
+| Pre-registration | `extra/analysis/review/PREREG_T20.md` (`review` `edff353`), exploratory |
 | Grid and launch commit | `v3_t20`; `enum-env` `2f701de`, job digest `f69b99f753f9` |
 
 ### Result
-The first step follows the odds law exactly (slope 1.00 for both $K$, $c = K - 1$ within 5%). There is no decline without sharing (609 runs). Only Adam at lr $10^{-3}$ isolates the share effect: the per-prompt minority absorption rises from about 0.2 at balance to 0.94 at high share, with class 0 untouched. The registered SGD cells (lr 1, 3) break the majority too, and 1b (no absorption at balance) fails in every cell. Exploratory. See `analysis/v3h/SUMMARY.md`.
+The first step follows the odds law exactly (slope 1.00 for both $K$, $c = K - 1$ within 5%). There is no decline without sharing (609 runs). Only Adam at lr $10^{-3}$ isolates the share effect: the per-prompt minority absorption rises from about 0.2 at balance to 0.94 at high share, with class 0 untouched. The registered SGD cells (lr 1, 3) break the majority too, and 1b (no absorption at balance) fails in every cell. Exploratory. See `extra/analysis/v3h/SUMMARY.md`.
 
 ## T21 (v3i): levers in the transformer environment
 
@@ -1403,7 +1403,7 @@ The first step follows the odds law exactly (slope 1.00 for both $K$, $c = K - 1
 | Grid and launch commit | `v3_t21`; `enum-env` `351d722` |
 
 ### Result
-Forward KL transfers: at $\beta = 0.3$ no minority prompt is absorbed in 8/8 cells, and at 0.03 in 6 of 8. Reverse KL at 0.03 does not help (7/7 collapsing cells). pass@k works only with Adam (prediction 4 fails, 3 of 7). Exploratory. See `analysis/v3i/SUMMARY.md`.
+Forward KL transfers: at $\beta = 0.3$ no minority prompt is absorbed in 8/8 cells, and at 0.03 in 6 of 8. Reverse KL at 0.03 does not help (7/7 collapsing cells). pass@k works only with Adam (prediction 4 fails, 3 of 7). Exploratory. See `extra/analysis/v3i/SUMMARY.md`.
 
 ## T22 (v3j): junk answers
 
@@ -1437,7 +1437,7 @@ Forward KL transfers: at $\beta = 0.3$ no minority prompt is absorbed in 8/8 cel
 | Grid and launch commit | `v3_t22`; `toy-v3` `f0bf112` |
 
 ### Result
-The first step moves exactly as the formula says: measured $m^*$ within 0.02 of the prediction in 8/8 cells, and $R$ shrinks by 0.054 and 0.053 against $1/19 = 0.053$. But junk does not protect: absorption starts at $m = 0.6$ for every $K$, and with 18 junk answers the minority is fully absorbed from $m = 0.6$ (predictions 3 and 4 fail). Exploratory. See `analysis/v3j/SUMMARY.md`.
+The first step moves exactly as the formula says: measured $m^*$ within 0.02 of the prediction in 8/8 cells, and $R$ shrinks by 0.054 and 0.053 against $1/19 = 0.053$. But junk does not protect: absorption starts at $m = 0.6$ for every $K$, and with 18 junk answers the minority is fully absorbed from $m = 0.6$ (predictions 3 and 4 fail). Exploratory. See `extra/analysis/v3j/SUMMARY.md`.
 
 ## v3j2: rerun of lost T22 runs
 
@@ -1459,7 +1459,7 @@ The first step moves exactly as the formula says: measured $m^*$ within 0.02 of 
 | Grid and launch commit | `v3_t22`, same job list; `toy-v3` `f0bf112` |
 
 ### Result
-Complete; included in T22's 1,280 runs. Raw data in `v3j2_raw.tar.gz`. See `analysis/v3j/SUMMARY.md`.
+Complete; included in T22's 1,280 runs. Raw data in `v3j2_raw.tar.gz`. See `extra/analysis/v3j/SUMMARY.md`.
 
 ## T23 (v3k): class-balanced warm start
 
@@ -1493,13 +1493,13 @@ Complete; included in T22's 1,280 runs. Raw data in `v3j2_raw.tar.gz`. See `anal
 | Grid and launch commit | `v3_t23`; `toy-v3` `a717aab`, job digest `04c06c4b14a9` |
 
 ### Result
-A head start protects, and a larger majority needs a larger one. $p_0 = 0.5$ removes or greatly reduces the collapse at $m = 0.7$ (0–0.14 absorbed against 1.00), but not at $m = 0.9$ (0.99 linear, 0.69–0.70 MLP). The first step still lowers the minority at every start (6/6 cells). Predictions 2 and 3 hold for the linear policy only (4 of 8 cells each). Exploratory. See `analysis/v3k/SUMMARY.md`.
+A head start protects, and a larger majority needs a larger one. $p_0 = 0.5$ removes or greatly reduces the collapse at $m = 0.7$ (0–0.14 absorbed against 1.00), but not at $m = 0.9$ (0.99 linear, 0.69–0.70 MLP). The first step still lowers the minority at every start (6/6 cells). Predictions 2 and 3 hold for the linear policy only (4 of 8 cells each). Exploratory. See `extra/analysis/v3k/SUMMARY.md`.
 
 ## T24 (v3l): the late phase, prompt by prompt
 
 **Scope: Core follow-up** — not in the milestone; grew out of a promised result, and the report's toy story relies on it.
 
-**Why:** to test the per-prompt late-phase model from `analysis/theory/late_time.md` on fresh runs, with the prediction rule fixed before launch.
+**Why:** to test the per-prompt late-phase model from `extra/analysis/theory/late_time.md` on fresh runs, with the prediction rule fixed before launch.
 
 ### What I did
 1. Trained the linear policy for 100,000 steps, saving every prompt's success at log-spaced steps.
@@ -1529,7 +1529,7 @@ A head start protects, and a larger majority needs a larger one. $p_0 = 0.5$ rem
 | Grid and launch commit | `v3_t24`; `toy-v3` `5487480` |
 
 ### Result
-The per-prompt model fails (median Spearman 0.28, needed 0.8), and it does not beat the baselines (69%, 67%, 53% of runs). Recovery counts hold (72%). The run's smallest $\gamma$ ranks its late margin growth (within-cell 0.86), which replicates the T12 probe. The late phase barely reorders prompts (Spearman 0.97–1.00 from $\tau_0$ to the end), so each prompt's outcome is set during the fall. Exploratory. See `analysis/v3l/SUMMARY.md`.
+The per-prompt model fails (median Spearman 0.28, needed 0.8), and it does not beat the baselines (69%, 67%, 53% of runs). Recovery counts hold (72%). The run's smallest $\gamma$ ranks its late margin growth (within-cell 0.86), which replicates the T12 probe. The late phase barely reorders prompts (Spearman 0.97–1.00 from $\tau_0$ to the end), so each prompt's outcome is set during the fall. Exploratory. See `extra/analysis/v3l/SUMMARY.md`.
 
 ## Odds law (theory check)
 
@@ -1549,11 +1549,11 @@ The per-prompt model fails (median Spearman 0.28, needed 0.8), and it does not b
 | Scope | First step from a uniform start; linear policy, or MLP whose output layer starts at zero |
 | Data | 1,080 v3e runs ($K \in \{2, 3, 5\}$, linear and MLP, $\rho \in \{0.5, 0.9\}$, nine $m$, ten tasks), step 0, $\eta = 0.01$ |
 | Fitted parameters | None |
-| Code | `experiments/check_odds_law.py` |
-| Outputs | `analysis/theory/odds_law.md`, `odds_law_check.md`, `odds_law_*.csv` |
+| Code | `extra/experiments/check_odds_law.py` |
+| Outputs | `extra/analysis/theory/odds_law.md`, `odds_law_check.md`, `odds_law_*.csv` |
 
 ### Result
-The relative error of $R$ has median $1.43 \times 10^{-3}$ and maximum $1.7 \times 10^{-2}$ (the second-order term of the finite step). Predicted and measured $m^*$ agree within 0.0002 in all 12 cells. This is a first-step identity only: it verifies the algebra and code, and says nothing about the outcome (T22, T23). Its leading order is in Li, Pandey and Chen. See `analysis/theory/odds_law.md`.
+The relative error of $R$ has median $1.43 \times 10^{-3}$ and maximum $1.7 \times 10^{-2}$ (the second-order term of the finite step). Predicted and measured $m^*$ agree within 0.0002 in all 12 cells. This is a first-step identity only: it verifies the algebra and code, and says nothing about the outcome (T22, T23). Its leading order is in Li, Pandey and Chen. See `extra/analysis/theory/odds_law.md`.
 
 ## Lean proofs (theory check)
 
@@ -1562,7 +1562,7 @@ The relative error of $R$ has median $1.43 \times 10^{-3}$ and maximum $1.7 \tim
 **Why:** to check the algebra behind the odds law formally, not only numerically.
 
 ### What I did
-1. Stated the facts in Lean 4 with Mathlib in `formal/Formal/RLVR.lean`.
+1. Stated the facts in Lean 4 with Mathlib in `extra/formal/Formal/RLVR.lean`.
 2. Proved tabular monotonicity: with a softmax on one prompt, the group-centred update does not lower the correct answer to first order (`tabular_first_order`, `tabular_first_order_nonneg`).
 3. Proved the cross-class factor and its value $\mathbb{1}[a = b] - 1/K$ at a uniform start (`cross_class_factor`, `cross_class_factor_uniform`).
 4. Proved the push ratio in block form and in odds form $c \cdot m/(1-m)$ (`push_ratio_block`, `push_ratio_odds`).
@@ -1571,14 +1571,14 @@ The relative error of $R$ has median $1.43 \times 10^{-3}$ and maximum $1.7 \tim
 ### Fixed settings
 | Setting | Value |
 | --- | --- |
-| Toolchain | `leanprover/lean4:v4.37.0-rc1` (`formal/lean-toolchain`) |
-| Mathlib | `rev = "v4.37.0-rc1"` (`formal/lakefile.toml`); manifest commit `31ce06e` |
+| Toolchain | `leanprover/lean4:v4.37.0-rc1` (`extra/formal/lean-toolchain`) |
+| Mathlib | `rev = "v4.37.0-rc1"` (`extra/formal/lakefile.toml`); manifest commit `31ce06e` |
 | Theorems | 6, listed above |
 | `sorry` | None in `RLVR.lean` |
 | Scope | First-step algebra only; late-phase results are in the SymPy tests |
 
 ### Result
-`lake build` passes with no `sorry` (`HANDOFF.md`, 11-23 21:40). Known algebra checked formally. See `formal/README.md`.
+`lake build` passes with no `sorry` (`HANDOFF.md`, 11-23 21:40). Known algebra checked formally. See `extra/formal/README.md`.
 
 ## SymPy checks (theory check)
 
@@ -1594,12 +1594,12 @@ The relative error of $R$ has median $1.43 \times 10^{-3}$ and maximum $1.7 \tim
 ### Fixed settings
 | Setting | Value |
 | --- | --- |
-| File | `tests/test_theory_symbolic.py` |
+| File | `extra/tests/test_theory_symbolic.py` |
 | Tests | 8 |
 | Library | SymPy (`unittest`) |
 
 ### Result
-All 8 tests pass (`HANDOFF.md`, 11-23 21:40; rerun here: 8 passed). Permanent absorption needs $\gamma > 1$ and a deep enough fall. See `tests/test_theory_symbolic.py` and `analysis/theory/late_time.md`.
+All 8 tests pass (`HANDOFF.md`, 11-23 21:40; rerun here: 8 passed). Permanent absorption needs $\gamma > 1$ and a deep enough fall. See `extra/tests/test_theory_symbolic.py` and `extra/analysis/theory/late_time.md`.
 
 ## Late-time probe (theory check)
 
@@ -1618,11 +1618,11 @@ All 8 tests pass (`HANDOFF.md`, 11-23 21:40; rerun here: 8 passed). Permanent ab
 | --- | --- |
 | Data | 400 linear T12 runs ($\rho \in \{0.5, 0.9\}$, $m \in \{0.7, 0.9\}$, 5 optimizer arms, exact and sampled, 10 tasks) |
 | Max-margin solver | L-BFGS-B on the dual, `maxiter` 20,000, `ftol` $10^{-15}$, `gtol` $10^{-12}$ |
-| Code | `experiments/probe_late_time.py` |
-| Outputs | `analysis/theory/late_time.md`, `late_time_probe_rows.csv` |
+| Code | `extra/experiments/probe_late_time.py` |
+| Outputs | `extra/analysis/theory/late_time.md`, `late_time_probe_rows.csv` |
 
 ### Result
-Run level supported: Spearman 0.89 (SGD, exact), 0.85 (SGD, sampled), 0.76 and 0.84 (Adam). Prompt level refuted: under exact SGD 0% of 147 prompts with $\gamma_y < 1$ recovered. The run-level link replicated on pre-registered runs in T24 (0.86). Exploratory. See `analysis/theory/late_time.md`.
+Run level supported: Spearman 0.89 (SGD, exact), 0.85 (SGD, sampled), 0.76 and 0.84 (Adam). Prompt level refuted: under exact SGD 0% of 147 prompts with $\gamma_y < 1$ recovered. The run-level link replicated on pre-registered runs in T24 (0.86). Exploratory. See `extra/analysis/theory/late_time.md`.
 
 ## Optimizer geometry (theory check)
 
@@ -1640,11 +1640,11 @@ Run level supported: Spearman 0.89 (SGD, exact), 0.85 (SGD, sampled), 0.76 and 0
 | --- | --- |
 | Data | Linear T12 runs (as the late-time probe) |
 | Solvers | $\ell_2$: L-BFGS-B dual; $\ell_\infty$: `scipy.optimize.linprog`, method `highs` |
-| Code | `experiments/probe_optimizer_geometry.py` |
-| Outputs | `analysis/theory/late_time.md` (update), `optimizer_geometry_runs.csv` |
+| Code | `extra/experiments/probe_optimizer_geometry.py` |
+| Outputs | `extra/analysis/theory/late_time.md` (update), `optimizer_geometry_runs.csv` |
 
 ### Result
-Not supported. Under SGD, $\ell_2$ beats $\ell_\infty$ as expected (within-cell 0.81 against 0.72). Under Adam, $\ell_\infty$ adds nothing (0.60 against 0.62, exact update). The two geometries correlate at 0.75 across tasks, so the test had power. See `analysis/theory/late_time.md`.
+Not supported. Under SGD, $\ell_2$ beats $\ell_\infty$ as expected (within-cell 0.81 against 0.72). Under Adam, $\ell_\infty$ adds nothing (0.60 against 0.62, exact update). The two geometries correlate at 0.75 across tasks, so the test had power. See `extra/analysis/theory/late_time.md`.
 
 ## Fall model (theory check)
 
@@ -1670,11 +1670,11 @@ Not supported. Under SGD, $\ell_2$ beats $\ell_\infty$ as expected (within-cell 
 | In-sample data | v3e, v3g T19, v3j, v3k, v3l (6,980 runs; predictions committed `fb7c0d2`) |
 | Held-out data | v3o, fresh seeds 10–29: `v3_a1` (1,280), `v3_a2` $\beta = 0$ (40), `v3_a5` (40); predictions committed `9421c44` |
 | Model frozen at | `analysis-v3` `afef9a4` |
-| Pre-registration | `fall.md` section 5; held-out rule `analysis/review/PREREG_fall_heldout.md` (`review` `5275c11`) |
-| Code | `experiments/fall_ode.py`, `experiments/check_fall.py`, `tests/test_fall_ode.py` |
+| Pre-registration | `fall.md` section 5; held-out rule `extra/analysis/review/PREREG_fall_heldout.md` (`review` `5275c11`) |
+| Code | `extra/experiments/fall_ode.py`, `extra/experiments/check_fall.py`, `extra/tests/test_fall_ode.py` |
 
 ### Result
-In-sample (fit only): passes every rule in every batch except P1 in v3l (0.799). Held-out: passes all rules on the KL and warm-start grids. On the P1 grid it passes P2–P6 and the threshold check (15/16 cells) but fails P1 (0.755) because of large-step runs ($\eta \ge 3$). For $\eta \le 1$ the depth rank is 0.988. Supported out of sample in the flow regime (exploratory). See `analysis/theory/fall.md` and `analysis/theory/fall_results.md`.
+In-sample (fit only): passes every rule in every batch except P1 in v3l (0.799). Held-out: passes all rules on the KL and warm-start grids. On the P1 grid it passes P2–P6 and the threshold check (15/16 cells) but fails P1 (0.755) because of large-step runs ($\eta \ge 3$). For $\eta \le 1$ the depth rank is 0.988. Supported out of sample in the flow regime (exploratory). See `extra/analysis/theory/fall.md` and `extra/analysis/theory/fall_results.md`.
 
 ## wsw: replication of Li, Pandey and Chen
 
@@ -1697,10 +1697,10 @@ In-sample (fit only): passes every rule in every batch except P1 in v3l (0.799).
 | Environment | SECB lab CPUs, torch 2.15.0, single-threaded; matplotlib 3.9.2, numpy 1.26.4 |
 | Jobs | 256 |
 | Pre-registration | None |
-| Code (ours) | `tools/literature/replication/` (branch `literature`); launch commit not in the index (see `wsw_MANIFEST.txt`) |
+| Code (ours) | `extra/tools/literature/replication/` (branch `literature`); launch commit not in the index (see `wsw_MANIFEST.txt`) |
 
 ### Result
-Their figure code on their results reproduces 494/494 numbers. Our rerun: of 506 numbers, 130 are identical, 193 within 2%, 183 different (the base models already differ across CPUs). The headline claim replicates: with shared parameters the drift rises with the number of prompts sharing a leak, and without sharing it is flat. See `tools/literature/replication/RESULT.md`.
+Their figure code on their results reproduces 494/494 numbers. Our rerun: of 506 numbers, 130 are identical, 193 within 2%, 183 different (the base models already differ across CPUs). The headline claim replicates: with shared parameters the drift rises with the number of prompts sharing a leak, and without sharing it is flat. See `extra/tools/literature/replication/RESULT.md`.
 
 ## wsw2: replication, seeds 5–9
 
@@ -1723,7 +1723,7 @@ Their figure code on their results reproduces 494/494 numbers. Our rerun: of 506
 | Code | `wsw_jobs.py --part 2` (branch `literature`) |
 
 ### Result
-Every job exited cleanly; included in the 506-number comparison. See `tools/literature/replication/RESULT.md`.
+Every job exited cleanly; included in the 506-number comparison. See `extra/tools/literature/replication/RESULT.md`.
 
 ## T25 (v3m): exact long-time flow
 
@@ -1752,10 +1752,10 @@ Every job exited cleanly; included in the 506-number comparison. See `tools/lite
 | Tasks and seeds | Task seeds 0–9 (100 tasks), seed 0 |
 | KL $\beta$ | 0 |
 | Pre-registration | `PREREG_v3d_addendum7.md` (`review` `15a86b0`), exploratory with fixed rule |
-| Code and commit | `experiments/exact_flow.py` (`toy-v3` `3bf676f`), `experiments/check_permanence.py`, `tests/test_exact_flow.py`; computed on the laptop |
+| Code and commit | `extra/experiments/exact_flow.py` (`toy-v3` `3bf676f`), `extra/experiments/check_permanence.py`, `extra/tests/test_exact_flow.py`; computed on the laptop |
 
 ### Result
-All 100 tasks were integrated (98 with LSODA). The per-prompt predictions fail (48% of "never" prompts recover; timing Spearman 0.34). Mostly a plateau whose length grows with $\rho$: recovery at $10^2$–$10^5$ for $\rho \le 0.5$, up to $10^{12}$ for $\rho \ge 0.9$. Nothing recovers at $\rho = 0.95$, $m = 0.9$. Post hoc, $\gamma_{\min} \ge 1$ marks the tasks that stay collapsed (27 of 30). Exploratory. See `analysis/v3m/SUMMARY.md`.
+All 100 tasks were integrated (98 with LSODA). The per-prompt predictions fail (48% of "never" prompts recover; timing Spearman 0.34). Mostly a plateau whose length grows with $\rho$: recovery at $10^2$–$10^5$ for $\rho \le 0.5$, up to $10^{12}$ for $\rho \ge 0.9$. Nothing recovers at $\rho = 0.95$, $m = 0.9$. Post hoc, $\gamma_{\min} \ge 1$ marks the tasks that stay collapsed (27 of 30). Exploratory. See `extra/analysis/v3m/SUMMARY.md`.
 
 ## T26 (v3n): shared skills
 
@@ -1791,7 +1791,7 @@ All 100 tasks were integrated (98 with LSODA). The per-prompt predictions fail (
 | Grid and launch commit | `v3_t26`; `toy-v3` `c991964` |
 
 ### Result
-The first-step identity holds with multi-token answers (320/320, median error 0.2%). Sharing dilutes the push (median $R$ falls from 3.5–17 to 2–9) but does not prevent collapse (98–100% absorbed in 6 of 8 cells at $k = 1$). Design limit: shared positions agree only at chance, so the positive-transfer test (prediction 2) never applied. Exploratory. See `analysis/v3n/SUMMARY.md`.
+The first-step identity holds with multi-token answers (320/320, median error 0.2%). Sharing dilutes the push (median $R$ falls from 3.5–17 to 2–9) but does not prevent collapse (98–100% absorbed in 6 of 8 cells at $k = 1$). Design limit: shared positions agree only at chance, so the positive-transfer test (prediction 2) never applied. Exploratory. See `extra/analysis/v3n/SUMMARY.md`.
 
 ## A1 (v3o): P1 on fresh tasks
 
@@ -1825,7 +1825,7 @@ The first-step identity holds with multi-token answers (320/320, median error 0.
 | Grid and launch commit | `v3_a1` (= `fresh(v3_t1)`); `toy-v3` `4391e1a`, job digest `8b81b8a2e7c5` |
 
 ### Result
-Confirmed: 20 of 20 tasks go up in every one of the 16 cells, $p = 9.5 \times 10^{-7}$, Holm $p = 4.8 \times 10^{-6}$. At $m = 0.9$ the rate is 0.37–1.00 (originally 0.54–1.00). It is a little smaller in three $\rho = 0.5$ cells. Confirmatory. See `analysis/v3o/SUMMARY.md`.
+Confirmed: 20 of 20 tasks go up in every one of the 16 cells, $p = 9.5 \times 10^{-7}$, Holm $p = 4.8 \times 10^{-6}$. At $m = 0.9$ the rate is 0.37–1.00 (originally 0.54–1.00). It is a little smaller in three $\rho = 0.5$ cells. Confirmatory. See `extra/analysis/v3o/SUMMARY.md`.
 
 ## A2 (v3o): forward-KL floor on fresh tasks
 
@@ -1860,7 +1860,7 @@ Confirmed: 20 of 20 tasks go up in every one of the 16 cells, $p = 9.5 \times 10
 | Grid and launch commit | `v3_a2` (subset of `v3_t17`); `toy-v3` `4391e1a` |
 
 ### Result
-Confirmed: 20/20 tasks, median difference 1.00, Holm $p = 4.8 \times 10^{-6}$. No minority prompt absorbed at $10^{-3}$ in 480/480 forward-KL runs. At $10^{-2}$ protection is partial at $\beta = 0.03$ (123/160 runs clean). The minority still falls to about 0.02 while the majority is learned. Confirmatory. See `analysis/v3o/SUMMARY.md`.
+Confirmed: 20/20 tasks, median difference 1.00, Holm $p = 4.8 \times 10^{-6}$. No minority prompt absorbed at $10^{-3}$ in 480/480 forward-KL runs. At $10^{-2}$ protection is partial at $\beta = 0.03$ (123/160 runs clean). The minority still falls to about 0.02 while the majority is learned. Confirmatory. See `extra/analysis/v3o/SUMMARY.md`.
 
 ## A3 (v3o): pass@4 at matched progress on fresh tasks
 
@@ -1894,7 +1894,7 @@ Confirmed: 20/20 tasks, median difference 1.00, Holm $p = 4.8 \times 10^{-6}$. N
 | Grid and launch commit | `v3_a3` (subset of `v3_t16`); `toy-v3` `4391e1a` |
 
 ### Result
-Confirmed: 20/20 tasks, median difference 0.39 (range 0.27–0.45), Holm $p = 4.8 \times 10^{-6}$. The minority mean at the matched point is 0.28–0.44 under pass@4, against $5 \times 10^{-5}$ to $5 \times 10^{-3}$ under GRPO. The cost is unchanged: at $\eta = 0.03$ the majority often never reaches 0.80. Confirmatory. See `analysis/v3o/SUMMARY.md`.
+Confirmed: 20/20 tasks, median difference 0.39 (range 0.27–0.45), Holm $p = 4.8 \times 10^{-6}$. The minority mean at the matched point is 0.28–0.44 under pass@4, against $5 \times 10^{-5}$ to $5 \times 10^{-3}$ under GRPO. The cost is unchanged: at $\eta = 0.03$ the majority often never reaches 0.80. Confirmatory. See `extra/analysis/v3o/SUMMARY.md`.
 
 ## A5 (v3o): warm start on fresh tasks
 
@@ -1928,7 +1928,7 @@ Confirmed: 20/20 tasks, median difference 0.39 (range 0.27–0.45), Holm $p = 4.
 | Grid and launch commit | `v3_a5` (subset of `v3_t23`); `toy-v3` `4391e1a` |
 
 ### Result
-Confirmed: 20/20 tasks, median difference 1.00 (lowest 0.79), Holm $p = 4.8 \times 10^{-6}$. The uniform start absorbs every minority prompt in all 80 runs. At $p_0 = 0.5$ the absorbed share is 0.022 (linear) and 0.0003–0.003 (MLP). Confirmatory. See `analysis/v3o/SUMMARY.md`.
+Confirmed: 20/20 tasks, median difference 1.00 (lowest 0.79), Holm $p = 4.8 \times 10^{-6}$. The uniform start absorbs every minority prompt in all 80 runs. At $p_0 = 0.5$ the absorbed share is 0.022 (linear) and 0.0003–0.003 (MLP). Confirmatory. See `extra/analysis/v3o/SUMMARY.md`.
 
 ## G (v3p, T27): forward KL toward a collapsed reference
 
@@ -1963,7 +1963,7 @@ Confirmed: 20/20 tasks, median difference 1.00 (lowest 0.79), Holm $p = 4.8 \tim
 | Grid and launch commit | `v3_t27`; `toy-v3` `4391e1a` |
 
 ### Result
-Holds. Anchors taken after the fall never restore the minority (180/180), and the start anchor at $\beta \ge 0.1$ prevents absorption (40/40). The fall ends by step 100, so even the 0.5% anchor comes after it. Forward KL protects only while the reference still solves the minority. Exploratory. See `analysis/v3p/SUMMARY.md`.
+Holds. Anchors taken after the fall never restore the minority (180/180), and the start anchor at $\beta \ge 0.1$ prevents absorption (40/40). The fall ends by step 100, so even the 0.5% anchor comes after it. Forward KL protects only while the reference still solves the minority. Exploratory. See `extra/analysis/v3p/SUMMARY.md`.
 
 ## H (v3p, T28): Adam's epsilon
 
@@ -1997,7 +1997,7 @@ Holds. Anchors taken after the fall never restore the minority (180/180), and th
 | Grid and launch commit | `v3_t28`; `toy-v3` `4391e1a` |
 
 ### Result
-Fails as registered (4 of 8 cells): half the cells have no Adam recovery to remove. Post hoc: where Adam recovers (MLP, $\rho = 0.5$, $m = 0.7$), recovery drops from 5 of 10 to 0 of 10 between $\epsilon = 10^{-3}$ and $10^{-2}$ at the same lr. This points to per-coordinate normalisation. Exploratory. See `analysis/v3p/SUMMARY.md`.
+Fails as registered (4 of 8 cells): half the cells have no Adam recovery to remove. Post hoc: where Adam recovers (MLP, $\rho = 0.5$, $m = 0.7$), recovery drops from 5 of 10 to 0 of 10 between $\epsilon = 10^{-3}$ and $10^{-2}$ at the same lr. This points to per-coordinate normalisation. Exploratory. See `extra/analysis/v3p/SUMMARY.md`.
 
 ## A4 (v3q): T20's share effect on fresh seeds
 
@@ -2028,7 +2028,7 @@ Fails as registered (4 of 8 cells): half the cells have no Adam recovery to remo
 | Grid and launch commit | `v3_a4`; `enum-env` `4b271a0`, job digest `299bb326e002` |
 
 ### Result
-Confirmed: 20/20 seeds, mean difference 0.89 (original 0.86), Holm $p = 4.8 \times 10^{-6}$. The minority is absorbed while class 0 is not in 152 of 160 high-share runs, and in 5 of 80 balanced runs. Per prompt, about a fifth of each class is still absorbed at balance. Confirmatory. See `analysis/v3o/SUMMARY.md` (A4 is part of the battery).
+Confirmed: 20/20 seeds, mean difference 0.89 (original 0.86), Holm $p = 4.8 \times 10^{-6}$. The minority is absorbed while class 0 is not in 152 of 160 high-share runs, and in 5 of 80 balanced runs. Per prompt, about a fifth of each class is still absorbed at balance. Confirmatory. See `extra/analysis/v3o/SUMMARY.md` (A4 is part of the battery).
 
 ## J (v3q, T29): transformer environment under small-step SGD
 
@@ -2058,7 +2058,7 @@ Confirmed: 20/20 seeds, mean difference 0.89 (original 0.86), Holm $p = 4.8 \tim
 | Grid and launch commit | `v3_t29`; `enum-env` `4b271a0` |
 
 ### Result
-Holds. At small SGD steps class 0 is never absorbed at high share (0/80), the minority always is (80/80), and rarely at balance (4/40). T20's SGD failure was a large-step effect. Per prompt, 8–28% of prompts are still lost at balance. Exploratory. See `analysis/v3q/SUMMARY_J.md`.
+Holds. At small SGD steps class 0 is never absorbed at high share (0/80), the minority always is (80/80), and rarely at balance (4/40). T20's SGD failure was a large-step effect. Per prompt, 8–28% of prompts are still lost at balance. Exploratory. See `extra/analysis/v3q/SUMMARY_J.md`.
 
 ---
 
@@ -2083,22 +2083,22 @@ Holds. At small SGD steps class 0 is never absorbed at high share (0/80), the mi
 | Models | Qwen2.5-0.5B-Instruct (full fine-tuning, fp32 master weights, 8-bit AdamW); SmolLM2-1.7B-Instruct (LoRA $r = 64$, $\alpha = 128$, AdamW) |
 | Base evaluations | 3,000 train problems × 32 samples, seeds 0 and 1; test set 1,319 × 32 |
 | Qwen lr pilots | $10^{-6}$, $3\cdot10^{-6}$, $10^{-5}$; 150 steps on train problems 0–999 |
-| SmolLM2 pilots | LoRA, lr $10^{-5}$, $3\cdot10^{-5}$, $10^{-4}$ (tag `c0b`, invalid: weight-sync bug); rerun at $10^{-5}$, $3\cdot10^{-5}$, $10^{-4}$, $3\cdot10^{-4}$ on `llm/pools/smol_c1_train.json` with `--check-sync` (`c0d`, `c0e`) |
+| SmolLM2 pilots | LoRA, lr $10^{-5}$, $3\cdot10^{-5}$, $10^{-4}$ (tag `c0b`, invalid: weight-sync bug); rerun at $10^{-5}$, $3\cdot10^{-5}$, $10^{-4}$, $3\cdot10^{-4}$ on `extra/llm/pools/smol_c1_train.json` with `--check-sync` (`c0d`, `c0e`) |
 | $G$, prompts per step | 8, 64 (`train.py` defaults) |
 | Loss aggregation | Sequence level: $-\sum A \log\pi(\text{completion}) / (64 \cdot 8)$ |
 | KL | $\beta = 0$ |
 | Evaluation after the pilot | 32 samples on the 1,000 training problems |
-| Decline test | One-sided Fisher exact, BH at $q = 0.10$ (`llm/declines.py`); lost = decline ending at $\hat p \le 0.05$ |
-| Pool rule | Pooled base $\hat p \in [0.1, 0.9]$: 2,239 of 3,000 (`llm/pools/qwen.json`) |
+| Decline test | One-sided Fisher exact, BH at $q = 0.10$ (`extra/llm/declines.py`); lost = decline ending at $\hat p \le 0.05$ |
+| Pool rule | Pooled base $\hat p \in [0.1, 0.9]$: 2,239 of 3,000 (`extra/llm/pools/qwen.json`) |
 | 256-sample base evaluations | Qwen and SmolLM2 on the 1,300 C1 problems, seeds 0 and 1 (`c0d`) |
 | C2 difficulty pilot | Ranges small, medium, large, xl; 200 problems per procedure; 32 samples (`c0d`). Candidates: range `ml`, 3,000 per procedure, seed 1, 32 samples (`c0e`) |
-| Job lists | `llm/jobs/c0_pilot.txt`, `c0d.txt`, `c0e.txt` |
+| Job lists | `extra/llm/jobs/c0_pilot.txt`, `c0d.txt`, `c0e.txt` |
 | Run tags | `c0`, `c0b` (SmolLM2, invalid), `c0c` (Qwen lr $10^{-5}$ rerun after a parser overflow), `c0d`, `c0e` |
 | Pre-registration | None; the lr rule was then written into `PREREG_C1.md` |
-| Code commit | `c0` `5ef76c1`, `c0b` `cd5f9ab`, `c0c` `815ed5b`, `c0d` `a175b73`, `c0e` `4f637df` (old hashes); analysis `llm/analyze_c0.py` at `80ddc4a` |
+| Code commit | `c0` `5ef76c1`, `c0b` `cd5f9ab`, `c0c` `815ed5b`, `c0d` `a175b73`, `c0e` `4f637df` (old hashes); analysis `extra/llm/analyze_c0.py` at `80ddc4a` |
 
 ### Result
-The base model against itself gives 0 declines on 3,000 problems. At 32 samples, though, a drop to 0 is detectable only from $\hat p \ge 0.375$; at 256 samples the threshold falls to 0.055, so C1 uses 256. lr $10^{-6}$ was chosen (mean $\hat p$ 0.41 → 0.75, 0 declines). lr $10^{-5}$ is a collapse, not selective loss (247 declines, 168 lost, reward falling from the start). Exploratory. See `analysis/llm/c0_qwen.md`.
+The base model against itself gives 0 declines on 3,000 problems. At 32 samples, though, a drop to 0 is detectable only from $\hat p \ge 0.375$; at 256 samples the threshold falls to 0.055, so C1 uses 256. lr $10^{-6}$ was chosen (mean $\hat p$ 0.41 → 0.75, 0 declines). lr $10^{-5}$ is a collapse, not selective loss (247 declines, 168 lost, reward falling from the start). Exploratory. See `extra/analysis/llm/c0_qwen.md`.
 
 ## Model probes: which models fit one GPU
 
@@ -2108,9 +2108,9 @@ The base model against itself gives 0 declines on 3,000 problems. At 32 samples,
 
 ### What I did
 1. For each model and mode, evaluated the base model on the first 64 GSM8K training problems (8 samples each), while logging GPU memory every 500 ms.
-2. Ran 5 GRPO steps on `llm/pools/first1000.json` with `--check-sync`, saving at step 3. The sync check logs the vLLM and policy log-probs of one sampled answer after each of the first three weight syncs.
+2. Ran 5 GRPO steps on `extra/llm/pools/first1000.json` with `--check-sync`, saving at step 3. The sync check logs the vLLM and policy log-probs of one sampled answer after each of the first three weight syncs.
 3. Evaluated the step-3 model on the same 64 × 8.
-4. Collected peak memory, seconds per step, base $\hat p$ and the sync gap with `llm/analyze_probe.py`.
+4. Collected peak memory, seconds per step, base $\hat p$ and the sync gap with `extra/llm/analyze_probe.py`.
 
 ### Fixed settings
 | Setting | Value |
@@ -2122,13 +2122,13 @@ The base model against itself gives 0 declines on 3,000 problems. At 32 samples,
 | $G$, prompts per step | 8, 64 (defaults) |
 | Evaluation | First 64 train problems × 8 samples, before and after |
 | Sync gap | Largest $\lvert$vLLM − policy$\rvert$ log-prob of one 64-token answer over the first syncs |
-| Job lists | `llm/jobs/probe_open.txt`, `probe_retry.txt`, `probe_llama.txt` |
+| Job lists | `extra/llm/jobs/probe_open.txt`, `probe_retry.txt`, `probe_llama.txt` |
 | Run tags | `q_01`–`q_20` |
 | Pre-registration | None |
 | Code commit | `q_01`–`q_09` `b69182b`, `q_10`–`q_20` `c5230d1` (old hashes) |
 
 ### Result
-Six set-ups work: Qwen2.5-0.5B int8, Qwen2.5-1.5B LoRA, Qwen2.5-3B int8, SmolLM2-360M full, and Llama-3.2-1B full and LoRA. The other set-ups failed (see the table). Llama-3.2-1B full fine-tuning (base $\hat p$ 0.30, sync gap 0.14 nats, about 21 GPU-hours per arm) later became the second family for C1. See `analysis/llm/model_probe.md`.
+Six set-ups work: Qwen2.5-0.5B int8, Qwen2.5-1.5B LoRA, Qwen2.5-3B int8, SmolLM2-360M full, and Llama-3.2-1B full and LoRA. The other set-ups failed (see the table). Llama-3.2-1B full fine-tuning (base $\hat p$ 0.30, sync gap 0.14 nats, about 21 GPU-hours per arm) later became the second family for C1. See `extra/analysis/llm/model_probe.md`.
 
 ## Census calibration: what an unchanged model looks like
 
@@ -2153,12 +2153,12 @@ Six set-ups work: Qwen2.5-0.5B int8, Qwen2.5-1.5B LoRA, Qwen2.5-3B int8, SmolLM2
 | Decline test and FDR | One-sided Fisher exact, BH at $q = 0.10$ |
 | Training | None |
 | Pre-registration | None |
-| Code commit | `llm/census_calibration.py` (`llm-transfer` `b4a7dee`); write-up `analysis-v3` `8db6862`, scope fixed in `cdfa10c` / `e83fe10` |
+| Code commit | `extra/llm/census_calibration.py` (`llm-transfer` `b4a7dee`); write-up `analysis-v3` `8db6862`, scope fixed in `cdfa10c` / `e83fe10` |
 
 The input files are not named in the write-up. I identified them by rerunning the script with these inputs, which reproduces `census_calibration.md` exactly.
 
 ### Result
-Our decline and lost tests flag 0 problems at every sample count. The naive rules flag many at small counts. On the filtered pool, "locked" flags 59 at 8 samples and 3 at 32; "halved" flags 200 at 8 samples and 48 at 32. On 3,000 unfiltered problems at 32 samples, "locked" flags 83. Both naive rules reach 0 by 256 samples. The result is scoped to our models and sample counts. It is not a re-analysis of other papers. See `analysis/llm/census_calibration.md`.
+Our decline and lost tests flag 0 problems at every sample count. The naive rules flag many at small counts. On the filtered pool, "locked" flags 59 at 8 samples and 3 at 32; "halved" flags 200 at 8 samples and 48 at 32. On 3,000 unfiltered problems at 32 samples, "locked" flags 83. Both naive rules reach 0 by 256 samples. The result is scoped to our models and sample counts. It is not a re-analysis of other papers. See `extra/analysis/llm/census_calibration.md`.
 
 ## Llama calibration: learning rate and pool for the second family
 
@@ -2169,22 +2169,22 @@ Our decline and lost tests flag 0 problems at every sample count. The naive rule
 ### What I did
 1. Evaluated base Llama on the first 3,000 train problems (32 samples, seeds 2 and 3) and on the test set. Seeds 2 and 3 keep the pool independent of the later "before" (seed 0) and null (seed 1) draws.
 2. Trained for 150 steps on train problems 0–999 at lr $10^{-6}$, $3\cdot10^{-6}$ and $10^{-5}$, then evaluated each model on those problems (32 samples).
-3. Applied the rule with `llm/pick_lr.py`: the smallest lr at which mean $\hat p$ rises by $\ge 0.05$ with $\le 2$ BH-significant declines at $N = 32$.
-4. Built the pool (pooled $\hat p \in [0.1, 0.9]$), drew 1,000 training and 300 held-out problems with seed 0 (`llm/make_sets.py`), and ran the two 256-sample base evaluations of those 1,300 problems (seeds 0 and 1).
+3. Applied the rule with `extra/llm/pick_lr.py`: the smallest lr at which mean $\hat p$ rises by $\ge 0.05$ with $\le 2$ BH-significant declines at $N = 32$.
+4. Built the pool (pooled $\hat p \in [0.1, 0.9]$), drew 1,000 training and 300 held-out problems with seed 0 (`extra/llm/make_sets.py`), and ran the two 256-sample base evaluations of those 1,300 problems (seeds 0 and 1).
 
 ### Fixed settings
 | Setting | Value |
 | --- | --- |
 | Model | Llama-3.2-1B-Instruct, full fine-tuning, fp32 master weights, 8-bit AdamW, micro-batch 1 |
-| lr pilots | $10^{-6}$, $3\cdot10^{-6}$, $10^{-5}$; 150 steps on `llm/pools/first1000.json` |
+| lr pilots | $10^{-6}$, $3\cdot10^{-6}$, $10^{-5}$; 150 steps on `extra/llm/pools/first1000.json` |
 | $G$, prompts per step | 8, 64 (defaults) |
 | KL | $\beta = 0$ |
-| Pool | 2,157 of 3,000 (`llm/pools/llama.json`); sets `llama_c1_{train,heldout,eval}.json` (1,000 / 300 / 1,300) |
+| Pool | 2,157 of 3,000 (`extra/llm/pools/llama.json`); sets `llama_c1_{train,heldout,eval}.json` (1,000 / 300 / 1,300) |
 | Evaluation | 32 samples (pilots); 256 samples, seeds 0 and 1, on 1,300 problems (C1 base) |
 | lr rule | Rise $\ge 0.05$ and $\le 2$ declines (BH $q = 0.10$, $N = 32$) |
-| Job lists | `llm/jobs/llama_c0.txt`; `llm/jobs/llama_arm.sh` (pool, lr choice, C1 queueing) |
+| Job lists | `extra/llm/jobs/llama_c0.txt`; `extra/llm/jobs/llama_arm.sh` (pool, lr choice, C1 queueing) |
 | Run tags | `r2_00`–`r2_05` (calibration), `r2_18`, `r2_19` (256-sample base) |
-| Pre-registration | `analysis/review/PREREG_C1_amendment1.md` |
+| Pre-registration | `extra/analysis/review/PREREG_C1_amendment1.md` |
 | Code commit | `r2_00`–`r2_05` `8002345`; `r2_18`, `r2_19` `d8b43f1` |
 
 ### Result
@@ -2197,7 +2197,7 @@ lr $10^{-6}$ meets the rule: a rise of +0.490 with 0 declines. $3\cdot10^{-6}$ a
 **Why:** This is the confirmatory test of P4. The toy loses minority prompts under GRPO. Does small-LLM GRPO lose GSM8K training problems beyond what sampling noise alone produces?
 
 ### What I did
-1. Drew 1,000 training and 300 held-out problems with seed 0 from the Qwen pool (`llm/pools/qwen_c1_*.json`).
+1. Drew 1,000 training and 300 held-out problems with seed 0 from the Qwen pool (`extra/llm/pools/qwen_c1_*.json`).
 2. Trained Qwen with GRPO for 500 steps at lr $10^{-6}$ (primary arm) and $3\cdot10^{-6}$ (secondary arm), 3 seeds each.
 3. Evaluated the final model on all 1,300 problems (256 samples, seed 0), plus a 32-sample trajectory point at step 250. "Before" is base seed 0 and the null is base seed 1, both at 256 samples.
 4. Per problem: one-sided Fisher exact test, with BH at 10% over the 1,000 training problems (held-out problems tested separately). Per run: lost count $L$ against Binomial(1000, $r_0$), where $r_0 = (L_0 + 1)/1001$. Per family: partial-conjunction $p = \min(1, 2p_{(2)})$, meaning "at least 2 of 3 seeds". P4 needs $p < 0.05$ in both families.
@@ -2218,11 +2218,11 @@ lr $10^{-6}$ meets the rule: a rise of +0.490 with 0 declines. $3\cdot10^{-6}$ a
 | Decline / loss test | One-sided Fisher, BH $q = 0.10$; lost = decline to $\hat p \le 0.05$; binomial test against $r_0$; family $p = \min(1, 2p_{(2)})$ |
 | Run tags | lr $10^{-6}$: `c1q` (3 hosts); lr $3\cdot10^{-6}$: `q_35` (seed 0; reruns `q_00`, which failed with a CUDA fault), `q_21` (seed 1), `q_36` (seed 2; final evaluation relaunched) |
 | Base evaluations | `base_qwen_n256_s0/s1` (tag `c0d`) |
-| Pre-registration | `analysis/review/PREREG_C1.md` and `PREREG_C1_amendment1.md` (`review` `2bdc507`) |
-| Code commit | `c1q` `a175b73`; `q_21` `c5230d1`; `q_35` `7efbe5b`; `q_36` `dd69acc` (old hashes); analysis `llm/analyze_c1.py` |
+| Pre-registration | `extra/analysis/review/PREREG_C1.md` and `PREREG_C1_amendment1.md` (`review` `2bdc507`) |
+| Code commit | `c1q` `a175b73`; `q_21` `c5230d1`; `q_35` `7efbe5b`; `q_36` `dd69acc` (old hashes); analysis `extra/llm/analyze_c1.py` |
 
 ### Result
-**P4 fails (refuted).** At lr $10^{-6}$, 0 of 1,000 training problems are lost in every seed (partial-conjunction $p = 1$), and mean $\hat p$ rises from 0.49 to 0.98. On held-out problems, 8–12 of 300 decline and 1–5 are lost (null: 0). At $3\cdot10^{-6}$, 15, 12 and 1 training problems are lost. At $3\cdot10^{-6}$, lost problems end on one repeated wrong answer, and no lost problem is shared between seeds. See `analysis/llm/C1_C5_SUMMARY.md`, `c1_qwen.md` and `c1_qwen_runs.csv`.
+**P4 fails (refuted).** At lr $10^{-6}$, 0 of 1,000 training problems are lost in every seed (partial-conjunction $p = 1$), and mean $\hat p$ rises from 0.49 to 0.98. On held-out problems, 8–12 of 300 decline and 1–5 are lost (null: 0). At $3\cdot10^{-6}$, 15, 12 and 1 training problems are lost. At $3\cdot10^{-6}$, lost problems end on one repeated wrong answer, and no lost problem is shared between seeds. See `extra/analysis/llm/C1_C5_SUMMARY.md`, `c1_qwen.md` and `c1_qwen_runs.csv`.
 
 ## C1 Llama: the second family
 
@@ -2234,7 +2234,7 @@ lr $10^{-6}$ meets the rule: a rise of +0.490 with 0 declines. $3\cdot10^{-6}$ a
 1. Used the Llama pool and sets from the calibration step (1,000 train and 300 held-out problems).
 2. Trained for 500 steps at lr $10^{-6}$ (chosen by the rule), 3 seeds.
 3. Evaluated the final model on the 1,300 problems at 256 samples, with seed 0 and a second "after" draw with seed 1. Also evaluated at step 250 (32 samples).
-4. Ran the same tests as for Qwen with `llm/analyze_c1.py`.
+4. Ran the same tests as for Qwen with `extra/llm/analyze_c1.py`.
 
 ### Fixed settings
 | Setting | Value |
@@ -2251,10 +2251,10 @@ lr $10^{-6}$ meets the rule: a rise of +0.490 with 0 declines. $3\cdot10^{-6}$ a
 | Decline / loss test | As C1 Qwen |
 | Run tags | `r2_20`, `r2_21`, `r2_22` (base: `r2_18`, `r2_19`) |
 | Pre-registration | `PREREG_C1.md`, `PREREG_C1_amendment1.md` |
-| Code commit | `d8b43f1`; job lines written by `llm/jobs/llama_arm.sh` |
+| Code commit | `d8b43f1`; job lines written by `extra/llm/jobs/llama_arm.sh` |
 
 ### Result
-Fails for this family too ($p = 1$): 0 training problems lost in all 3 seeds (0.42 → 0.99). Held-out declines are 10, 12 and 13 of 300, and lost problems 4, 5 and 9 (null 0), which replicates Qwen. See `analysis/llm/c1_llama.md`, `c1_llama_runs.csv` and `C1_C5_SUMMARY.md`.
+Fails for this family too ($p = 1$): 0 training problems lost in all 3 seeds (0.42 → 0.99). Held-out declines are 10, 12 and 13 of 300, and lost problems 4, 5 and 9 (null 0), which replicates Qwen. See `extra/analysis/llm/c1_llama.md`, `c1_llama_runs.csv` and `C1_C5_SUMMARY.md`.
 
 ## C1 control: are the held-out declines specific to GRPO?
 
@@ -2275,17 +2275,17 @@ Fails for this family too ($p = 1$): 0 training problems lost in all 3 seeds (0.
 | Problems | The 1,000 C1 training problems; 300 held-out |
 | Targets | Up to 4 correct of 16 base samples per problem; sampling seeds 10, 11, 12 |
 | lr | $10^{-6}$ |
-| Batch, epochs | 64, 8 (`llm/sft.py`) |
+| Batch, epochs | 64, 8 (`extra/llm/sft.py`) |
 | Evaluation | 256 samples per problem, seed 0 |
 | Seeds | 0, 1, 2 |
 | Decline test | As C1 (Fisher, BH $q = 0.10$) |
 | Run tags | `r2_23`, `r2_59`, `r2_60` |
-| Job list | `llm/jobs/c1_rft.txt` |
-| Pre-registration | `analysis/review/PREREG_C1_amendment2.md` (`review` `e024dcc`) |
-| Code commit | `r2_23` `d8b43f1`; `r2_59`, `r2_60` `c7a1d7e`; analysis `llm/analyze_control.py` |
+| Job list | `extra/llm/jobs/c1_rft.txt` |
+| Pre-registration | `extra/analysis/review/PREREG_C1_amendment2.md` (`review` `e024dcc`) |
+| Code commit | `r2_23` `d8b43f1`; `r2_59`, `r2_60` `c7a1d7e`; analysis `extra/llm/analyze_control.py` |
 
 ### Result
-By the registered count rule the declines are specific to GRPO: the control has 0, 0 and 0 held-out declines, against 12, 8 and 9 for GRPO. **But the comparison is confounded:** the control reached training success of only 0.65 (bar 0.75; GRPO 0.98). Exploratory. See `analysis/llm/c1_control.md`, `c1_control_runs.csv` and `C1_C5_SUMMARY.md`.
+By the registered count rule the declines are specific to GRPO: the control has 0, 0 and 0 held-out declines, against 12, 8 and 9 for GRPO. **But the comparison is confounded:** the control reached training success of only 0.65 (bar 0.75; GRPO 0.98). Exploratory. See `extra/analysis/llm/c1_control.md`, `c1_control_runs.csv` and `C1_C5_SUMMARY.md`.
 
 ## C5: the toy's loss drivers in the LLM
 
@@ -2314,10 +2314,10 @@ By the registered count rule the declines are specific to GRPO: the control has 
 | Decline test | As C1 |
 | Run tags | Flip `q_23`–`q_25`; sign `q_26`–`q_28`; lr $10^{-5}$ `q_29`–`q_31` |
 | Pre-registration | Exploratory section of `PREREG_C1.md` (plan: `NEXT_PLAN.md`) |
-| Code commit | `c5230d1` (old hash); analysis `llm/analyze_c1.py` |
+| Code commit | `c5230d1` (old hash); analysis `extra/llm/analyze_c1.py` |
 
 ### Result
-The toy's predictions are not supported. Flip and sign learn less ($\hat p$ 0.90–0.93) but lose nothing extra (training lost: 1, 0, 0 and 0, 0, 0). lr $10^{-5}$ collapses (1,000, 511 and 1,000 lost): the output becomes unparsable at the 512-token limit, which is instability, not selective loss. Exploratory. See `analysis/llm/C1_C5_SUMMARY.md`, `c5_qwen.md` and `c5_qwen_runs.csv`.
+The toy's predictions are not supported. Flip and sign learn less ($\hat p$ 0.90–0.93) but lose nothing extra (training lost: 1, 0, 0 and 0, 0, 0). lr $10^{-5}$ collapses (1,000, 511 and 1,000 lost): the output becomes unparsable at the 512-token limit, which is instability, not selective loss. Exploratory. See `extra/analysis/llm/C1_C5_SUMMARY.md`, `c5_qwen.md` and `c5_qwen_runs.csv`.
 
 ## C2 / P5: does a majority procedure collapse a minority procedure?
 
@@ -2335,7 +2335,7 @@ The toy's predictions are not supported. Flip and sign learn less ($\hat p$ 0.90
 | Setting | Value |
 | --- | --- |
 | Model | Qwen2.5-0.5B-Instruct, full fine-tuning, 8-bit AdamW |
-| Problems | `llm/pools/c2/all.json` (2,600): per procedure 1,000 universe + 300 held-out; candidates range `ml`, seed 1, base $\hat p \in [0.15, 0.85]$ |
+| Problems | `extra/llm/pools/c2/all.json` (2,600): per procedure 1,000 universe + 300 held-out; candidates range `ml`, seed 1, base $\hat p \in [0.15, 0.85]$ |
 | Mixes | 1,000 train problems; $m \in \{0.5, 0.8, 0.95\}$ × 2 roles; mix seeds 0, 1 (+2 at $m = 0.5, 0.95$) |
 | lr, steps | $10^{-6}$, 500 |
 | $G$, prompts per step | 8, 64 |
@@ -2344,12 +2344,12 @@ The toy's predictions are not supported. Flip and sign learn less ($\hat p$ 0.90
 | Base | 256 samples on all 2,600, seeds 0 (before) and 1 (null) |
 | Primary test | Exact permutation Spearman ($m$, decline rate), 560 assignments per role, one-sided; "untestable" if a role has < 10 declines |
 | Run tags | Main: `r2_07`–`r2_17`, `r2_24`–`r2_28` (16); base: `q_32`, `q_33`; base hints: `r2_06`; excluded: `q_34` (old code) |
-| Job lists | `llm/jobs/c2.txt`, `c2_v2.txt` |
-| Pre-registration | `analysis/review/PREREG_C2.md`, `PREREG_C2_amendment1.md` |
-| Code commit | `8002345` (summary); `r2_24`, `r2_25`, `r2_28` record `36380cb`, `r2_26`, `r2_27` record `b9747d1` (restarted after a reboot); base `q_32`, `q_33` `c5230d1`; analysis `llm/analyze_c2.py` |
+| Job lists | `extra/llm/jobs/c2.txt`, `c2_v2.txt` |
+| Pre-registration | `extra/analysis/review/PREREG_C2.md`, `PREREG_C2_amendment1.md` |
+| Code commit | `8002345` (summary); `r2_24`, `r2_25`, `r2_28` record `36380cb`, `r2_26`, `r2_27` record `b9747d1` (restarted after a reboot); base `q_32`, `q_33` `c5230d1`; analysis `extra/llm/analyze_c2.py` |
 
 ### Result
-**P5 fails (refuted).** The role "each" gives $p = 0.0536$ (Spearman 0.64), the role "total" gives $p = 0.0071$; P5 needs both below 0.05. Exploratory evidence against the toy's mechanism: the minority procedure improves by +0.36 to +0.45 in 15 of 16 runs. Only 2–9% of problems decline, and none switches to the other procedure's answer. After Holm over P1–P5, only P1 holds. See `analysis/llm/C2_SUMMARY.md`, `c2.md` and `c2_runs.csv`.
+**P5 fails (refuted).** The role "each" gives $p = 0.0536$ (Spearman 0.64), the role "total" gives $p = 0.0071$; P5 needs both below 0.05. Exploratory evidence against the toy's mechanism: the minority procedure improves by +0.36 to +0.45 in 15 of 16 runs. Only 2–9% of problems decline, and none switches to the other procedure's answer. After Holm over P1–P5, only P1 holds. See `extra/analysis/llm/C2_SUMMARY.md`, `c2.md` and `c2_runs.csv`.
 
 ## C2 matched minority: majority pressure or minority sample count?
 
@@ -2376,12 +2376,12 @@ The toy's predictions are not supported. Flip and sign learn less ($\hat p$ 0.90
 | Seeds | 0, 1 per arm and role |
 | Test | Exact permutation Spearman, 90 assignments per role (smallest $p = 0.011$) |
 | Run tags | `r2_29`–`r2_40` |
-| Job list | `llm/jobs/c2_extras.txt` (first 12 lines) |
+| Job list | `extra/llm/jobs/c2_extras.txt` (first 12 lines) |
 | Pre-registration | `PREREG_C2_amendment1.md` (control 1b) |
 | Code commit | `r2_29` `36380cb`; `r2_30`–`r2_40` `b9747d1` |
 
 ### Result
-The decline rate does not depend on the number of majority prompts (Spearman −0.36 and −0.72; $p = 0.80$ and 0.97). The mean gain is the same at 4 and at 76 majority prompts. The weak trend in C2 follows the minority's own sample count, not pressure from the majority. See `analysis/llm/C2_SUMMARY.md` ("The controls").
+The decline rate does not depend on the number of majority prompts (Spearman −0.36 and −0.72; $p = 0.80$ and 0.97). The mean gain is the same at 4 and at 76 majority prompts. The weak trend in C2 follows the minority's own sample count, not pressure from the majority. See `extra/analysis/llm/C2_SUMMARY.md` ("The controls").
 
 ## C2 seed replication of the degraded run
 
@@ -2407,12 +2407,12 @@ The decline rate does not depend on the number of majority prompts (Spearman −
 | Seeds | 3, 4, 5, 6, 7 per share |
 | Degradation rule | ≥ 30 held-out minority problems lost |
 | Run tags | `r2_61`–`r2_70` (odd: $m = 0.95$; even: $m = 0.5$) |
-| Job list | `llm/jobs/c2_seeds.txt` |
+| Job list | `extra/llm/jobs/c2_seeds.txt` |
 | Pre-registration | `PREREG_C2_amendment2.md` (`review` `2425a0b`) |
-| Code commit | `c7a1d7e`; analysis `llm/analyze_c2.py` |
+| Code commit | `c7a1d7e`; analysis `extra/llm/analyze_c2.py` |
 
 ### Result
-0 of 10 new runs degrade, so the original run is one outlier in eight at $m = 0.95$. A moderate share effect does show on this draw: held-out minority declines are 17–23 at $m = 0.95$ against 6–11 at $m = 0.5$. That comparison was not registered. Exploratory; P5 is unchanged. See `analysis/llm/c2_seeds.md`, `c2_seeds_runs.csv` and `C2_SUMMARY.md`.
+0 of 10 new runs degrade, so the original run is one outlier in eight at $m = 0.95$. A moderate share effect does show on this draw: held-out minority declines are 17–23 at $m = 0.95$ against 6–11 at $m = 0.5$. That comparison was not registered. Exploratory; P5 is unchanged. See `extra/analysis/llm/c2_seeds.md`, `c2_seeds_runs.csv` and `C2_SUMMARY.md`.
 
 ## C2 extras: samples per step, a long run, and a supervised control
 
@@ -2434,16 +2434,16 @@ The decline rate does not depend on the number of majority prompts (Spearman −
 | Steps | 500; long arm 1,500 |
 | lr | $10^{-6}$ (GRPO and control) |
 | $G$, KL | 8; $\beta = 0$ |
-| Control | `llm/sft.py`, targets from 16 samples (seeds 10–12), up to 4 correct; batch 64, 8 epochs |
+| Control | `extra/llm/sft.py`, targets from 16 samples (seeds 10–12), up to 4 correct; batch 64, 8 epochs |
 | Evaluation | 256 samples on the 1,600-problem set |
 | Seeds | 0–2 (sample-count, control); 0 (long arm) |
 | Run tags | 16 / 256 prompts `r2_71`–`r2_76`; long arm `r2_77`, `r2_78`; control `r2_79`–`r2_84` |
-| Job list | `llm/jobs/c2_extras.txt` |
+| Job list | `extra/llm/jobs/c2_extras.txt` |
 | Pre-registration | Designed in `PREREG_C2_amendment1.md` (controls 2, delay arm, supervised control); reported as exploratory |
-| Code commit | `c7a1d7e`; analysis script: see `analysis/llm/EXTRAS_2026-11-24.md` |
+| Code commit | `c7a1d7e`; analysis script: see `extra/analysis/llm/EXTRAS_2026-11-24.md` |
 
 ### Result
-Going from 64 to 256 prompts changes nothing (16–22 declines). At 16 prompts one seed degenerated as a whole, and the other two are noisier for both procedures. There is no delayed loss: the "each" arm has 34, 33 and 28 declines at steps 500, 1,000 and 1,500. Declines occur under both the control and GRPO, but problems driven to $\le 0.05$ occur mostly under GRPO. The control's gain is borderline-weak (about half of GRPO's). Exploratory, first look. See `analysis/llm/EXTRAS_2026-11-24.md`.
+Going from 64 to 256 prompts changes nothing (16–22 declines). At 16 prompts one seed degenerated as a whole, and the other two are noisier for both procedures. There is no delayed loss: the "each" arm has 34, 33 and 28 declines at steps 500, 1,000 and 1,500. Declines occur under both the control and GRPO, but problems driven to $\le 0.05$ occur mostly under GRPO. The control's gain is borderline-weak (about half of GRPO's). Exploratory, first look. See `extra/analysis/llm/EXTRAS_2026-11-24.md`.
 
 ## SmolLM2 diagnostic: why the SmolLM2 pilots collapsed
 
@@ -2460,7 +2460,7 @@ Going from 64 to 256 prompts changes nothing (16–22 declines). At 16 prompts o
 | Setting | Value |
 | --- | --- |
 | Model | SmolLM2-1.7B-Instruct, LoRA $r = 64$, $\alpha = 128$, AdamW (not 8-bit) |
-| Problems | `llm/pools/smol_c1_train.json` (1,000) |
+| Problems | `extra/llm/pools/smol_c1_train.json` (1,000) |
 | lr, steps | $10^{-4}$, 200 |
 | $G$, prompts per step | 8, 64 |
 | Importance weights | None, or `--tis 2.0` |
@@ -2468,12 +2468,12 @@ Going from 64 to 256 prompts changes nothing (16–22 declines). At 16 prompts o
 | Evaluation | None (training logs only) |
 | Seeds | 0 |
 | Run tags | `r2_85` (no correction), `r2_86` (`--tis 2.0`) |
-| Job list | `llm/jobs/smol_diag.txt` |
+| Job list | `extra/llm/jobs/smol_diag.txt` |
 | Pre-registration | None |
 | Code commit | `c7a1d7e` |
 
 ### Result
-Without the correction, the reward collapses to 0.02 by step 50 and answers run to the length limit. With it, training is normal (reward 0.81–0.84). The earlier SmolLM2 failures were a sampler–trainer mismatch, not a property of the model. Exploratory. See `analysis/llm/EXTRAS_2026-11-24.md`.
+Without the correction, the reward collapses to 0.02 by step 50 and answers run to the length limit. With it, training is normal (reward 0.81–0.84). The earlier SmolLM2 failures were a sampler–trainer mismatch, not a property of the model. Exploratory. See `extra/analysis/llm/EXTRAS_2026-11-24.md`.
 
 ## C10: who pushes whom in the LLM
 
@@ -2500,12 +2500,12 @@ Without the correction, the reward collapses to 0.02 by step 50 and answers run 
 | Seeds | 0, 1, 2 per arm and role |
 | Statistic | Change in mean held-out minority success; bootstrap 95% interval (2,000 draws) |
 | Run tags | `r2_41`–`r2_58` |
-| Job list | `llm/jobs/c10.txt` |
-| Pre-registration | `analysis/review/PREREG_C10.md` (`review` `75e0436`) |
-| Code commit | `b9747d1` (summary); `r2_56`–`r2_58` record `c7a1d7e`; analysis `llm/analyze_branch.py` |
+| Job list | `extra/llm/jobs/c10.txt` |
+| Pre-registration | `extra/analysis/review/PREREG_C10.md` (`review` `75e0436`) |
+| Code commit | `b9747d1` (summary); `r2_56`–`r2_58` record `c7a1d7e`; analysis `extra/llm/analyze_branch.py` |
 
 ### Result
-Prediction 1 fails in all 6 runs: majority-only training **raises** the minority by +0.11 to +0.34. Minority-only training raises it by +0.30 to +0.35. Additivity fails (the mixed change is 62% and 75% of the sum). This is positive transfer, the opposite of the toy. Exploratory. With Adam, the size of $R = -0.79$ cannot be compared with the toy's, but the sign stands. See `analysis/llm/C10_SUMMARY.md`, `c10.md` and `c10_runs.csv`.
+Prediction 1 fails in all 6 runs: majority-only training **raises** the minority by +0.11 to +0.34. Minority-only training raises it by +0.30 to +0.35. Additivity fails (the mixed change is 62% and 75% of the sum). This is positive transfer, the opposite of the toy. Exploratory. With Adam, the size of $R = -0.79$ cannot be compared with the toy's, but the sign stands. See `extra/analysis/llm/C10_SUMMARY.md`, `c10.md` and `c10_runs.csv`.
 
 ## C9: token-level loss aggregation
 
@@ -2517,7 +2517,7 @@ Prediction 1 fails in all 6 runs: majority-only training **raises** the minority
 1. Repeated the C1 primary configuration with `--agg token`: the loss is divided by the total number of completion tokens, rescaled by the mean length at step 1.
 2. Trained for 500 steps, 3 seeds.
 3. Evaluated on the 1,300 C1 problems at 256 samples (32 at step 250).
-4. Ran the C1 census with `llm/analyze_c1.py` and compared it with C1 seeds 0–2.
+4. Ran the C1 census with `extra/llm/analyze_c1.py` and compared it with C1 seeds 0–2.
 
 ### Fixed settings
 | Setting | Value |
@@ -2532,12 +2532,12 @@ Prediction 1 fails in all 6 runs: majority-only training **raises** the minority
 | Seeds | 0, 1, 2 |
 | Decline test | As C1 |
 | Run tags | `r2_91`–`r2_93` |
-| Job list | `llm/jobs/c8_c9.txt` |
-| Pre-registration | `analysis/review/PREREG_v3c.md` (C9, exploratory) |
+| Job list | `extra/llm/jobs/c8_c9.txt` |
+| Pre-registration | `extra/analysis/review/PREREG_v3c.md` (C9, exploratory) |
 | Code commit | `c7a1d7e` |
 
 ### Result
-The same as sequence aggregation: 0 training problems lost, and 5, 13 and 12 held-out declines (C1: 12, 8, 9). Mean answer length over the last 50 steps is also similar (250–264 tokens against 251–262); the full length trajectory is not compared in the write-up. Exploratory. See `analysis/llm/c9.md` and `c9_runs.csv`.
+The same as sequence aggregation: 0 training problems lost, and 5, 13 and 12 held-out declines (C1: 12, 8, 9). Mean answer length over the last 50 steps is also similar (250–264 tokens against 251–262); the full length trajectory is not compared in the write-up. Exploratory. See `extra/analysis/llm/c9.md` and `c9_runs.csv`.
 
 ## C7 / C8: the KL penalty in the LLM
 
@@ -2547,7 +2547,7 @@ The same as sequence aggregation: 0 training problems lost, and 5, 13 and 12 hel
 
 ### What I did
 1. Trained with reverse KL against the frozen base model at $\beta \in \{0, 0.02, 0.1, 0.5\}$ and $G \in \{4, 16\}$, with 512 samples per step (C7). Trained with forward KL at $\beta \in \{0.1, 0.5\}$ and $G = 16$ (C8). Each run was 800 steps with 2 seeds.
-2. Evaluated on the 1,300 C1 problems at 256 samples (32 at step 400). Then I ran the C1 census and turnover with `llm/analyze_c1.py`.
+2. Evaluated on the 1,300 C1 problems at 256 samples (32 at step 400). Then I ran the C1 census and turnover with `extra/llm/analyze_c1.py`.
 3. For question 2, I computed each problem's stable fixed point $p^*$ nearest $p_{ref}$ at $\beta_{eff} = s\beta$, where $p_{ref}$ is base success over 512 samples. I fitted one scale $s$ per run on a log grid from 0.01 to 100. Then I regressed $\mathrm{logit}\,\hat p_{after}$ on $\mathrm{logit}\,p^*$ and compared the fit with a baseline that uses $p_{ref}$ alone.
 4. Replaced the runs that broke numerically. I fixed the KL code (bounded log-ratio, non-finite updates skipped) and reran the affected runs.
 
@@ -2566,12 +2566,12 @@ The same as sequence aggregation: 0 training problems lost, and 5, 13 and 12 hel
 | Seeds | 0, 1 per setting |
 | Decline test | As C1 (Fisher, BH $q = 0.10$) |
 | Run tags | C8: `r2_88`, `r2_89`, `r2_90`, `r2_117` (replaces `r2_87`). C7: `r2_94`–`r2_97`, `r2_100`, `r2_101` (`r2_98` resumed), `r2_102`–`r2_104`, `r2_111`–`r2_116` (replace `r2_105`–`r2_110`), `r2_118` (replaces `r2_99`). `r2_114` broke and is left out |
-| Job lists | `llm/jobs/c7.txt`, `c8_c9.txt` |
-| Pre-registration | C7: `analysis/review/NEXT_PLAN.md` (exploratory); C8: `PREREG_v3c.md` |
-| Code commit | `r2_88`–`r2_100` `c7a1d7e`; `r2_101`–`r2_104` `30d2b4b`; `r2_111`–`r2_118` `a7bd0aa` (KL fix); analysis `llm/analyze_c1.py`, `llm/analyze_kl_fixed_points.py` |
+| Job lists | `extra/llm/jobs/c7.txt`, `c8_c9.txt` |
+| Pre-registration | C7: `extra/analysis/review/NEXT_PLAN.md` (exploratory); C8: `PREREG_v3c.md` |
+| Code commit | `r2_88`–`r2_100` `c7a1d7e`; `r2_101`–`r2_104` `30d2b4b`; `r2_111`–`r2_118` `a7bd0aa` (KL fix); analysis `extra/llm/analyze_c1.py`, `extra/llm/analyze_kl_fixed_points.py` |
 
 ### Result
-Any $\beta \ge 0.02$ removes the held-out declines (0–4 declines, 0 lost, against 14–26 and 3–10 without KL). The cost grows with $\beta$. The fixed point tracks the end state ($R^2$ 0.71–0.96) but adds nothing beyond base success alone, and $\beta_{eff}$ grows roughly like $\sqrt\beta$. $G = 16$ settles above $G = 4$ at every $\beta$. The C8 prediction is not supported: forward and reverse KL behave the same. Exploratory. See `analysis/llm/C7_C8_SUMMARY.md`, `c78.md`, `c78_runs.csv` and `c78_fixed_points.md`.
+Any $\beta \ge 0.02$ removes the held-out declines (0–4 declines, 0 lost, against 14–26 and 3–10 without KL). The cost grows with $\beta$. The fixed point tracks the end state ($R^2$ 0.71–0.96) but adds nothing beyond base success alone, and $\beta_{eff}$ grows roughly like $\sqrt\beta$. $G = 16$ settles above $G = 4$ at every $\beta$. The C8 prediction is not supported: forward and reverse KL behave the same. Exploratory. See `extra/analysis/llm/C7_C8_SUMMARY.md`, `c78.md`, `c78_runs.csv` and `c78_fixed_points.md`.
 
 ## C3 and C11: planned, not run
 
@@ -2587,7 +2587,7 @@ Any $\beta \ge 0.02$ removes the held-out declines (0–4 declines, 0 lost, agai
 | Setting | Value |
 | --- | --- |
 | Status | Not run |
-| Plan | `analysis/review/NEXT_PLAN.md` (C3); gate stated in `analysis/llm/C10_SUMMARY.md` (C11) |
+| Plan | `extra/analysis/review/NEXT_PLAN.md` (C3); gate stated in `extra/analysis/llm/C10_SUMMARY.md` (C11) |
 
 ### Result
-Not run. There was no collapse in the LLM to fix. See `docs/EXPERIMENTS.md` and `analysis/llm/C10_SUMMARY.md`.
+Not run. There was no collapse in the LLM to fix. See `docs/EXPERIMENTS.md` and `extra/analysis/llm/C10_SUMMARY.md`.

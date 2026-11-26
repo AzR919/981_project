@@ -235,5 +235,5 @@ latex/*.toc
 results/
 jobs_*.jsonl
 
-# Third-party code fetched by experiments/third_party/fetch_wsw.sh
-experiments/third_party/wsw/
+# Third-party code fetched by extra/experiments/third_party/fetch_wsw.sh
+extra/experiments/third_party/wsw/

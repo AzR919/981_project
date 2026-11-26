@@ -475,7 +475,7 @@ def v3_t19():
 
 
 def v3_t20():
-    """Correct minority in the enumerable transformer environment of Li, Pandey and Chen (experiments/enum_env.py)."""
+    """Correct minority in the enumerable transformer environment of Li, Pandey and Chen (extra/experiments/enum_env.py)."""
     tasks = [(3, n, "random") for n in (22, 32, 40, 48, 56, 60)] + [(2, n, "random") for n in (32, 40, 48, 56, 60)]
     tasks.append((2, 48, "parity"))
     steppers = [("sgd", 0.3), ("sgd", 1), ("sgd", 3), ("adam", 1e-3), ("adam", 3e-3)]

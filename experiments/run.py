@@ -699,7 +699,8 @@ def main():
     torch.set_flush_denormal(True)
     t0 = time.time()
     if cfg["mode"] == "enum":
-        from enum_env import run_enum          # needs the third-party code (experiments/third_party/fetch_wsw.sh)
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "extra", "experiments"))
+        from enum_env import run_enum          # needs the third-party code (extra/experiments/third_party/fetch_wsw.sh)
         result = run_enum(cfg)
     else:
         result = {"train": run_train, "gradcheck": run_gradcheck, "onestep": run_onestep}[cfg["mode"]](cfg)
