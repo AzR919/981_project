@@ -1,5 +1,9 @@
 """The minimal example: explicit and block features, KL reference resets, a reward-rule switch, G = inf."""
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import math
 import os
 import sys
@@ -8,7 +12,7 @@ import unittest
 import numpy as np
 import torch
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "experiments"))
 
@@ -227,7 +231,7 @@ def start_at(gamma, u, v):
 
 
 class TailTests(unittest.TestCase):
-    """The tail system of analysis/theory/minimal_example.md, section 4: minority success ~ tau^(-gamma/alpha) on the
+    """The tail system of extra/analysis/theory/minimal_example.md, section 4: minority success ~ tau^(-gamma/alpha) on the
     collapsed branch, and the separatrix beta v - alpha u = log rho*."""
 
     def test_late_exponent(self):

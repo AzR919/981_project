@@ -3,8 +3,8 @@ Why losing the minority is harmful: pass@k, crossover k*, coverage and worst-cla
 runs of battery A (v3o: A1, A2, A3). Descriptive, not a registered test; no new training.
 
 usage:
-    python experiments/analyze_harm.py collect [--raw ~/rlvr-data/v3o] [--jobs 3]
-    python experiments/analyze_harm.py analyze [--raw ~/rlvr-data/v3o] [--out analysis/v3o]
+    python extra/experiments/analyze_harm.py collect [--raw ~/rlvr-data/v3o] [--jobs 3]
+    python extra/experiments/analyze_harm.py analyze [--raw ~/rlvr-data/v3o] [--out extra/analysis/v3o]
 
 collect reads every v3_a1, v3_a2 and v3_a3 result once and writes <raw>/cache/harm_runs.csv: per run, the measures
 below for the start policy (p_init) and the final policy (the snapshot at the last step), overall, for the majority
@@ -36,7 +36,8 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path[:0] = [os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),  # repo root
+                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))]  # extra/
 
 from experiments import analyze_v3o  # noqa: E402
 from experiments.analyze import markdown  # noqa: E402
@@ -249,7 +250,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("what", choices=("collect", "analyze", "all"))
     parser.add_argument("--raw", default=os.path.expanduser("~/rlvr-data/v3o"))
-    parser.add_argument("--out", default="analysis/v3o")
+    parser.add_argument("--out", default="extra/analysis/v3o")
     parser.add_argument("--jobs", type=int, default=3)
     args = parser.parse_args()
     if args.what in ("collect", "all"):

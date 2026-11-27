@@ -179,7 +179,7 @@ def fmt(x):
 
 def original_p1():
     """The original task-level table (extra/analysis/v3a/P1_TASK_LEVEL.md), for the effect sizes."""
-    path = os.path.join("analysis", "v3a", "P1_TASK_LEVEL.md")
+    path = os.path.join("extra", "analysis", "v3a", "P1_TASK_LEVEL.md")
     rows = [line.strip().strip("|").split("|") for line in open(path)
             if line.startswith("| ") and "/" in line.split("|")[1]]
     t = pd.DataFrame([[c.strip() for c in r] for r in rows],
@@ -189,7 +189,7 @@ def original_p1():
 
 def original_etas():
     """The no-overshoot eta sets of the original T1 analysis (extra/analysis/v3a/tables/v3_t1_cells.csv)."""
-    o = pd.read_csv(os.path.join("analysis", "v3a", "tables", "v3_t1_cells.csv"))
+    o = pd.read_csv(os.path.join("extra", "analysis", "v3a", "tables", "v3_t1_cells.csv"))
     cell = o.arch + "/" + o.rho.astype(str) + "/" + o.optimizer + "/" + o["update"]
     return {c: sorted(float(x) for x in str(e).replace(",", " ").split()) for c, e in zip(cell, o.etas)}
 
@@ -412,9 +412,9 @@ def analyze(raw, out):
     r1, c1, t1 = a1(runs["v3_a1"])
     r1o, c1o, _ = a1(runs["v3_a1"], fixed=original_etas())
     r2, p2, x2 = a2(runs["v3_a2"], load("orig_v3_t17"))
-    r3, c3, x3 = a3(runs["v3_a3"], pd.read_csv(os.path.join("analysis", "v3f", "runs.csv")))
-    r4, s4, x4 = a4(runs["v3_a4"], pd.read_csv(os.path.join("analysis", "v3h", "runs.csv")))
-    r5, w5, x5 = a5(runs["v3_a5"], pd.read_csv(os.path.join("analysis", "v3k", "runs.csv")))
+    r3, c3, x3 = a3(runs["v3_a3"], pd.read_csv(os.path.join("extra", "analysis", "v3f", "runs.csv")))
+    r4, s4, x4 = a4(runs["v3_a4"], pd.read_csv(os.path.join("extra", "analysis", "v3h", "runs.csv")))
+    r5, w5, x5 = a5(runs["v3_a5"], pd.read_csv(os.path.join("extra", "analysis", "v3k", "runs.csv")))
     res = pd.DataFrame([r1, r2, r3, r4, r5])
     res["holm_p"] = holm(res.p)
     res["verdict"] = np.where(res.holm_p < ALPHA, "replicated (confirmatory)", "did not replicate on fresh tasks")

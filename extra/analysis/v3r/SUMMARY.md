@@ -1,10 +1,10 @@
 # v3r: a stylized ladder, a one-knob prevention table, pass@k (T30–T33)
 
-Pre-registered in `analysis/review/PREREG_v3d_addendum11.md` (2026-11-26), with Amendment 1 written before any `v3r`
+Pre-registered in `extra/analysis/review/PREREG_v3d_addendum11.md` (2026-11-26), with Amendment 1 written before any `v3r`
 run or flow. The batch answers the instructor's feedback of 2026-11-26. T30 has one confirmatory prediction (its
 prediction 1 is a theorem); everything else is exploratory. Task seeds 30–49, never run before, unless stated.
 
-`experiments/analyze_v3r.py` regenerates `FINDINGS.md`, `results.csv` (every verdict) and the tables
+`extra/experiments/analyze_v3r.py` regenerates `FINDINGS.md`, `results.csv` (every verdict) and the tables
 (`t30_*.csv`, `t31_*.csv`, `t32_*.csv`, `t33a_*.csv`, `t33b_*.csv`). Its `baseline` step wrote `t32_baseline.md`
 before any pass@k flow was opened (see T32).
 
@@ -25,7 +25,7 @@ answer class, with share m; the minority class mean is the mean success over the
 | T30 exact flows (s × m × 20 tasks, to flow time 1e8) | same code, run locally | 360 | 0 |
 | T32 exact flows (100 T25 tasks × GRPO, pass@2, pass@4, to 1e14) | same code, run locally | 300 | 0 |
 
-- The 2,940 runs ran on six lab machines and were fetched with `cluster/fetch.sh`: 2,940 results, 0 failed jobs, six
+- The 2,940 runs ran on six lab machines and were fetched with `extra/cluster/fetch.sh`: 2,940 results, 0 failed jobs, six
   machines done. The job list (`~/rlvr-data/v3r/jobs.jsonl`) has the digest `6b62fe691730`, and `grids.py v3r`
   reproduces it on both `toy-v3` `943e886` and `analysis-v3`.
 - All 660 flows finished with LSODA; no flow needed the Radau or BDF fallback.
@@ -268,10 +268,10 @@ Three descriptive checks made after the verdicts, on these runs and on earlier o
 ## Deviations and choices
 
 1. **Flows ran locally, and all finished with LSODA.** The 360 T30 flows and 300 T32 flows ran on the laptop with
-   `experiments/flow_batch.py`, not on the lab machines. None needed the registered Radau and BDF fallbacks, so no
+   `extra/experiments/flow_batch.py`, not on the lab machines. None needed the registered Radau and BDF fallbacks, so no
    task counts as "not recovered" for a solver failure.
 2. **The two-prompt example is not part of this batch.** It is a derivation with a numerical check
-   (`analysis/theory/minimal_example.md`), as the addendum states.
+   (`extra/analysis/theory/minimal_example.md`), as the addendum states.
 3. **T32's baseline was compared first.** The script and the commit order (`0e6e3d3`, then `cf30d00`) record that the
    recomputed GRPO flows were compared with the saved T25 flows before any pass@k flow was opened. The paired
    comparisons use the recomputed baseline.

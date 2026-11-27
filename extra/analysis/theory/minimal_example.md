@@ -4,8 +4,8 @@
 
 A derivation with numerical checks, written on 2026-11-26. It is **not a registered test**: the numbers of the
 example were seen while it was being built (`PREREG_v3d_addendum11.md`, "Not registered"). The tables come from
-`experiments/minimal_example.py` (`analysis/theory/minimal_example/*.csv`) and the checks from
-`experiments/check_minimal_example.py` (`minimal_example_check.md`, `minimal_example/phase.csv`). Nothing is fitted.
+`extra/experiments/minimal_example.py` (`extra/analysis/theory/minimal_example/*.csv`) and the checks from
+`extra/experiments/check_minimal_example.py` (`minimal_example_check.md`, `minimal_example/phase.csv`). Nothing is fitted.
 
 | Part | Status |
 |---|---|
@@ -186,7 +186,7 @@ straight line βv − αu = log ρ\*. Above it ρ grows, the minority's pull bec
 dv/dt ≈ γ/(αt), so v ≈ (γ/α) log t: Y grows like t^{βγ/α} and the minority's success decays like t^{−γ/α}. Below it
 ρ falls and the minority climbs out. On the self-similar solution itself the minority's success decays like t^{−1/β}.
 At γ = α/β exactly, dρ/dt < 0 for every ρ: the minority always recovers, more slowly than any power of t. All of this
-is in `tests/test_theory_symbolic.py::MinimalExampleTests`.
+is in `extra/tests/test_theory_symbolic.py::MinimalExampleTests`.
 
 So permanence needs two things: γ > α/β, and a fall that ends above the line βv − αu = log ρ\*. log ρ\* falls as m
 grows, which is why the lower edge of the stays-down region comes down with m. Within the tail the depth condition is
@@ -202,7 +202,7 @@ in closed form; what is not is whether a fall from the uniform start reaches the
   βv0 − αu0 = log ρ\* + δ, δ ∈ {−0.5, −0.1, 0.1, 0.5}, for the mean rule (γ = 1.2, 2), GRPO G = 8 (γ = 1.5), pass@2
   (γ = 3) and pass@4 (γ = 6), each to τ = 1e14 after the start. In 20 of 20 the outcome is the one predicted: every run
   with δ > 0 ends further above the line and stays down; every run with δ < 0 recovers.
-  A fast version is `tests/test_minimal_example.py::TailTests`.
+  A fast version is `extra/tests/test_minimal_example.py::TailTests`.
 
 ## 5. What each lever does
 
@@ -260,7 +260,7 @@ in closed form; what is not is whether a fall from the uniform start reaches the
   inner gradient flow in w matches the one-prompt roots to 4e-12 in 36 cases.
 - **N steps per reset.** With N gradient steps the inner problem is only partly solved: the KL gradient is zero at the
   reference, so the first steps follow the plain gradient and the minority falls; the correction comes later. N = 1 is
-  exactly the unregularised run (`tests/test_minimal_example.py::test_reset_every_step_is_the_unregularised_run`).
+  exactly the unregularised run (`extra/tests/test_minimal_example.py::test_reset_every_step_is_the_unregularised_run`).
 - **The threshold in N** (`resets.csv`, η = 0.5, 60,000 steps, τ = 3e4; "back" = final minority success above 0.1):
 
   | γ | rule | KL | β_KL | still down at N = | back at N = |
@@ -286,15 +286,15 @@ What can be removed and the collapse still happen, from the full setting down to
 
 | What is removed | Still collapses? | Evidence |
 |---|---|---|
-| nothing (MLP, sampled GRPO, Adam) | yes | A1 (`analysis/v3o/SUMMARY.md`) |
+| nothing (MLP, sampled GRPO, Adam) | yes | A1 (`extra/analysis/v3o/SUMMARY.md`) |
 | the nonlinearity (linear policy) | yes | A1 |
 | sampling noise (exact expected update) | yes | A1 and H3 (`analysis/base/FINDINGS.md`) |
-| the step size (gradient flow) | yes | T25 (`analysis/v3m/SUMMARY.md`) |
+| the step size (gradient flow) | yes | T25 (`extra/analysis/v3m/SUMMARY.md`) |
 | finite G (G = ∞) | yes | this note, section 3 |
-| the standard-deviation normalisation (mean rule) | yes | v3f (`analysis/v3f/SUMMARY.md`) and this note |
+| the standard-deviation normalisation (mean rule) | yes | v3f (`extra/analysis/v3f/SUMMARY.md`) and this note |
 | everything but two prompt kinds, two answers, two weights | yes | this note |
-| negative interactions (γ ≤ 0 here) | no | section 1, and at full size T30: 60 of 60 block-feature tasks with no fall at all (`analysis/v3r/SUMMARY.md`) |
-| sharing (tabular) | no | Lean proof (`formal/`) and 2,268 runs |
+| negative interactions (γ ≤ 0 here) | no | section 1, and at full size T30: 60 of 60 block-feature tasks with no fall at all (`extra/analysis/v3r/SUMMARY.md`) |
+| sharing (tabular) | no | Lean proof (`extra/formal/`) and 2,268 runs |
 
 ## Relation to prior work
 

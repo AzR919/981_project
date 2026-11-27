@@ -131,7 +131,7 @@ class LateTimeTests(unittest.TestCase):
 
 
 class MinimalExampleTests(unittest.TestCase):
-    """The two-kind example (analysis/theory/minimal_example.md): majority features a, minority features b, K = 2,
+    """The two-kind example (extra/analysis/theory/minimal_example.md): majority features a, minority features b, K = 2,
     w = W_0 - W_1, margins u = w.a and v = w.b (the minority's deficit). Tail weights h_A = C_A e^{-alpha u},
     h_B = C_B e^{-beta v}; A2 = |a|^2, B2 = |b|^2, g = a.b, D = A2 B2 - g^2 = A2 |b_perp|^2 > 0."""
 

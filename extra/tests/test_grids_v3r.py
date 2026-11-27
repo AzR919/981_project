@@ -1,10 +1,14 @@
 """The v3r grids (PREREG_v3d addendum 11, T30, T31, T33): job counts, known keys, and one short run per level."""
 
+import os as _os, sys as _sys  # extra/ layout: repo root, extra/, and both experiments/ folders on the path
+_REPO = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+_sys.path[:0] = [_REPO, _os.path.join(_REPO, "experiments"), _os.path.join(_REPO, "extra"),
+                 _os.path.join(_REPO, "extra", "experiments")]
 import os
 import sys
 import unittest
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "experiments"))
 

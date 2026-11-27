@@ -12,10 +12,10 @@ the minority's success and the minority's own update raises it; their ratio is
 so the minority starts to fall when R > 1 (gamma > 0 with m large enough).
 
 usage:
-    python experiments/minimal_example.py [--out analysis/theory/minimal_example] [--workers 8] [--only switch]
+    python extra/experiments/minimal_example.py [--out extra/analysis/theory/minimal_example] [--workers 8] [--only switch]
 
 Writes regimes.csv, passk.csv, resets.csv, sampled.csv, switch.csv and agreement.csv to --out and prints a short
-markdown summary of each. Flow time is tau = eta * steps (the convention of tests/test_exact_flow.py).
+markdown summary of each. Flow time is tau = eta * steps (the convention of extra/tests/test_exact_flow.py).
 """
 
 import argparse
@@ -29,9 +29,10 @@ from multiprocessing import Pool
 import numpy as np
 import torch
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root (this script is in extra/experiments/)
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "experiments"))
+sys.path[1:1] = [os.path.join(ROOT, "extra"), os.path.join(ROOT, "extra", "experiments")]  # extra/ layout
 
 import run  # noqa: E402
 from experiments.exact_flow import flow  # noqa: E402
@@ -297,7 +298,7 @@ def table(rows, cols):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default=os.path.join(ROOT, "analysis", "theory", "minimal_example"))
+    parser.add_argument("--out", default=os.path.join(ROOT, "extra", "analysis", "theory", "minimal_example"))
     parser.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1))
     parser.add_argument("--only", choices=("switch",), help="write only this table")
     args = parser.parse_args()

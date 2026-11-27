@@ -7,7 +7,7 @@ work: pass@k against the start policy, coverage, and worst-class accuracy. It us
 
 **Status:** descriptive analysis of the confirmatory runs, not a registered test. No p-values.
 
-`experiments/analyze_harm.py` regenerates `harm_cells.csv` (all four majority shares, every measure, with medians and
+`extra/experiments/analyze_harm.py` regenerates `harm_cells.csv` (all four majority shares, every measure, with medians and
 ranges over tasks; per-run values in `~/rlvr-data/v3o/cache/harm_runs.csv`).
 
 ## Definitions

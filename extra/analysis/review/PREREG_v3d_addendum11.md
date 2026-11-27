@@ -10,8 +10,8 @@ is exploratory unless marked.
 two unsaved numerical checks of a two-prompt example (direct logistic model). **Not seen:** any block-feature run,
 any reset run in the standard toy, any pass@k exact flow, any pass@k trajectory, any switch run.
 
-**Not registered:** the two-prompt example (`experiments/minimal_example.py`). It is a derivation with a numerical
-check, because its numbers were seen first. It is reported in `analysis/theory/minimal_example.md`.
+**Not registered:** the two-prompt example (`extra/experiments/minimal_example.py`). It is a derivation with a numerical
+check, because its numbers were seen first. It is reported in `extra/analysis/theory/minimal_example.md`.
 
 Task seeds 30–49 (never run) unless stated. "Absorbed" is per minority prompt, persistent over the last 20% of
 training, at 1e-3 unless stated. Class 0 is the majority.
@@ -132,13 +132,13 @@ inner product ⟨∇J_k, ∇J_1⟩ to first order, so no separate gradient measu
 
 ## Deviations
 
-Listed in `analysis/v3r/SUMMARY.md`.
+Listed in `extra/analysis/v3r/SUMMARY.md`.
 
 ## Amendment 1 (2026-11-26, before any `v3r` run or flow)
 
 Written after the simulator options were committed (`toy-v3` `8e6b0aa`) and the two-prompt example was tabulated
 from that code (not a registered test), and after the harm analysis of the final snapshots of A1–A3
-(`analysis/v3o/HARM.md`; no trajectories were read). Nothing from T30–T33 has been run.
+(`extra/analysis/v3o/HARM.md`; no trajectories were read). Nothing from T30–T33 has been run.
 
 1. **Flows use `stable_tail=True`.** `exact_flow.flow` then computes 1 − π_c as the sum of the other answers'
    probabilities. It is the same right-hand side, evaluated without cancellation; without it LSODA stalls once some

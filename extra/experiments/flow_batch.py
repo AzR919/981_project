@@ -1,9 +1,9 @@
 """
-Many exact flows (experiments/exact_flow.py) in parallel, one .npz per task (PREREG_v3d addendum 11, T30 and T32).
+Many exact flows (extra/experiments/exact_flow.py) in parallel, one .npz per task (PREREG_v3d addendum 11, T30 and T32).
 
 usage:
-    python experiments/flow_batch.py t30 [--out DIR] [--workers 8] [--limit N] [--seeds 30-49]
-    python experiments/flow_batch.py t32 [--out DIR] [--workers 8] [--limit N] [--rules grpo,rloo_k2,rloo_k4]
+    python extra/experiments/flow_batch.py t30 [--out DIR] [--workers 8] [--limit N] [--seeds 30-49]
+    python extra/experiments/flow_batch.py t32 [--out DIR] [--workers 8] [--limit N] [--rules grpo,rloo_k2,rloo_k4]
 
 t30  block tasks (s in {0, 0.5, 1, 2, 4, 8} x m in {1/3, 0.7, 0.9} x task seeds 30-49; the tasks of grids.v3_t30),
      linear policy, GRPO G = 8, to flow time 1e8 on a grid of 20 points per decade. Saved per task: taus, logp
@@ -30,9 +30,10 @@ from multiprocessing import Pool
 
 import numpy as np
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root (this script is in extra/experiments/)
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "experiments"))
+sys.path[1:1] = [os.path.join(ROOT, "extra"), os.path.join(ROOT, "extra", "experiments")]  # extra/ layout
 
 from experiments.exact_flow import flow  # noqa: E402
 from grids import REGISTERED_SEEDS, T30_SCALES, t30_base  # noqa: E402
