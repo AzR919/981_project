@@ -160,6 +160,35 @@ class SyntheticTask:
         return prompts, correct
 
 
+def class_counts(n, majority, num_classes):
+    """Deterministic class sizes summing to n: class 0 gets round(majority * n), the rest is split as evenly
+    as possible over classes 1..K-1 (lower classes take the remainder)."""
+    n_a = int(round(majority * n))
+    q, r = divmod(n - n_a, num_classes - 1)
+    counts = [n_a] + [q + (1 if c < r else 0) for c in range(num_classes - 1)]
+    if min(counts) < 1:
+        raise ValueError(f"class sizes {counts} leave a class empty; raise n or move majority away from 0 and 1")
+    return counts
+
+
+def block_dataset(counts, block_dim, shared_scale, rng, response_length=1):
+    """Block features: a prompt of class c has |g|, g ~ N(0, I_block_dim), in block c, zeros in every other
+    block, and a last coordinate equal to shared_scale. Its correct answer is c at every position.
+
+    Prompts are ordered by class (class 0 first). The feature dimension is K * block_dim + 1, so different
+    classes have inner product exactly shared_scale^2 and prompts of one class a non-negative one.
+    """
+    K, n = len(counts), int(sum(counts))
+    cls = np.repeat(np.arange(K), counts)
+    prompts = np.zeros((n, K * block_dim + 1))
+    g = np.abs(rng.standard_normal((n, block_dim)))
+    for c in range(K):
+        rows = cls == c
+        prompts[rows, c * block_dim:(c + 1) * block_dim] = g[rows]
+    prompts[:, -1] = shared_scale
+    return prompts, np.repeat(cls[:, None], response_length, axis=1)
+
+
 def verify(responses, correct):
     """Score sampled responses using exact sequence matching.
 

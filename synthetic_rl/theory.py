@@ -17,6 +17,7 @@ KL fixed points (one prompt, two outcomes, flow in the logit z of p):
     KL(pi_ref || pi), "forward":  (p - p_ref) / (p (1 - p)) = W_G(p) / beta
 """
 
+import functools
 import math
 
 import numpy as np
@@ -42,6 +43,16 @@ def gap_coefficients(group_size, rule, passk=None, epsilon=1e-5):
     return b, a
 
 
+@functools.lru_cache(maxsize=None)
+def _gap_terms(G, rule, passk, epsilon):
+    """b - a and log C(G-1, s), cached: the expected updates call advantage_gap at every step."""
+    b, a = gap_coefficients(G, rule, passk=passk, epsilon=epsilon)
+    log_binom = np.array([math.lgamma(G) - math.lgamma(k + 1) - math.lgamma(G - k) for k in range(G)])
+    gap = b - a
+    gap.flags.writeable = log_binom.flags.writeable = False
+    return gap, log_binom
+
+
 def advantage_gap(p, group_size, rule, passk=None, epsilon=1e-5):
     """W_G(p) = E[A | r=1] - E[A | r=0] for each value in p.
 
@@ -50,7 +61,7 @@ def advantage_gap(p, group_size, rule, passk=None, epsilon=1e-5):
     """
     p = np.asarray(p, dtype=float)
 
-    if group_size == math.inf:
+    if group_size == "inf" or group_size == math.inf:   # "inf": a JSON config can carry it as a string
         if rule in ("mean", "rloo"):
             return np.ones_like(p)
         if rule == "grpo":
@@ -58,9 +69,8 @@ def advantage_gap(p, group_size, rule, passk=None, epsilon=1e-5):
         raise ValueError(f"No large-group limit implemented for {rule}")
 
     G = int(group_size)
-    b, a = gap_coefficients(G, rule, passk=passk, epsilon=epsilon)
+    gap, log_binom = _gap_terms(G, rule, passk, epsilon)
     s = np.arange(G)
-    log_binom = np.array([math.lgamma(G) - math.lgamma(k + 1) - math.lgamma(G - k) for k in s])
 
     with np.errstate(divide="ignore", invalid="ignore"):
         log_p = np.log(p)[..., None]
@@ -70,7 +80,7 @@ def advantage_gap(p, group_size, rule, passk=None, epsilon=1e-5):
             + np.where(s > 0, s * log_p, 0.0)
             + np.where(G - 1 - s > 0, (G - 1 - s) * log_q, 0.0)
         )
-    return (np.exp(log_w) * (b - a)).sum(axis=-1)
+    return (np.exp(log_w) * gap).sum(axis=-1)
 
 
 def surrogate(p_grid, group_size, rule, passk=None, epsilon=1e-5):
