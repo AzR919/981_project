@@ -10,6 +10,7 @@ Each line is one config for experiments/run.py; its "name" is
 
 import itertools
 import json
+import os
 import sys
 
 # Sharing levels, from no shared parameters to a wide MLP. Correlated
@@ -617,6 +618,94 @@ def v3_t28():
                    level=f"{arch}-rho{rho}-{optimizer}")
 
 
+REGISTERED_SEEDS = list(range(30, 50))   # v3r (PREREG_v3d addendum 11): never run before
+CONFIRM_SEEDS = list(range(50, 70))      # reserved for the T31 confirmation rerun of the best reset cell
+T30_SCALES = (0, 0.5, 1, 2, 4, 8)
+
+
+def t30_base(arch, s, m, task_seed):
+    return dict(arch=arch, width=64, features="block", block_dim=5, shared_scale=s, majority=m, L=1, K=3,
+                n_train=512, G=8, B=32, rule="grpo", optimizer="sgd", task_seed=task_seed, seed=0, diagnostics=False)
+
+
+def v3_t30():
+    """T30: non-negative interactions at full size. Block features; the shared coordinate s breaks the condition.
+    eta = eta_tilde / (5 + s^2), the same step relative to the feature norm at every s. Linear grid, then the
+    exploratory MLP rows (s in {0, 8}, m = 0.9, eta_tilde = 0.5)."""
+    rows = [("linear", s, m, eta_tilde, update)
+            for s, m, eta_tilde, update in itertools.product(T30_SCALES, (1 / 3, 0.7, 0.9), (0.5, 1.5),
+                                                             ("expected_full", "sampled"))]
+    rows += [("mlp", s, 0.9, 0.5, update) for s in (0, 8) for update in ("expected_full", "sampled")]
+    for (arch, s, m, eta_tilde, update), task_seed in itertools.product(rows, REGISTERED_SEEDS):
+        yield dict(t30_base(arch, s, m, task_seed), update=update, eta=eta_tilde / (5 + s**2), eta_tilde=eta_tilde,
+                   steps=20_000, log_every=100, track_every=5, snapshot_every=20_000, snapshot_at=[20_000],
+                   level=f"{arch}-{update}-s{s}")
+
+
+def t31_base(arch, task_seed, update="expected_full"):
+    """The T31 standard cell: linear, rho = 0.9, m = 0.9, SGD eta = 0.1, 100,000 steps (flow time 1e4)."""
+    return dict(t1_base(arch, 0.9, 0.9, task_seed), optimizer="sgd", eta=0.1, update=update, steps=100_000,
+                log_every=100, track_every=5, snapshot_every=100_000, snapshot_at=[2_000, 100_000])
+
+
+def t31_arms():
+    """(label, settings) of the 49 registered T31 arms; every arm differs from plain GRPO only in these."""
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from synthetic_rl.theory import advantage_gap
+
+    arms = [("plain", {}), ("plain-mean", dict(rule="mean"))]
+    arms += [("fixed-reverse", dict(kl="reverse", beta=b)) for b in (0.03, 0.1, 0.3, 1, 3)]
+    arms += [("fixed-forward", dict(kl="forward", beta=b)) for b in (0.03, 0.1, 0.3, 1)]
+    arms += [("reset-reverse", dict(kl="reverse", beta=b, reset_every=n))
+             for b in (0.3, 1, 3) for n in (1, 10, 100, 1000, 5000)]
+    arms += [("reset-forward", dict(kl="forward", beta=b, reset_every=n))
+             for b in (0.1, 0.3, 1) for n in (10, 100, 1000, 5000)]
+    arms += [("passk", dict(rule="rloo_k", passk=k)) for k in (2, 4, 8)]
+    arms += [("reset-reverse-mean", dict(rule="mean", kl="reverse", beta=1, reset_every=n))
+             for n in (1, 10, 100, 1000, 5000)]
+    # Amendment 1: pass@k with the initial step matched to GRPO's at the uniform start (p = 1/K = 1/3).
+    w_grpo = float(advantage_gap(1 / 3, 8, "grpo"))
+    arms += [("passk-matched", dict(rule="rloo_k", passk=k,
+                                    eta=0.1 * w_grpo / float(advantage_gap(1 / 3, 8, "rloo_k", passk=k))))
+             for k in (2, 4, 8)]
+    return arms
+
+
+T31_ROBUST = ([("plain", {}), ("fixed-reverse", dict(kl="reverse", beta=0.3)),
+               ("fixed-reverse", dict(kl="reverse", beta=1)), ("fixed-forward", dict(kl="forward", beta=0.1))]
+              + [("reset-reverse", dict(kl="reverse", beta=1, reset_every=n)) for n in (10, 100, 1000)]
+              + [("passk", dict(rule="rloo_k", passk=4))])
+
+
+def v3_t31():
+    """T31: prevention with one knob changed, on the standard cell; then the robustness rows (MLP with the exact
+    update, linear with sampled updates)."""
+    for task_seed, (label, arm) in itertools.product(REGISTERED_SEEDS, t31_arms()):
+        yield dict(t31_base("linear", task_seed), **arm, level=f"linear-exact-{label}")
+    for (arch, update, tag), task_seed, (label, arm) in itertools.product(
+            (("mlp", "expected_full", "mlp-exact"), ("linear", "sampled", "linear-sampled")), REGISTERED_SEEDS,
+            T31_ROBUST):
+        yield dict(t31_base(arch, task_seed, update), **arm, level=f"{tag}-{label}")
+
+
+def v3_t31_confirm(beta, reset_every):
+    """T31 prediction 5: the best reverse-reset cell and the plain arm, rerun on seeds 50-69. Not in a batch: write
+    it with the chosen cell once T31 is analysed."""
+    for task_seed in CONFIRM_SEEDS:
+        yield dict(t31_base("linear", task_seed), level="linear-exact-plain")
+        yield dict(t31_base("linear", task_seed), kl="reverse", beta=beta, reset_every=reset_every,
+                   level="linear-exact-reset-reverse")
+
+
+def v3_t33():
+    """T33(b): plain GRPO up to step 100 or 1,000, then unbiased pass@k (rloo_k); every prompt's success is stored
+    at the switch step (Amendment 1, item 4). The control is T31's plain arm."""
+    for task_seed, switch_at, k in itertools.product(REGISTERED_SEEDS, (0.001, 0.01), (2, 4, 8)):
+        step = int(round(switch_at * 100_000))
+        yield dict(t31_base("linear", task_seed), switch_at=switch_at, switch_rule="rloo_k", switch_passk=k,
+                   snapshot_at=[step, 2_000, 100_000], level=f"linear-exact-switch{step}")
+
+
 BATCHES = {
     "base": [("h1", h1), ("h2", h2), ("h3", h3), ("h4", h4), ("h5", h5)],
     "stretch": [("s_h1", s_h1), ("s_drift", s_drift), ("s_pred", s_pred), ("s_abl", s_abl), ("s_eq", s_eq)],
@@ -637,6 +726,7 @@ BATCHES = {
     "v3n": [("v3_t26", v3_t26)],
     "v3o": [("v3_a1", v3_a1), ("v3_a2", v3_a2), ("v3_a3", v3_a3), ("v3_a5", v3_a5)],
     "v3p": [("v3_t27", v3_t27), ("v3_t28", v3_t28)],
+    "v3r": [("v3_t30", v3_t30), ("v3_t31", v3_t31), ("v3_t33", v3_t33)],
 }
 
 

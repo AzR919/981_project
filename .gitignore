@@ -237,3 +237,6 @@ jobs_*.jsonl
 
 # Third-party code fetched by extra/experiments/third_party/fetch_wsw.sh
 extra/experiments/third_party/wsw/
+
+# Presentation figures (regenerate with figures/make_figures.py)
+figures/out/

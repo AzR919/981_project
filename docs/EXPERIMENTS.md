@@ -17,11 +17,11 @@ each section of `analysis/FINAL_RESULTS.md`.
 | Label | Meaning | Count |
 |---|---|---|
 | **Promised** | In the milestone: H1–H5, their planned stretch goals, or a test the milestone named (such as Heckel's weights, T9) | 21 |
-| **Core follow-up** | Not in the milestone, but grew out of a promised result (H3's failure led to minority collapse), and the report's toy story relies on it | 31 |
+| **Core follow-up** | Not in the milestone, but grew out of a promised result (H3's failure led to minority collapse) or was requested by the instructor's feedback of 2026-11-26 (section 8), and the report's toy story relies on it | 37 |
 | **Extra** | Beyond what was promised: the transformer environment, the LLMs, formal verification, Adam side-questions; not needed to follow the report | 30 |
 
 - **Promised:** Guide §7 pilots, p₀ pilot, H1 gradient-norm check, H1, H2, H3, H4, H5, S_H1, S_DRIFT, S_PRED, S_ABL, S_EQ, A1, BAY, A2, A3, A6, T4, T8, T7, T9, T4 edge.
-- **Core follow-up:** T1 / P1, T2 / P2, T6, T5 / P3, T1 seed 1, T2 groups, T6 KL, T10, T11 (v3d), T12 (v3d), T13 (v3d), M2 (v3d addendum), M4 (v3d addendum), T15 (v3e), T16 (v3f), T17 (v3g), T18 (v3g), T19 (v3g), T22 (v3j), v3j2, T23 (v3k), T24 (v3l), Odds law (theory check), Late-time probe (theory check), Fall model (theory check), T25 (v3m), A1 (v3o), A2 (v3o), A3 (v3o), A5 (v3o), G (v3p, T27).
+- **Core follow-up:** T1 / P1, T2 / P2, T6, T5 / P3, T1 seed 1, T2 groups, T6 KL, T10, T11 (v3d), T12 (v3d), T13 (v3d), M2 (v3d addendum), M4 (v3d addendum), T15 (v3e), T16 (v3f), T17 (v3g), T18 (v3g), T19 (v3g), T22 (v3j), v3j2, T23 (v3k), T24 (v3l), Odds law (theory check), Late-time probe (theory check), Fall model (theory check), T25 (v3m), A1 (v3o), A2 (v3o), A3 (v3o), A5 (v3o), G (v3p, T27), Harm measures (v3o), Two-prompt minimal example (theory check), T30 (v3r), T31 (v3r), T32 (v3r), T33 (v3r).
 - **Extra:** A4, ADAM, T20 (v3h), T21 (v3i), Lean proofs (theory check), SymPy checks (theory check), Optimizer geometry (theory check), wsw, wsw2, T26 (v3n), H (v3p, T28), A4 (v3q), J (v3q, T29), C0, Model probes, Census calibration, Llama calibration, C1 Qwen / P4, C1 Llama, C1 control, C5, C2 / P5, C2 matched minority, C2 seed replication of the degraded run, C2 extras, SmolLM2 diagnostic, C10, C9, C7 / C8, C3 and C11.
 
 **To review only what was promised,** read the Promised entries in `docs/Ankush.md`, section 1 of
@@ -29,7 +29,8 @@ each section of `analysis/FINAL_RESULTS.md`.
 follow-up; Extra appears at most as one short section (LLMs) or not at all.
 
 Written 2026-11-25 from the summaries, `HANDOFF.md`, `experiments/grids.py`, the LLM queue files and the
-branches named below. Paths are relative to the repo root on `main`.
+branches named below; updated 2026-11-26 with section 8 (the harm measures, the two-prompt example and batch `v3r`).
+Paths are relative to the repo root on `main`. In all there are 88 entries (21 Promised, 37 Core follow-up, 30 Extra).
 
 ## How to get the raw results
 
@@ -45,6 +46,10 @@ size, SHA-256).
     `56f8023713002c67c3e385d247bf43a41c8369ca6fbf3b764b2c10dbff40c01e`. Each inner archive's SHA-256 is in its
     manifest.
   - Unpack: `unzip CMPT981_raw_results_2026-11-25.zip`, then `tar -xzf rlvr-share/<batch>_raw.tar.gz`.
+  - **The zip does not contain `v3r`** (batch of 2026-11-26, section 8). Its archive, `v3r_raw.tar.gz` (352 MB,
+    SHA-256 `458a3bbac397533567275467ced6c12b6436b47d89c4da234728ce5c4b9128c6`; 2,940 run files and 660 flow files;
+    manifest `v3r_MANIFEST.txt`), was packaged on 2026-11-26 and has not been uploaded yet. It will be added to the
+    same Google Drive folder; until then it is on Ankush's laptop in `~/rlvr-share/`.
 - **Ankush's laptop:** `~/rlvr-data/<batch>/`, and `~/rlvr-data/lab_home/<batch>/` (a copy of the lab results
   for base, stretch, v3a–v3f and llm).
 - **SFU lab network home** (user `asa715`): `~/rlvr_results/<batch>/<host>/`, one folder per lab machine
@@ -78,6 +83,7 @@ from v3d on, the job digest.
 | v3o | 10,440 | `v3o_raw.tar.gz` (145 MB) | `~/rlvr-data/v3o/` | `~/rlvr_results/v3o/<host>/` |
 | v3p | 820 | `v3p_raw.tar.gz` (15 MB) | `~/rlvr-data/v3p/` | `~/rlvr_results/v3p/<host>/` |
 | v3q | 680 | `v3q_raw.tar.gz` (3.2 MB) | `~/rlvr-data/v3q/` | `~/rlvr_results/v3q/<host>/` |
+| v3r | 2,940 runs, plus 660 flow `.npz` files (360 T30, 300 T32) | `v3r_raw.tar.gz` (352 MB; not yet on Google Drive) | `~/rlvr-data/v3r/` (flows in `flows/`) | `~/rlvr_results/v3r/<host>/` (runs only; the flows were computed on the laptop) |
 | wsw | 256 jobs (their own `jsonl` format) | `wsw_raw.tar.gz` (14 MB) | `~/rlvr-data/wsw/` | `~/rlvr_results/wsw/<host>/j<index>/results/` |
 | wsw2 | 70 jobs | `wsw2_raw.tar.gz` (2.0 MB) | `~/rlvr-data/wsw2/` | `~/rlvr_results/wsw2/<host>/` |
 | llm | 358 `.json.gz` evaluations, plus logs | `llm_raw.tar.gz` (50 MB; model checkpoints left out) | `~/rlvr-data/lab_home/llm/<tag>/<host>/`, base evaluations in `~/rlvr-data/llm/` | `~/rlvr_results/llm/<tag>/<host>/` |
@@ -109,6 +115,7 @@ from v3d on, the job digest.
 | 5. Mechanism, theory, levers, transformer env | 11-22 to 11-23 | Who pushes whom, threshold in class share, prevention levers (pass@k, KL, group size), Li et al.'s transformer env, junk answers, warm start, late phase; odds law and Lean/SymPy checks | v3d–v3l, theory |
 | 6. Small LLMs | 11-20 to 11-25 | C0 pilot, model probes, census calibration, C1 census (Qwen, Llama), C5 loss drivers, C2 minority procedure, C10 branch test, C9, C7/C8 KL | `llm` tags `c0*`, `c1q`, `q_*`, `r2_*` |
 | 7. Latest: permanence, shared skills, replication, review caveats | 11-23 to 11-24 | Replication of Li, Pandey and Chen; exact long-time flow (T25); shared skills (T26); confirmatory battery A1–A5; caveats G, H, J; theory of the fall | wsw, wsw2, v3m, v3n, v3o, v3p, v3q |
+| 8. After the instructor's feedback | 11-26 | Harm measures on battery A; a two-prompt minimal example; non-negative interactions at full size (T30), a one-knob prevention table with KL reference resets (T31), pass@k over long times (T32) and measured on pass@1 (T33) | `analysis/v3o/HARM.md`, theory, v3r |
 
 The plan for phases 4–6 is `extra/analysis/review/NEXT_PLAN.md`. The day-by-day record is `HANDOFF.md` in the parent
 folder (not in git).
@@ -305,13 +312,46 @@ registered input).
 Smoke tests (`~/rlvr-data/smoke`, `smoke_enum`, `lab_home/smoke`, LLM `smoke_r2`, `check`) only checked the code
 and are not indexed as experiments.
 
+## 8. After the instructor's feedback: harm measures, a two-prompt example and batch v3r (2026-11-26)
+
+The instructor's feedback of 2026-11-26 asked for one simple setting with one cause. It also named a feature condition
+("non-negative interactions" between prompts) under which no prompt can fall, KL to the latest policy ("reference
+resets", Huang et al., arXiv 2611.14467), and pass@k training measured on pass@1 (Barakat et al., arXiv 2602.21189).
+pass@k is the chance that at least one of k samples is correct; pass@1 is the mean success. All six entries below are
+**Core follow-up**; the one-line outcomes follow `analysis/FINAL_RESULTS.md` (update of 2026-11-26).
+
+### Analyses and derivation (no lab runs)
+
+| ID | What it was | Why | Data | Pre-reg | Code | Results | Outcome |
+|---|---|---|---|---|---|---|---|
+| Harm measures (v3o) | pass@k of the final policy against the start policy (k = 1 to 64), the crossover k where the start policy catches up, coverage C (the mean over prompts of 1/p, Huang et al.) and worst-class pass@1, from the final snapshots of battery A | Collapsing onto the correct answer is the goal of RL with a verifier, so absorption alone does not show harm | 9,960 saved v3o runs (A1 8,960 RL runs; A2 640; A3 360); nothing retrained | descriptive, not registered | `experiments/analyze_harm.py` | `analysis/v3o/HARM.md`, `analysis/v3o/harm_cells.csv` | At m = 0.9 the start policy overtakes the trained one at k = 8 in 16 of 16 cells and 20 of 20 tasks (pass@64 falls from 1.000 to 0.896–0.951); worst-class pass@1 ends below 1e-3 in 13 of 16 cells; coverage rises from C = 3 to 10^3.9–10^21. Forward KL (A2) and pass@4 (A3) keep coverage. The start policy is uniform by construction, so the crossover depends on it |
+| Two-prompt minimal example (theory check) | K = 2 answers, two prompt kinds (majority features (1, 0), minority features (γ, 0.5), γ the overlap), linear softmax from zero: a three-line proof that non-negative interactions mean no prompt ever falls, the first-step threshold R > 1, exact flows to 1e14 on a 71 × 46 grid of (γ, m), a tail system with the threshold γ > α/β and a straight-line separatrix, and a constructed failure for each lever | The instructor asked for one simple setting with one cause | Exact flows and sampled runs computed on the laptop; tables in `analysis/theory/minimal_example/` | not registered (its numbers were seen while it was built) | `experiments/minimal_example.py`, `experiments/check_minimal_example.py`, `tests/test_minimal_example.py` | `analysis/theory/minimal_example.md`, `analysis/theory/minimal_example_check.md` | Three regimes at m = 0.9: γ ≤ 0 never falls, 0 < γ ≤ 1 falls and recovers, γ > 1 with a deep enough fall stays down (1e-17 at γ = 1.2 at flow time 1e14). The first-step sign matches R > 1 in 3,263 of 3,263 runs; the outcome is the same under the mean rule and GRPO at G = 2, 8 and ∞; the late slope matches −γ/α to three digits and 20 of 20 separatrix flows go the predicted way. Where a fall from the uniform start lands is computed, not derived. The condition is the instructor's; his unpublished paper may contain a similar counterexample |
+
+### v3r (2,940 runs, 0 failed, plus 660 exact flows run locally; code `toy-v3` `943e886`; pre-reg `analysis/review/PREREG_v3d_addendum11.md` with Amendment 1)
+
+The runs ran on six lab machines (job digest `6b62fe691730`); the 360 T30 flows and 300 T32 flows ran on the laptop
+with `experiments/flow_batch.py`, all with LSODA. T30's prediction 1 (a theorem) is confirmatory; everything else is
+exploratory. Task seeds 30–49 (never run before), except T32 (the 100 T25 tasks) and T33(a) (existing runs). Results:
+`analysis/v3r/SUMMARY.md`, `FINDINGS.md` (`experiments/analyze_v3r.py`), `results.csv`, `t30_*.csv`, `t31_*.csv`,
+`t32_*.csv`, `t33a_*.csv`, `t33b_*.csv`. Raw: `v3r_raw.tar.gz` (not yet on Google Drive; see "How to get the raw
+results"). R is the first-step push ratio of the odds law; γ_min is T25's smallest projection of a minority prompt on
+the majority's max-margin direction.
+
+| ID | What it was | Why | Runs | Pre-reg | Code | Outcome |
+|---|---|---|---|---|---|---|
+| T30 | Block features (K = 3, 512 prompts; each class has its own block of 5 coordinates, plus one coordinate s shared by every prompt). s = 0 meets the non-negative-interaction condition exactly; s > 0 breaks it for every cross-class pair. Exact flows to 1e8, and discrete exact and sampled GRPO runs | Test the two-prompt example's condition at full size, and whether breaking it brings the collapse back | 1,520 runs and 360 flows | prediction 1 confirmatory, 2–5 exploratory | grid `v3_t30` | **All five predictions hold.** At s = 0 no prompt's success ever falls (60 of 60 tasks; largest fall exactly 0). Breaking the condition gives a step: at m = 0.9 nothing is absorbed up to s = 2 (R up to 7) and everything from s = 4; at m = 1/3 nothing at any s; sampled GRPO gives the same |
+| T31 | One standard cell (linear, ρ = 0.9, m = 0.9, exact update, SGD η = 0.1, 100,000 steps) under 49 arms that each change one setting: fixed reverse and forward KL to the start policy, reference resets (the KL reference replaced by the current policy every N steps) in both directions, unbiased pass@k, the mean rule; robustness rows (MLP with the exact update, linear with sampled updates); one yardstick, "protected and learned" (final minority ≥ 0.9, majority ≥ 0.9, no minority prompt absorbed at 1e-2) | Compare the prevention levers on one yardstick, and test reference resets | 1,300 | exploratory | grid `v3_t31` | **Prediction 5 (reverse resets, the registered open question) fails:** no cell is protected and learned in more than 3 of 20 tasks. **Prediction 7 fails in its k = 2 part:** pass@2 keeps the minority ≥ 0.5 in 15 of 20 tasks (bar 18). Predictions 1–4 and 6 hold. Reverse resets at β ≥ 1 and N ≥ 1,000 keep the minority at 0.79–0.83 with the majority at 0.99; N ≤ 100 collapses like plain GRPO. Post hoc: every protecting arm is still rising at the end |
+| T32 | Exact flow to 1e14 on the 100 T25 tasks under GRPO (recomputed, compared with the saved T25 flows before any pass@k flow was read), unbiased pass@2 and pass@4 | Under pass@k the collapsed state should be stable only when γ > k, and every T25 task has γ_min < 2 | 300 flows | exploratory | `experiments/flow_batch.py`; baseline step committed first (`0e6e3d3`) | **All four predictions hold** (the fourth narrowly: 49 of 54, 90.7% against a bar of 90%, and it depends on interpolating between grid points). pass@2 and pass@4 recover 100 of 100 tasks (GRPO 54), including 30 of 30 with γ_min ≥ 1 (GRPO 3). Cost: majority 0.87 and 0.68 at flow time 1e2, against 0.999 |
+| T33 | (a) Re-read of 840 existing sampled runs (T16, A3) for the majority's falls and for pass@1 against GRPO; (b) switch runs on the T31 cell: plain GRPO up to step 100 or 1,000, then unbiased pass@k, k ∈ {2, 4, 8} | Barakat et al. predict that pass@k training can lower pass@1 when prompts interfere negatively | 120 new runs (plus 840 re-read) | exploratory | grid `v3_t33` | **Prediction 1 fails** (both parts): from a uniform start the majority stays within 0.05 of its peak in only 301 of 600 sampled pass@k runs, and falls 0.03–0.04 under exact pass@2 in 20 of 20 tasks. Predictions 2 and 4–7 hold: at GRPO's 0.99 point pass@1 under pass@k is lower in every pair; after a switch the majority falls (medians 0.09, 0.31, 0.48 for k = 2, 4, 8), under k = 8 pass@1 falls while pass@8 rises (20 of 20), and k = 4 brings the minority back above 0.5 in 20 of 20 |
+
 ## Still to do
 
 - ~~Battery A analysis (Holm over 5)~~: done 11-25, all five confirmed.
 - ~~Fall model: in-sample comparison, and held-out test on v3o~~: done 11-25.
 - ~~G/H/J analyses~~: done 11-25.
 - ~~T25: the last stuck task, then the analysis~~: done 11-25.
-- `analysis/FINAL_RESULTS.md`.
+- ~~`analysis/FINAL_RESULTS.md`~~: done 11-25, updated 11-26 with batch `v3r`.
+- Upload `v3r_raw.tar.gz` to the Drive folder (see "How to get the raw results").
 - Report outline, figures script, LaTeX skeleton.
 - Team writes, Claude fact-checks.
 - ~~Raw-archive links~~: done 11-25 (Google Drive, access by request).

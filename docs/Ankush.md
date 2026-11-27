@@ -2,12 +2,12 @@
 
 Every experiment in the project's experiment index (`docs/EXPERIMENTS.md`), written up in the format of
 `docs/Simon.md`: why it was run, what I did, the fixed settings, and the result with its status and a link to the full
-write-up. 82 entries, in the order they were run. Three pilots by Azaan and Simon are included for completeness and
+write-up. 88 entries, in the order they were run. Three pilots by Azaan and Simon are included for completeness and
 marked as theirs. The battery A tests (v3o) get one entry each, because each has its own grid and statistic.
 
 **Promised vs extra:** every entry carries a scope line. Search this page for `Scope: Promised`, `Scope: Core follow-up` or `Scope: Extra` to filter.
 - **Promised** (21): in the milestone (H1–H5, their planned stretch goals, or a test the milestone named).
-- **Core follow-up** (31): not in the milestone; grew out of a promised result, and the report's toy story relies on it.
+- **Core follow-up** (37): not in the milestone; grew out of a promised result (or, for the six entries of Part 4, requested by the instructor's feedback of 2026-11-26), and the report's toy story relies on it.
 - **Extra** (30): beyond what was promised (a second environment, the LLMs, formal verification or a side question); not needed to follow the report.
 
 **Shared conventions:**
@@ -21,7 +21,7 @@ marked as theirs. The battery A tests (v3o) get one entry each, because each has
   of `queue.txt`. Code commits come from each run's `COMMIT` file.
 - **Commit hashes** from before 2026-11-22 are the old ones: the history was rewritten that day, and the map is in
   PR #8.
-- **Raw results:** see "Where the raw results are" in `docs/EXPERIMENTS.md` (Google Drive, access by request).
+- **Raw results:** see "How to get the raw results" in `docs/EXPERIMENTS.md` (Google Drive, access by request).
 - **Status labels:** confirmatory, exploratory, refuted, in-sample or known, as in `analysis/FINAL_RESULTS.md`.
 
 ## Contents
@@ -113,6 +113,14 @@ marked as theirs. The battery A tests (v3o) get one entry each, because each has
 - C9: token-level loss aggregation — *Extra*
 - C7 / C8: the KL penalty in the LLM — *Extra*
 - C3 and C11: planned, not run — *Extra*
+
+**Part 4: after the instructor's feedback of 2026-11-26** (6 entries)
+- Harm measures (v3o): what losing the minority costs — *Core follow-up*
+- Two-prompt minimal example (theory check) — *Core follow-up*
+- T30 (v3r): non-negative interactions at full size — *Core follow-up*
+- T31 (v3r): prevention with one knob changed — *Core follow-up*
+- T32 (v3r): pass@k over long times — *Core follow-up*
+- T33 (v3r): pass@k training measured on pass@1 — *Core follow-up*
 
 ---
 
@@ -2591,3 +2599,195 @@ Any $\beta \ge 0.02$ removes the held-out declines (0–4 declines, 0 lost, agai
 
 ### Result
 Not run. There was no collapse in the LLM to fix. See `docs/EXPERIMENTS.md` and `extra/analysis/llm/C10_SUMMARY.md`.
+
+---
+
+# Part 4: after the instructor's feedback of 2026-11-26
+
+The instructor's feedback of 2026-11-26 asked for one simple setting with one cause. It also named a feature condition
+("non-negative interactions" between prompts) under which no prompt can fall, KL to the latest policy ("reference
+resets", Huang et al., arXiv 2611.14467), and pass@k training measured on pass@1 (Barakat et al., arXiv 2602.21189).
+The six entries below answer it. Here pass@k is the chance that at least one of $k$ samples is correct, and pass@1 is
+the mean success.
+
+## Harm measures (v3o): what losing the minority costs
+
+**Scope: Core follow-up** — not in the milestone; requested by the instructor's feedback of 2026-11-26, and the report's toy story relies on it.
+
+**Why:** collapsing onto the correct answer is the goal of RL with a verifier, so absorption alone does not show harm. We measured what the confirmatory battery A runs lose when the minority is absorbed, with three measures from published work.
+
+### What I did
+1. Took the saved runs of A1, A2 and A3, with no new training. Per run, I used each training prompt's success $p_x$ at the start and in the snapshot at the last step.
+2. Computed pass@k as the mean over prompts of $1 - (1 - p_x)^k$ (Yue et al.), and the crossover $k^*$: the smallest $k$ in the list at which the start policy's pass@k is at least the final policy's.
+3. Computed the coverage $C$, the mean over prompts of $1/p_x$, which is the expected number of samples needed to see a correct answer (Huang et al.), and reported it as $\log_{10} C$ with $p$ clipped at $10^{-30}$. Also computed worst-class pass@1, the smallest class mean of $p_x$ at the end (Sagawa et al.).
+4. Averaged A1 over each cell's A1 $\eta$ set and A2 and A3 over each grid's cells, then took the median over the 20 tasks.
+5. Checked that the start policy's pass@k equals $1 - (2/3)^k$ in every run.
+
+### Fixed settings
+| Setting | Value |
+| --- | --- |
+| Data | Final snapshots of A1 (`v3_a1`, 8,960 RL runs; the 320 supervised runs left out), A2 (`v3_a2`, 640) and A3 (`v3_a3`, 360); see those entries for the training settings |
+| Majority and minority | Class 0; classes 1 and 2 pooled |
+| $k$ | $\{1, 2, 4, 8, 16, 32, 64\}$ |
+| Clip for coverage | $p \ge 10^{-30}$ (the float32 storage floor is $1.2 \times 10^{-38}$) |
+| Status | Descriptive analysis of the confirmatory runs, not a registered test; no p-values |
+| Code | Analysis only, `extra/experiments/analyze_harm.py`; table `extra/analysis/v3o/harm_cells.csv` |
+
+### Result
+At $m = 0.9$ the start policy overtakes the trained one at $k^* = 8$ in all 16 cells and all 20 tasks. Trained pass@1 is 0.90–0.93 against 0.333, but pass@8 falls from 0.961 to 0.896–0.941 and pass@64 from 1.000 to 0.896–0.951. Mean pass@1 does not separate $m = 0.9$ from $m = 1/3$; worst-class pass@1 does: it ends below $10^{-3}$ in 13 of 16 cells at $m = 0.9$ (at most 0.15), and at 0.64–1.00 at $m = 1/3$. Coverage rises from $C = 3$ to $10^{3.9}$–$10^{21}$ at $m = 0.9$. Forward KL (A2) keeps coverage ($\log_{10} C$ 0.18–0.30, pass@64 0.993–0.996), and pass@4 (A3) keeps it at a cost in mean pass@1 (0.82–0.85 against GRPO's 0.896). The start policy is uniform by construction, so $k^*$ depends on that baseline. Descriptive. See `extra/analysis/v3o/HARM.md`.
+
+## Two-prompt minimal example (theory check)
+
+**Scope: Core follow-up** — not in the milestone; requested by the instructor's feedback of 2026-11-26, and the report's toy story relies on it.
+
+**Why:** the instructor asked for one simple setting with one cause, and named the non-negative-interaction condition.
+
+### What I did
+1. Set up $K = 2$ answers and two kinds of prompts. Majority prompts have features $a = (1, 0)$, correct answer 0 and share $m$. Minority prompts have features $b = (\gamma, 0.5)$ and correct answer 1, where $\gamma$ is the overlap of the minority's features with the majority's. The linear softmax policy starts at zero, so both kinds start at success 1/2.
+2. Proved, for any softmax-linear policy, that if every inner product between the feature differences (correct minus wrong answer) of two different prompts is non-negative, no prompt's success decreases along the expected-update flow of any rule with non-negative weights. Proved the $K = 2$ converse and checked both on 300 random policies.
+3. Derived the first-step threshold: the minority starts to fall exactly when $R = \gamma m / ((1 - m)|b|^2) > 1$.
+4. Integrated the exact flow to flow time $10^{14}$ on a grid of 71 values of $\gamma$ and 46 values of $m$ under the mean rule, compared the mean rule with GRPO at $G = 2$, 8 and $\infty$, and ran 20 sampled seeds at three values of $\gamma$.
+5. Derived a tail system for the collapsed state, with its threshold $\gamma > \alpha/\beta$ ($\alpha$ and $\beta$ are the rates at which the majority's push and the minority's pull fade: 1 and 1 for the mean rule and GRPO, $k$ and 1 for pass@k), a saddle and a straight-line separatrix, and checked it against exact flows.
+6. Worked out what each lever does (pass@k, fixed reverse and forward KL, reference resets) and constructed a failure for each.
+
+### Fixed settings
+| Setting | Value |
+| --- | --- |
+| $K$ | 2 |
+| Prompts | Majority $a = (1, 0)$, answer 0, share $m$; minority $b = (\gamma, 0.5)$, answer 1, share $1 - m$ |
+| Policy | Linear softmax, $W$ ($2 \times 2$) starting at 0 |
+| Rules | Mean rule (Dr. GRPO, $G = 8$); GRPO at $G = 2$, 8 and $\infty$ ($\epsilon = 10^{-5}$); unbiased pass@k (`rloo_k`) |
+| Update | Exact expected update, gradient flow to flow time $10^{14}$; sampled check: GRPO $G = 8$, $B = 32$, SGD $\eta = 0.5$, 5,000 steps, 20 seeds, $m = 0.9$ |
+| Phase grid | 71 values of $\gamma$ in $[-0.5, 3]$ × 46 values of $m$ in $[0.50, 0.95]$, mean rule |
+| "Stays down" | Minority success still below 1/2 at flow time $10^{14}$ |
+| Fitted parameters | None |
+| Status | Derivation with numerical checks; not registered (its numbers were seen while it was built) |
+| Code | `extra/experiments/minimal_example.py`, `extra/experiments/check_minimal_example.py`; tests in `extra/tests/test_minimal_example.py` and `extra/tests/test_theory_symbolic.py` |
+| Outputs | `extra/analysis/theory/minimal_example.md`, `minimal_example_check.md`, `extra/analysis/theory/minimal_example/*.csv` |
+
+### Result
+Three regimes at $m = 0.9$ under the mean rule: for $\gamma \le 0$ the minority never falls (and none of the 506 phase runs with $\gamma \le 0$ falls); for $0 < \gamma \le 1$ it falls and comes back (lowest $10^{-0.78}$ at $\gamma = 0.5$, $10^{-3.3}$ at $\gamma = 0.9$); for $\gamma > 1$ and a deep enough fall it stays down ($10^{-17.0}$ at $\gamma = 1.2$ at flow time $10^{14}$). The first-step sign agrees with $R > 1$ in 3,263 of 3,263 runs with $R \ne 1$, and nothing stays down below $m = 0.67$. The outcome is the same under the mean rule and GRPO at $G = 2$, 8 and $\infty$ in all 36 cells compared, and at $\gamma = 1.2$ all 20 sampled seeds end below $10^{-3}$. The late slopes match the tail system's $-\gamma/\alpha$ to three digits, and 20 of 20 flows started on either side of the separatrix go the predicted way. Each lever has a constructed failure: pass@k from a collapsed state with $\gamma > k$, a weak reverse KL or a reference taken after the collapse, and resets with too few steps. Where a fall from the uniform start lands, and so the phase boundary, is computed, not derived; the constant in the reset threshold is unexplained. The condition is the instructor's (unpublished) and the kernel is Barakat et al.'s; the instructor's submitted paper may contain a similar counterexample. Not registered. See `extra/analysis/theory/minimal_example.md`.
+
+## T30 (v3r): non-negative interactions at full size
+
+**Scope: Core follow-up** — not in the milestone; requested by the instructor's feedback of 2026-11-26, and the report's toy story relies on it.
+
+**Why:** to test the non-negative-interaction condition at full size (512 prompts, $K = 3$), and whether breaking it brings the collapse back.
+
+### What I did
+1. Built block features: a prompt of class $c$ has $|g|$ ($g$ standard normal) in its own block of 5 coordinates, zeros in the other blocks, and one last coordinate equal to $s$ for every prompt. At $s = 0$ the condition holds exactly; at $s > 0$ every cross-class pair violates it.
+2. Integrated the exact flow to flow time $10^8$ for every $s$, $m$ and task (360 flows, on the laptop).
+3. Ran discrete runs with the exact and the sampled update, at the same step relative to the feature norm for every $s$, plus exploratory MLP rows.
+4. Tested five registered predictions (prediction 1, a theorem, is confirmatory) and reported, per task, the first-step push ratio $R$ (the odds law) and $\gamma_{\min}$ (T25's smallest projection of a minority prompt on the majority's max-margin direction).
+
+### Fixed settings
+| Setting | Value |
+| --- | --- |
+| Policy | Linear; exploratory MLP with width 64 ($s \in \{0, 8\}$, $m = 0.9$, $\tilde\eta = 0.5$) |
+| Features | `block`, `block_dim` = 5, shared coordinate `shared_scale` $s \in \{0, 0.5, 1, 2, 4, 8\}$, 512 prompts |
+| $K$, $L$ | 3, 1 |
+| Majority share $m$ | $\{1/3, 0.7, 0.9\}$ |
+| $G$, $B$ | 8, 32 |
+| Advantage rule | GRPO |
+| Update | Exact flow to $10^8$; discrete exact (`expected_full`) and sampled |
+| Optimizer, $\eta$, steps | SGD, $\eta = \tilde\eta/(5 + s^2)$ with $\tilde\eta \in \{0.5, 1.5\}$, 20,000 |
+| Start | Uniform |
+| Tasks and seeds | Task seeds 30–49, seed 0 |
+| KL $\beta$ | 0 |
+| Absorption threshold | $10^{-3}$, last 20% |
+| Runs | 1,520 runs and 360 flows |
+| Pre-registration | `PREREG_v3d_addendum11.md` (`review` `d8a5dcd`; Amendment 1 `3c12ac7`); prediction 1 confirmatory, the rest exploratory |
+| Grid and launch commit | `v3_t30`; `toy-v3` `943e886`, job digest `6b62fe691730`; flows with `extra/experiments/flow_batch.py` |
+
+### Result
+All five registered predictions hold. Prediction 1: at $s = 0$ the largest fall of any prompt's success over 221 flow times to $10^8$ is exactly 0, in 60 of 60 tasks. At $s = 0$, 118 of 120 discrete exact runs absorb no prompt and end with every class mean above 0.99 (the two misses end at 0.985 and 0.990). Breaking the condition gives a step, not a ramp: at $m = 0.9$ the median absorbed share is 0 for $s \le 2$ and 1 for $s \ge 4$, at $m = 0.7$ it is 0 for $s \le 4$ and 1 at $s = 8$, and at $m = 1/3$ nothing is absorbed at any $s$; exact and sampled updates agree. $R > 1$ from $s = 1$ on, but nothing is absorbed before $s = 4$. The runs at large $s$ stop at an earlier flow time: by $10^8$ the flows at $s = 4$ are back at 1.00, and at $s = 8$ 20 of 20 are still absorbed. Confirmatory (prediction 1); exploratory otherwise. See `extra/analysis/v3r/SUMMARY.md`.
+
+## T31 (v3r): prevention with one knob changed
+
+**Scope: Core follow-up** — not in the milestone; requested by the instructor's feedback of 2026-11-26, and the report's toy story relies on it.
+
+**Why:** to compare every prevention lever on one standard cell with one yardstick, each arm changing exactly one setting of plain GRPO, and to test KL to the latest policy (reference resets), which the feedback raised.
+
+### What I did
+1. Trained the standard cell under 49 arms: plain GRPO and the plain mean rule; fixed reverse and forward KL to the start policy; reference resets, where the KL reference is replaced by the current policy every $N$ steps (`reset_every`), with reverse and forward KL; unbiased pass@k; reverse resets under the mean rule; and (Amendment 1) pass@k with its first step matched to GRPO's.
+2. Ran robustness rows for 8 of the arms: MLP with the exact update, and linear with sampled updates.
+3. Measured every arm with the same yardstick at step 2,000 and at the end, and called a task "protected and learned" if the final minority mean is at least 0.9, the final majority mean is at least 0.9 and no minority prompt is absorbed at $10^{-2}$.
+4. Tested seven registered predictions. Prediction 5, on reverse resets, was the open question: "protects" if some cell has at least 16 of 20 tasks protected and learned, "fails" if every cell has at most 4, and the best cell rerun on seeds 50–69 only under "protects".
+
+### Fixed settings
+| Setting | Value |
+| --- | --- |
+| Policy | Linear (robustness: also MLP with width 64) |
+| Features | Correlated, $\rho = 0.9$, $d = 16$ plus a constant, 512 prompts |
+| $K$, $L$ | 3, 1 |
+| Majority share $m$ | 0.9 |
+| $G$, $B$ | 8, 32 (sampled rows) |
+| Advantage rule | GRPO unless the arm changes it (`mean`, `rloo_k` with $k \in \{2, 4, 8\}$) |
+| Update | Exact (robustness: also sampled, linear) |
+| Optimizer, $\eta$, steps | SGD, 0.1 (matched pass@k: 0.289, 0.651, 3.30), 100,000 (flow time $10^4$) |
+| Fixed KL | Reverse $\beta \in \{0.03, 0.1, 0.3, 1, 3\}$; forward $\beta \in \{0.03, 0.1, 0.3, 1\}$ |
+| Resets | Reverse $\beta \in \{0.3, 1, 3\}$ × $N \in \{1, 10, 100, 1000, 5000\}$; forward $\beta \in \{0.1, 0.3, 1\}$ × $N \in \{10, 100, 1000, 5000\}$; mean rule, reverse $\beta = 1$ × the five $N$ |
+| Logging | Class means every 100 steps; per-prompt success at steps 2,000 and 100,000 |
+| Start | Uniform |
+| Tasks and seeds | Task seeds 30–49, seed 0 |
+| Runs | 1,300 (49 arms × 20 tasks, plus 2 × 8 robustness arms × 20 tasks) |
+| Pre-registration | `PREREG_v3d_addendum11.md` (`review` `d8a5dcd`; Amendment 1 `3c12ac7`), exploratory |
+| Grid and launch commit | `v3_t31`; `toy-v3` `943e886`, job digest `6b62fe691730` |
+
+### Result
+Prediction 5, the registered open question, fails: no reverse-reset cell is protected and learned in more than 3 of 20 tasks, and all 15 cells have at most 4, so no rerun was made. My registered expectation ("protects" at $\beta \ge 1$ and $N \ge 1{,}000$) was wrong. Prediction 7 fails in its $k = 2$ part: unscaled pass@2 keeps the final minority mean at or above 0.5 in 15 of 20 tasks (bar 18; pass@4: 20 of 20), while the majority reaches 0.99 later than under plain GRPO in 20 of 20 tasks for every $k$ (never within 100,000 steps). Predictions 1–4 and 6 hold: resetting every step reproduces plain GRPO (largest difference $3.3 \times 10^{-16}$); plain GRPO ends the minority below $10^{-3}$ in 20 of 20 tasks (median $1.3 \times 10^{-6}$); fixed reverse KL collapses at $\beta \le 0.1$ and caps the majority at $\beta \ge 1$ (0.78 and 0.46); fixed forward KL absorbs no minority prompt at $10^{-3}$ in 20 of 20 tasks at every $\beta$, but protects and learns in none. Reverse resets at $\beta \ge 1$ and $N \ge 1{,}000$ keep the minority at 0.79–0.83 (lowest logged value 0.12–0.28) with the majority at 0.99; $N \le 100$ collapses like plain GRPO. Post hoc, not registered: every protecting arm is still rising at step 100,000, and A1's supervised runs on similar tasks end the minority at 0.754, so the 0.9 bar was strict for this cell. Refuted as registered (prediction 5); exploratory. See `extra/analysis/v3r/SUMMARY.md`.
+
+## T32 (v3r): pass@k over long times
+
+**Scope: Core follow-up** — not in the milestone; requested by the instructor's feedback of 2026-11-26, and the report's toy story relies on it.
+
+**Why:** under GRPO, 46 of T25's 100 tasks stay collapsed at flow time $10^{14}$. Under pass@k the majority's push fades $k$ times faster in the exponent than the minority's pull, so the collapsed state should be stable only when $\gamma > k$, and every T25 task has $\gamma_{\min} < 2$.
+
+### What I did
+1. Recomputed the GRPO flows of the 100 T25 tasks with the same settings as the pass@k flows, and compared them with the saved T25 flows before any pass@k flow was opened (`t32_baseline.md`, commit `0e6e3d3`).
+2. Integrated the exact flow with unbiased pass@2 and pass@4 weights to $10^{14}$ (300 flows in all, on the laptop).
+3. Counted the tasks recovered at $10^{14}$ (minority class mean above 0.5), and compared the lowest minority mean and the recovery time with GRPO, task by task.
+4. Reported the majority mean at flow times $10^2$, $10^3$ and $10^4$ as the cost.
+
+### Fixed settings
+| Setting | Value |
+| --- | --- |
+| Tasks | The 100 T25 tasks: linear, $K = 3$, $\rho \in \{0.3, 0.5, 0.7, 0.9, 0.95\}$, $m \in \{0.7, 0.9\}$, task seeds 0–9 |
+| Advantage rule | GRPO ($G = 8$, recomputed baseline), unbiased pass@2 and pass@4 (`rloo_k`) |
+| Update | Exact expected update, gradient flow (no step size), `stable_tail=True` |
+| Flow time | To $10^{14}$, T25's 80 log-spaced points |
+| Solver | LSODA, T25's settings; the registered Radau and BDF fallbacks were not needed |
+| Start | Uniform |
+| Recovery time | First flow time from which the minority class mean stays above 0.5, interpolated linearly in $\log_{10}$ time |
+| Flows | 300 |
+| Pre-registration | `PREREG_v3d_addendum11.md` (`review` `d8a5dcd`; Amendment 1 `3c12ac7`), exploratory |
+| Code | `extra/experiments/exact_flow.py` and `extra/experiments/flow_batch.py` (`toy-v3` `943e886`), analysis `extra/experiments/analyze_v3r.py`; computed on the laptop |
+
+### Result
+All four registered predictions hold, the fourth narrowly. The recomputed GRPO flows differ from the saved T25 flows by at most 0.094 decades for any prompt (median 0), and all 100 task outcomes agree. pass@2 and pass@4 recover 100 of 100 tasks (GRPO: 54), including 30 of 30 with $\gamma_{\min} \ge 1$ (GRPO: 3). The lowest minority mean is higher in 100 of 100 tasks (medians $10^{-0.99}$ and $10^{-0.64}$ against $10^{-7.67}$). Among the 54 tasks that recover under both, pass@2 recovers earlier in 49 (90.7%, bar 90%); read on the grid points alone it is 48 (88.9%), which would fail. The cost is a slower majority: 0.867 (pass@2) and 0.680 (pass@4) at flow time $10^2$, against 0.999. No task has $\gamma_{\min} \ge 2$, so a collapse with $\gamma > k$ is not tested here. Exploratory. See `extra/analysis/v3r/SUMMARY.md`.
+
+## T33 (v3r): pass@k training measured on pass@1
+
+**Scope: Core follow-up** — not in the milestone; requested by the instructor's feedback of 2026-11-26, and the report's toy story relies on it.
+
+**Why:** Barakat et al. predict that training on pass@k can lower pass@1 when hard prompts interfere negatively with easy ones.
+
+### What I did
+1. (a) Re-read 840 existing sampled runs with no new training: T16 (480 runs, task seeds 0–9) and A3 (360 runs, task seeds 10–29). Paired each of the 600 pass@k runs with the GRPO run of the same task, $G$ and $\eta$.
+2. Measured how far the majority mean falls below its running maximum, in these runs and in T31's exact pass@k arms, and compared mean pass@1 under pass@k with GRPO's at GRPO's first logged step with the majority at 0.99 or more.
+3. (b) Ran 120 new switch runs on the T31 cell: plain GRPO up to step 100 or 1,000, then unbiased pass@k, with every prompt's success stored at the switch. The control is T31's plain arm.
+4. Measured the majority's largest fall after the switch, mean pass@1 against mean pass@8, and the final minority mean.
+
+### Fixed settings
+| Setting | Value |
+| --- | --- |
+| (a) Data | T16 (`v3_t16`) and A3 (`v3_a3`): linear, $\rho = 0.9$, $m = 0.9$, sampled, SGD $\eta \in \{0.03, 0.3, 1\}$, $G \in \{8, 32\}$, $B = 256/G$, 20,000 steps, uniform start; pass@k with $k \in \{2, 4, 8\}$, biased (`passk`) and unbiased (`rloo_k`); plus T31's exact pass@k arms |
+| (b) Cell | The T31 standard cell: linear, $\rho = 0.9$, $m = 0.9$, exact update, SGD $\eta = 0.1$, 100,000 steps |
+| (b) Switch | `switch_at` $\in \{0.001, 0.01\}$ (steps 100 and 1,000), `switch_rule = "rloo_k"`, $k \in \{2, 4, 8\}$ |
+| (b) Tasks and seeds | Task seeds 30–49, seed 0 |
+| Runs | 120 new runs; 840 existing runs re-read |
+| Pre-registration | `PREREG_v3d_addendum11.md` (`review` `d8a5dcd`; Amendment 1 `3c12ac7`), exploratory |
+| Grid and launch commit | `v3_t33`; `toy-v3` `943e886`, job digest `6b62fe691730`; analysis `extra/experiments/analyze_v3r.py` |
+
+### Result
+Prediction 1 fails, in both parts: from a uniform start pass@k does reverse the majority. The majority stays within 0.05 of its running maximum in only 301 of 600 sampled pass@k runs (50.2%, bar 90%; largest fall 0.41), with falls growing with the step size and the group size; under exact pass@2 it falls by 0.028–0.040 in 20 of 20 tasks while the minority climbs (pass@4 and pass@8: 20 of 20 within 0.02). Prediction 2 holds: at GRPO's 0.99 point, mean pass@1 under pass@k is lower in every pair. After a switch (part b) predictions 4–7 hold. Under $k = 8$ switched at step 100 the majority falls at least 0.05 in 20 of 20 tasks; its median largest fall is 0.089, 0.31 and 0.48 for $k = 2$, 4 and 8. Under $k = 8$ mean pass@1 falls below its switch value while mean pass@8 rises above its own in 20 of 20 tasks, which is the trade Barakat et al. predict. Under $k = 4$ the minority is back above 0.5 in 20 of 20 tasks (median 0.60), and under $k = 8$ in none. No switch run is protected and learned. Refuted (prediction 1); exploratory otherwise. See `extra/analysis/v3r/SUMMARY.md`.
