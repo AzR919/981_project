@@ -215,5 +215,43 @@ class FlowAgreementTests(unittest.TestCase):
             run.run_train(config(**two_kind(1.2, rule="grpo", G="inf", update="sampled", steps=2)))
 
 
+def margins_at(cfg, gamma, tau, start=None):
+    """(u, v) = (w.a, w.b) at flow time tau, w = W_0 - W_1, from the exact flow's final weights."""
+    W = flow(cfg, np.logspace(-5, math.log10(tau), 100), stable_tail=True, start=start)["W"]
+    w = W[0] - W[1]
+    return w[0], gamma * w[0] + 0.5 * w[1]
+
+
+def start_at(gamma, u, v):
+    return np.array([[u, 2.0 * (v - gamma * u)], [0.0, 0.0]])
+
+
+class TailTests(unittest.TestCase):
+    """The tail system of analysis/theory/minimal_example.md, section 4: minority success ~ tau^(-gamma/alpha) on the
+    collapsed branch, and the separatrix beta v - alpha u = log rho*."""
+
+    def test_late_exponent(self):
+        # Mean rule (alpha = 1) from the uniform start; unbiased pass@2 (alpha = 2) from a collapsed state.
+        for cfg, gamma, alpha, start in ((two_kind(1.5, rule="mean"), 1.5, 1, None),
+                                         (two_kind(3.0, rule="rloo_k", G=8, passk=2), 3.0, 2,
+                                          start_at(3.0, 6.0, 13.0))):
+            v1 = margins_at(cfg, gamma, 1e10, start)[1]
+            v2 = margins_at(cfg, gamma, 1e12, start)[1]
+            slope = -(v2 - v1) / (2 * math.log(10))            # d log p_B / d log tau, p_B ~ e^{-v}
+            self.assertAlmostEqual(slope, -gamma / alpha, delta=0.02)
+
+    def test_separatrix(self):
+        gamma, m = 1.5, 0.9
+        log_rho = math.log((1 - m) * (gamma**2 + 0.25 - gamma) / (m * (gamma - 1)))   # alpha = beta = 1, C_A = C_B
+        cfg = two_kind(gamma, rule="mean")
+        for delta in (-0.3, 0.3):
+            u0 = 12.0
+            u, v = margins_at(cfg, gamma, 1e12, start_at(gamma, u0, u0 + log_rho + delta))
+            if delta > 0:
+                self.assertGreater(v - u - log_rho, 1.0)       # moved away upward: stays down
+            else:
+                self.assertLess(v, 0.0)                         # recovered: minority success above 1/2
+
+
 if __name__ == "__main__":
     unittest.main()
