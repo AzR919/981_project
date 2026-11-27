@@ -133,3 +133,27 @@ inner product ⟨∇J_k, ∇J_1⟩ to first order, so no separate gradient measu
 ## Deviations
 
 Listed in `analysis/v3r/SUMMARY.md`.
+
+## Amendment 1 (2026-11-26, before any `v3r` run or flow)
+
+Written after the simulator options were committed (`toy-v3` `8e6b0aa`) and the two-prompt example was tabulated
+from that code (not a registered test), and after the harm analysis of the final snapshots of A1–A3
+(`analysis/v3o/HARM.md`; no trajectories were read). Nothing from T30–T33 has been run.
+
+1. **Flows use `stable_tail=True`.** `exact_flow.flow` then computes 1 − π_c as the sum of the other answers'
+   probabilities. It is the same right-hand side, evaluated without cancellation; without it LSODA stalls once some
+   prompt has 1 − p below about 1e-13. For T32 the GRPO baseline is recomputed with the same settings on the 100
+   tasks and compared with the saved T25 flows before any pass@k flow is read; the differences are reported, and the
+   paired comparisons of T32 use the recomputed baseline.
+2. **Normalisation of the unbiased pass@k rule.** `rloo_k`'s expected weight is (1 − p)^(k−1), which is 1/k of the
+   pass@k gradient's weight. T32's thresholds and times are in the code's flow time under this normalisation, as
+   registered. At the uniform start the weight is 0.667, 0.296, 0.059 for k = 2, 4, 8, against GRPO's 1.929 (G = 8),
+   so part of pass@k's slowness in steps is this constant. T31 therefore gains three reported arms with a matched
+   initial step: `rloo_k`, k ∈ {2, 4, 8}, at η = 0.1 × 1.929/weight = 0.289, 0.651, 3.30. Prediction 7 stays as
+   registered, for the unscaled arms.
+3. **Correction to T32's derivation.** In the two-prompt example, γ > k is necessary for the collapsed state to be
+   stable under pass@k, and it is not sufficient for a collapse from the uniform start: pass@4 never collapsed at
+   m = 0.9 for γ up to 8, because its majority weight (1 − p)³ switches the push off before the minority is deep.
+   The paragraph should read "the collapsed state is stable only when γ > k". No registered prediction changes:
+   every T32 task has γ_min < 2.
+4. T33(b) runs also store every prompt's success at the switch step.
