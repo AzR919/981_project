@@ -12,10 +12,10 @@ the minority's success and the minority's own update raises it; their ratio is
 so the minority starts to fall when R > 1 (gamma > 0 with m large enough).
 
 usage:
-    python experiments/minimal_example.py [--out analysis/theory/minimal_example] [--workers 8]
+    python experiments/minimal_example.py [--out analysis/theory/minimal_example] [--workers 8] [--only switch]
 
-Writes regimes.csv, passk.csv, resets.csv, sampled.csv and agreement.csv to --out and prints a short markdown
-summary of each. Flow time is tau = eta * steps (the convention of tests/test_exact_flow.py).
+Writes regimes.csv, passk.csv, resets.csv, sampled.csv, switch.csv and agreement.csv to --out and prints a short
+markdown summary of each. Flow time is tau = eta * steps (the convention of tests/test_exact_flow.py).
 """
 
 import argparse
@@ -61,6 +61,12 @@ RESET_ETA, RESET_STEPS = 0.5, 60_000
 SAMPLED_GAMMAS = [-0.5, 0.5, 1.2]
 SAMPLED_SEEDS = 20
 SAMPLED_ETA, SAMPLED_STEPS = 0.5, 5_000       # flow time 2.5e3 (expected step = eta x the full expected step)
+
+SWITCH_GAMMAS = [1.2, 1.5, 2.5, 3.0, 5.0, 6.0]
+SWITCH_FIRST = [("mean", 8), ("grpo", 8)]
+SWITCH_KS = [2, 4, 8]
+SWITCH_DEPTHS = [1e-3, 1e-6]
+SWITCH_HORIZON = 1e14                          # flow time after the switch
 
 AGREE_GAMMAS = [0.5, 1.2]
 AGREE_ETA, AGREE_STEPS = 0.01, 50_000         # flow time up to 500
@@ -212,6 +218,43 @@ def sampled_rows(results):
     return rows
 
 
+# ---------------------------------------------------------------- switch to pass@k after a collapse
+
+def switch_rows(job):
+    """Collapse under the first rule until the minority's success first falls to `depth` (first point of the
+    40-per-decade grid at or below it), then continue the exact flow from those weights under rloo_k."""
+    gamma, rule, G = job
+    first = example(gamma, 0.9, rule=rule, G=G)
+    b = COUNTS[0.9][0]
+    before = flow(first, TAUS, stable_tail=True)["log_success"][:, b] / LN10
+    after_taus = np.logspace(-5, math.log10(SWITCH_HORIZON), int(40 * (math.log10(SWITCH_HORIZON) + 5)) + 1)
+    rows = []
+    for depth in SWITCH_DEPTHS:
+        hit = np.nonzero(before <= math.log10(depth))[0]
+        for k in SWITCH_KS:
+            row = {"gamma": gamma, "first_rule": rule, "first_G": G, "k": k, "target_depth": depth}
+            if not len(hit):
+                row.update(tau_switch="", log10_success_at_switch="", log10_min_after="", log10_final="",
+                           final_majority_success="", min_majority_after="", recovered="not reached",
+                           recovery_tau_after="", log10_change_last_2_decades="", horizon=SWITCH_HORIZON)
+                rows.append(row)
+                continue
+            tau_s = TAUS[hit[0]]
+            start = flow(first, [tau_s], stable_tail=True)
+            out = flow(example(gamma, 0.9, rule="rloo_k", G=8, passk=k), after_taus, stable_tail=True,
+                       start=start["W"])
+            lb, la = out["log_success"][:, b] / LN10, out["log_success"][:, 0] / LN10
+            back = np.nonzero(lb > math.log10(0.5))[0]
+            j = int(np.searchsorted(after_taus, SWITCH_HORIZON / 100))
+            row.update(tau_switch=tau_s, log10_success_at_switch=start["log_success"][-1, b] / LN10,
+                       log10_min_after=lb.min(), log10_final=lb[-1], final_majority_success=10 ** la[-1],
+                       min_majority_after=10 ** la.min(), recovered="yes" if len(back) else "no",
+                       recovery_tau_after=after_taus[back[0]] if len(back) else "",
+                       log10_change_last_2_decades=lb[-1] - lb[j], horizon=SWITCH_HORIZON)
+            rows.append(row)
+    return rows
+
+
 # ---------------------------------------------------------------- exact flow against small-step SGD
 
 def agreement_row(job):
@@ -256,6 +299,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=os.path.join(ROOT, "analysis", "theory", "minimal_example"))
     parser.add_argument("--workers", type=int, default=min(8, os.cpu_count() or 1))
+    parser.add_argument("--only", choices=("switch",), help="write only this table")
     args = parser.parse_args()
     os.makedirs(args.out, exist_ok=True)
     t0 = time.time()
@@ -267,8 +311,14 @@ def main():
     sampled_jobs = [(g, s) for g in SAMPLED_GAMMAS for s in range(SAMPLED_SEEDS)]
     agree_jobs = [(g, rule, G) for g in AGREE_GAMMAS for rule, G in (("mean", 8), ("grpo", 8))]
 
+    if args.only == "switch":
+        with Pool(args.workers, initializer=init_worker) as pool:
+            print_switch(args.out, pool.map(switch_rows, [(g, r, G) for g in SWITCH_GAMMAS for r, G in SWITCH_FIRST]))
+        print(f"\n{time.time() - t0:.0f} s; CSV in {args.out}")
+        return
     with Pool(args.workers, initializer=init_worker) as pool:
         # The slow run_train jobs go first so the cheap ones fill the gaps.
+        switch = pool.map_async(switch_rows, [(g, r, G) for g in SWITCH_GAMMAS for r, G in SWITCH_FIRST])
         checks = pool.map_async(run_train_check, CHECK_RUNS)
         agree = pool.map_async(agreement_row, agree_jobs)
         sampled = pool.map_async(sampled_row, sampled_jobs)
@@ -311,8 +361,8 @@ def main():
                     print(table(rows, cols) + "\n")
         worst = check_batched_from(checks.get())
         print(f"Batched updates against run_train on {len(CHECK_RUNS)} settings: largest |difference| "
-              f"{worst:.2e} (log10 minority success every {CHECK_EVERY} steps to step {CHECK_STEPS}, and final majority "
-              "success).")
+              f"{worst:.2e} (log10 minority success every {CHECK_EVERY} steps to step {CHECK_STEPS}, and final "
+              "majority success).")
 
         sampled = sampled_rows(sampled.get())
         write(os.path.join(args.out, "sampled.csv"), sampled)
@@ -320,12 +370,24 @@ def main():
         print(table(sampled, ["gamma", "R", "seeds", "share_final_below_1e-3", "median_min_success",
                               "median_final_success"]))
 
+        print_switch(args.out, switch.get())
+
         agree = agree.get()
         write(os.path.join(args.out, "agreement.csv"), agree)
         print("\n## agreement.csv (exact flow against expected_full SGD at eta = 0.01, tau = eta x steps)\n")
         print(table(agree, ["gamma", "rule", "G", "max_tau", "max_abs_diff_log10", "tau_of_max_diff",
                             "log10_minority_at_max_tau"]))
     print(f"\n{time.time() - t0:.0f} s; CSVs in {args.out}")
+
+
+def print_switch(out, groups):
+    rows = [row for group in groups for row in group]
+    write(os.path.join(out, "switch.csv"), rows)
+    print(f"\n## switch.csv (collapse under the first rule to the target depth, then rloo_k; exact flow to "
+          f"{SWITCH_HORIZON:.0e} after the switch; m = 0.9)\n")
+    print(table(rows, ["gamma", "first_rule", "k", "target_depth", "log10_success_at_switch", "log10_min_after",
+                       "log10_final", "log10_change_last_2_decades", "min_majority_after", "recovered",
+                       "recovery_tau_after"]))
 
 
 def check_batched_from(got):

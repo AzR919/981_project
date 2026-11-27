@@ -33,7 +33,7 @@ def task_arrays(cfg):
     return np.asarray(train[0], dtype=float), np.asarray(train[1][:, 0]), full["K"], full
 
 
-def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10, method="LSODA", stable_tail=False):
+def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10, method="LSODA", stable_tail=False, start=None):
     """Integrate from a uniform start (W = 0) to each tau in `taus` (increasing). Returns per-prompt
     log-success (n_taus x n) and the class labels.
 
@@ -41,7 +41,10 @@ def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10, method="LSODA", stable_tai
     by subtraction. Once some prompt has 1 - p below about 1e-13 the subtraction makes the right-hand side
     noisy and LSODA's steps collapse (a run to tau = 1e14 with solved prompts can then take minutes or not
     finish); with stable_tail it takes well under a second. Values agree to solver tolerance where both
-    finish. The default (False) keeps earlier results bit for bit."""
+    finish. The default (False) keeps earlier results bit for bit.
+
+    start: weights (K x d) to start from instead of W = 0, for example the "W" of an earlier flow (with another
+    rule, to switch rules part-way). The taus are then flow times since that start."""
     phi, c, K, full = task_arrays(cfg)
     n, d = phi.shape
     G, rule, passk = full["G"], full["rule"], full["passk"]
@@ -61,7 +64,11 @@ def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10, method="LSODA", stable_tai
     def rhs_u(u, W):                       # u = log tau, dW/du = tau dW/dtau
         return np.exp(u) * rhs_tau(W)
 
-    W0 = tau0 * rhs_tau(np.zeros(K * d))   # one tiny Euler step from W = 0, then log time
+    if start is None:
+        W0 = tau0 * rhs_tau(np.zeros(K * d))   # one tiny Euler step from W = 0, then log time
+    else:
+        start = np.asarray(start, dtype=float).ravel()
+        W0 = start + tau0 * rhs_tau(start)
     us = np.log(np.asarray(taus, dtype=float))
     sol = solve_ivp(rhs_u, (np.log(tau0), us[-1]), W0, t_eval=us, method=method, rtol=rtol, atol=atol)
     if not sol.success:

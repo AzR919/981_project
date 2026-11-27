@@ -201,6 +201,15 @@ class FlowAgreementTests(unittest.TestCase):
         np.testing.assert_allclose(flow(cfg, taus)["log_success"], flow(cfg, taus, stable_tail=True)["log_success"],
                                    rtol=1e-5, atol=1e-9)
 
+    def test_restart_from_weights_continues_the_flow(self):
+        cfg = two_kind(1.2, rule="mean")
+        first = flow(cfg, [30.0], stable_tail=True)
+        whole = flow(cfg, [30.0, 30.0 + 1e3], stable_tail=True)["log_success"][-1]
+        resumed = flow(cfg, [1e3], stable_tail=True, start=first["W"])["log_success"][-1]
+        np.testing.assert_allclose(resumed, whole, rtol=1e-5, atol=1e-8)
+        default = flow(cfg, [30.0])["log_success"]
+        np.testing.assert_array_equal(flow(cfg, [30.0], start=None)["log_success"], default)
+
     def test_infinite_group_needs_expected_updates(self):
         with self.assertRaises(ValueError):
             run.run_train(config(**two_kind(1.2, rule="grpo", G="inf", update="sampled", steps=2)))
