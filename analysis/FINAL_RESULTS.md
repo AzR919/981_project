@@ -5,8 +5,8 @@ All experiments have finished and are analysed.
 
 **Update of 2026-11-26.** After the instructor's feedback we added a two-prompt minimal example
 (`analysis/theory/minimal_example.md`), harm measures on the confirmatory runs (`analysis/v3o/HARM.md`) and batch
-`v3r` (T30–T33, `analysis/v3r/SUMMARY.md`, pre-registered in `analysis/review/PREREG_v3d_addendum11.md`). Of its 21
-registered predictions, 18 hold and 3 fail; the failures are named below.
+`v3r` (T30–T33, `analysis/v3r/SUMMARY.md`, pre-registered in `analysis/review/PREREG_v3d_addendum11.md`). Of its 22
+registered predictions, 19 hold and 3 fail; the failures are named below.
 
 **Scope labels** (promised vs extra) are given per section; definitions in `docs/EXPERIMENTS.md`, "Promised vs extra".
 

@@ -293,7 +293,7 @@ What can be removed and the collapse still happen, from the full setting down to
 | finite G (G = ∞) | yes | this note, section 3 |
 | the standard-deviation normalisation (mean rule) | yes | v3f (`analysis/v3f/SUMMARY.md`) and this note |
 | everything but two prompt kinds, two answers, two weights | yes | this note |
-| negative interactions (γ ≤ 0 here) | no | section 1 (the full-size test T30 is pending in batch v3r) |
+| negative interactions (γ ≤ 0 here) | no | section 1, and at full size T30: 60 of 60 block-feature tasks with no fall at all (`analysis/v3r/SUMMARY.md`) |
 | sharing (tabular) | no | Lean proof (`formal/`) and 2,268 runs |
 
 ## Relation to prior work

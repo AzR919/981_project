@@ -350,7 +350,8 @@ the majority's max-margin direction.
 - ~~Fall model: in-sample comparison, and held-out test on v3o~~: done 11-25.
 - ~~G/H/J analyses~~: done 11-25.
 - ~~T25: the last stuck task, then the analysis~~: done 11-25.
-- `analysis/FINAL_RESULTS.md`.
+- ~~`analysis/FINAL_RESULTS.md`~~: done 11-25, updated 11-26 with batch `v3r`.
+- Upload `v3r_raw.tar.gz` to the Drive folder (see "How to get the raw results").
 - Report outline, figures script, LaTeX skeleton.
 - Team writes, Claude fact-checks.
 - ~~Raw-archive links~~: done 11-25 (Google Drive, access by request).

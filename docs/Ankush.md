@@ -21,7 +21,7 @@ marked as theirs. The battery A tests (v3o) get one entry each, because each has
   of `queue.txt`. Code commits come from each run's `COMMIT` file.
 - **Commit hashes** from before 2026-11-22 are the old ones: the history was rewritten that day, and the map is in
   PR #8.
-- **Raw results:** see "Where the raw results are" in `docs/EXPERIMENTS.md` (Google Drive, access by request).
+- **Raw results:** see "How to get the raw results" in `docs/EXPERIMENTS.md` (Google Drive, access by request).
 - **Status labels:** confirmatory, exploratory, refuted, in-sample or known, as in `analysis/FINAL_RESULTS.md`.
 
 ## Contents
