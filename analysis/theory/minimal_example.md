@@ -313,6 +313,11 @@ What can be removed and the collapse still happen, from the full setting down to
 - **Soudry et al. (2018).** The implicit bias of gradient descent on separable data (margins growing like log t). The
   tail system of section 4 is the two-prompt version of that regime, with a second prompt whose own pull competes.
 
+- **The instructor's submitted paper (unpublished, not seen by us).** He said on 2026-11-26 that it has the
+  non-negative-interaction condition and a counterexample in which GRPO collapses with linearly separable features.
+  This example may overlap with that counterexample; we cannot check, so the list below is what this note contains,
+  not a claim of priority.
+
 Ours: the two-kind example as a tabulated object, the three-line proof and the K = 2 converse of section 1, the tail
 system with its threshold γ > α/β, the exact straight-line separatrix and the exponent −γ/α, the phase table, and the
 per-lever tables with a constructed failure for each.
