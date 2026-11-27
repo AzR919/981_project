@@ -43,9 +43,9 @@ from synthetic_rl.diagnostics import (  # noqa: E402
     success_jacobian,
 )
 from synthetic_rl.policy import Policy  # noqa: E402
-from synthetic_rl.synthetic_task import SyntheticTask, verify  # noqa: E402
+from synthetic_rl.synthetic_task import SyntheticTask, block_dataset, class_counts, verify  # noqa: E402
 from synthetic_rl.theory import advantage_gap  # noqa: E402
-from synthetic_rl.trainer import Trainer, calculate_advantages  # noqa: E402
+from synthetic_rl.trainer import ADVANTAGES, Trainer, calculate_advantages  # noqa: E402
 from synthetic_rl.warmstart import mixed_targets, set_tabular_success, supervised_warmstart  # noqa: E402
 
 DEFAULTS = {
@@ -86,33 +86,82 @@ DEFAULTS = {
     "anchor_beta": None, "anchor_kl": "forward",   #    is switched on (all classes keep their reward)
     "differing_positions": None, # T26: with L > 1, positions 0..k-1 carry the answer class (the "procedure");
                                  #      the other positions follow one balanced rule shared by all prompts
+    # Minimal-example additions; the None / 0 defaults reproduce earlier runs.
+    "phi": None,                 # features="explicit": one feature vector per prompt kind (no constant feature)
+    "labels": None,              #    correct answer of each kind, in [0, K)
+    "counts": None,              #    prompts per kind; the training set is kind 0 x counts[0], then kind 1, ...
+    "block_dim": 5,              # features="block": |N(0, I)| features in the block of the prompt's class,
+    "shared_scale": 0.0,         #    zeros elsewhere, and one last coordinate equal to shared_scale for all prompts
+    "reset_every": None,         # KL reference becomes the current policy before steps N+1, 2N+1, ... (beta > 0)
+    "switch_at": None,           # fraction of training after which the reward rule changes to
+    "switch_rule": None, "switch_passk": None, "switch_G": None,   # these (None: unchanged)
     "seed": 0,
 }
 
 ABSORBED, SOLVED = 0.01, 0.99
+DIRECT_FEATURES = ("explicit", "block")   # features given directly, without a SyntheticTask
+
+
+def has_classes(cfg):
+    """Whether answer class 0 ("A") and the other classes ("B") are meaningful groups of prompts: class-share
+    tasks (majority) and the explicit and block feature tasks."""
+    return cfg["majority"] is not None or cfg["features"] in DIRECT_FEATURES
+
+
+def infinite_group(cfg):
+    return cfg["G"] == "inf" or cfg["G"] == float("inf")
+
+
+def direct_task(cfg):
+    """(train, test, d) for features="explicit" or "block"; see DEFAULTS."""
+    if cfg["features"] == "explicit":
+        phi, labels, counts = cfg["phi"], cfg["labels"], cfg["counts"]
+        if phi is None or labels is None or counts is None or not len(phi) == len(labels) == len(counts):
+            raise ValueError("explicit features need phi, labels and counts, one entry per prompt kind")
+        if cfg["L"] != 1 or cfg["majority"] is not None:
+            raise ValueError("explicit features need L = 1 and take class sizes from counts (majority = None)")
+        phi = np.asarray(phi, dtype=float)
+        if phi.ndim != 2 or min(counts) < 1 or not all(0 <= c < cfg["K"] for c in labels):
+            raise ValueError("phi must be kinds x d, counts positive and labels in [0, K)")
+        kind = np.repeat(np.arange(len(counts)), counts)
+        cfg["n_train"] = int(len(kind))
+        return (phi[kind], np.asarray(labels)[kind][:, None]), None, phi.shape[1]
+    if cfg["used_classes"] is not None:
+        raise ValueError("block features use all K classes")
+    m = 1.0 / cfg["K"] if cfg["majority"] is None else float(cfg["majority"])
+    rng = np.random.default_rng(cfg.get("task_seed", cfg["seed"]))
+    data = [block_dataset(class_counts(n, m, cfg["K"]), cfg["block_dim"], cfg["shared_scale"], rng, cfg["L"])
+            for n in (cfg["n_train"], cfg["n_test"])]
+    return data[0], data[1], cfg["K"] * cfg["block_dim"] + 1
 
 
 def build(cfg):
-    """Return (task, train_data, test_data, policy) with the base policy set."""
+    """Return (task, train_data, test_data, policy) with the base policy set. task is None for the explicit and
+    block features, which have no SyntheticTask (no mode needs it)."""
     seed = cfg["seed"]
     tabular = cfg["features"] == "onehot"
     d = cfg["n_train"] if tabular else cfg["d"]
     answers = "random" if tabular else cfg["answers"]
     shares = None
-    if cfg["majority"] is not None:
-        m = float(cfg["majority"])
-        used = cfg["used_classes"] or cfg["K"]
-        # A junk token gets a share too small for any prompt to draw it.
-        shares = [m] + [(1 - m) / (used - 1)] * (used - 1) + [1e-12] * (cfg["K"] - used)
-        d += 1  # the constant feature
-
-    task = SyntheticTask(
-        num_tokens=cfg["K"], response_length=cfg["L"], num_features=d,
-        seed=cfg.get("task_seed", seed), features=cfg["features"],
-        rho=cfg["rho"], answers=answers, class_shares=shares,
-    )
-    train = task.generate_dataset(cfg["n_train"])
-    test = None if tabular else task.generate_dataset(cfg["n_test"])
+    if cfg["features"] in DIRECT_FEATURES:
+        if cfg["differing_positions"] is not None:
+            raise ValueError("differing_positions needs a class-share SyntheticTask")
+        task = None
+        train, test, d = direct_task(cfg)
+    else:
+        if cfg["majority"] is not None:
+            m = float(cfg["majority"])
+            used = cfg["used_classes"] or cfg["K"]
+            # A junk token gets a share too small for any prompt to draw it.
+            shares = [m] + [(1 - m) / (used - 1)] * (used - 1) + [1e-12] * (cfg["K"] - used)
+            d += 1  # the constant feature
+        task = SyntheticTask(
+            num_tokens=cfg["K"], response_length=cfg["L"], num_features=d,
+            seed=cfg.get("task_seed", seed), features=cfg["features"],
+            rho=cfg["rho"], answers=answers, class_shares=shares,
+        )
+        train = task.generate_dataset(cfg["n_train"])
+        test = None if tabular else task.generate_dataset(cfg["n_test"])
     if cfg["differing_positions"] is not None:
         if cfg["majority"] is None or not 1 <= cfg["differing_positions"] <= cfg["L"]:
             raise ValueError("differing_positions needs a class-share task and 1 <= k <= L")
@@ -202,6 +251,16 @@ def tensors(policy, data):
 def success(policy, data):
     prompts, correct = tensors(policy, data)
     return policy.success_probability(prompts, correct).numpy()
+
+
+def check_rule(cfg):
+    """The Trainer's checks on the reward rule, for a rule set after the Trainer exists (switch_at)."""
+    if cfg["rule"] not in ADVANTAGES:
+        raise ValueError(f"rule must be one of {ADVANTAGES}")
+    if cfg["rule"] in ("passk", "rloo_k"):
+        G = float("inf") if infinite_group(cfg) else cfg["G"]
+        if not (cfg["passk"] and 1 <= cfg["passk"] <= G):
+            raise ValueError("passk needs 1 <= k <= G")
 
 
 def make_optimizer(cfg, policy):
@@ -385,9 +444,11 @@ def run_train(cfg):
     out["s_bar"] = effective_step(p_init, cfg["G"], cfg["rule"], cfg["eta"], cfg["B"], passk=cfg["passk"])
     out["W_init_mean"] = float(np.mean(advantage_gap(p_init, cfg["G"], cfg["rule"], passk=cfg["passk"])))
 
+    if infinite_group(cfg) and (cfg["update"] == "sampled" or cfg["branch_samples"]):
+        raise ValueError("G = inf (the large-group limit) has no sampled groups; use an expected update")
     trainer = Trainer(
         policy=policy, optimizer=make_optimizer(cfg, policy),
-        group_size=cfg["G"], advantage=cfg["rule"], beta=cfg["beta"],
+        group_size=float("inf") if infinite_group(cfg) else cfg["G"], advantage=cfg["rule"], beta=cfg["beta"],
         kl_direction=cfg["kl"], seed=cfg["seed"], passk=cfg["passk"],
         reward_noise=cfg["reward_noise"], ppo_epochs=cfg["ppo_epochs"],
         clip_eps=cfg["clip_eps"], grad_clip=cfg["grad_clip"],
@@ -401,8 +462,8 @@ def run_train(cfg):
         raise ValueError("expected updates need an exact verifier and one update per batch")
 
     n = len(train[0])
-    # Answer class 0 is "A" (the majority when cfg["majority"] > 1/K); the other classes are "B".
-    in_a = torch.as_tensor(train[1][:, 0] == 0) if cfg["majority"] is not None else None
+    # Answer class 0 is "A" (the majority when its share > 1/K); the other classes are "B".
+    in_a = torch.as_tensor(train[1][:, 0] == 0) if has_classes(cfg) else None
     if in_a is not None:
         # Where each class's probability sits at the start: success, and the mass on the other side's answers.
         with torch.no_grad():
@@ -415,13 +476,14 @@ def run_train(cfg):
     branch_rng = np.random.default_rng(cfg["seed"] + 20_000)
     branches = {}
     if (branch_steps or cfg["update"] in ("projected", "shortened")) and in_a is None:
-        raise ValueError("branch_at and the projected/shortened updates need a class-share task (majority)")
+        raise ValueError("branch_at and the projected/shortened updates need a task with classes "
+                         "(majority, or explicit or block features)")
     # T18: after the release step, class A's reward term is dropped (its prompts keep the KL term), and the KL
     # strength and direction can change. Everything before the release is the plain run.
     release_step = None
     if cfg["release_at"] is not None:
         if in_a is None or cfg["update"] != "expected_full":
-            raise ValueError("release_at needs a class-share task (majority) and update='expected_full'")
+            raise ValueError("release_at needs a task with classes and update='expected_full'")
         release_step = int(round(cfg["release_at"] * cfg["steps"]))
         released_cfg = dict(cfg, beta=cfg["beta"] if cfg["release_beta"] is None else cfg["release_beta"],
                             kl=cfg["release_kl"] or cfg["kl"])
@@ -493,11 +555,47 @@ def run_train(cfg):
         anchor_step = int(round(cfg["anchor_at"] * cfg["steps"]))
         anchored_cfg = dict(cfg, beta=cfg["anchor_beta"], kl=cfg["anchor_kl"])
         out["anchor_step"] = anchor_step
+    # KL reference resets: before step t = N+1, 2N+1, ... the reference becomes the current policy, so steps
+    # 1..N pull toward the start policy, N+1..2N toward the policy after step N, and so on. The optimizer state
+    # (momentum, Adam moments) is not reset.
+    reset_every = cfg["reset_every"]
+    if reset_every is not None:
+        if int(reset_every) != reset_every or reset_every < 1 or not cfg["beta"] > 0:
+            raise ValueError("reset_every needs an integer >= 1 and beta > 0")
+        if cfg["anchor_at"] is not None or cfg["release_at"] is not None:
+            raise ValueError("reset_every cannot be combined with anchor_at or release_at")
+        out["resets"] = 0
+    # Reward-rule switch: after step switch_step the rule, pass@k and group size become the switch_* values.
+    switch_step = None
+    if cfg["switch_at"] is not None:
+        if cfg["anchor_at"] is not None or cfg["release_at"] is not None:
+            raise ValueError("switch_at cannot be combined with anchor_at or release_at")
+        switch_step = int(round(cfg["switch_at"] * cfg["steps"]))
+        switched_cfg = dict(cfg, rule=cfg["switch_rule"] or cfg["rule"],
+                            passk=cfg["passk"] if cfg["switch_passk"] is None else cfg["switch_passk"],
+                            G=cfg["G"] if cfg["switch_G"] is None else cfg["switch_G"])
+        check_rule(switched_cfg)
+        if infinite_group(switched_cfg) and cfg["update"] == "sampled":
+            raise ValueError("switch_G = inf has no sampled groups")
+        out["switch_step"] = switch_step
     for step in range(1, cfg["steps"] + 1):
         if anchor_step is not None and step == anchor_step + 1:
             trainer.reference = policy.frozen_reference()
+        if reset_every is not None and step > 1 and (step - 1) % reset_every == 0:
+            # Both the sampled trainer and expected_step read trainer.reference.
+            trainer.reference = policy.frozen_reference()
+            out["resets"] += 1
+        # `rules` carries the reward rule of this step; `now` also the KL settings (anchor_at).
+        rules = now = cfg
+        if anchor_step is not None and step > anchor_step:
+            now = anchored_cfg
+        if switch_step is not None and step > switch_step:
+            rules = now = switched_cfg
+            if step == switch_step + 1:
+                # The sampled trainer holds its own copy of the rule.
+                trainer.advantage, trainer.passk, trainer.group_size = now["rule"], now["passk"], now["G"]
         if step - 1 in branch_steps:
-            branches[str(step - 1)] = measure_branches(policy, trainer.optimizer, prompts_t, correct_t, in_a, cfg,
+            branches[str(step - 1)] = measure_branches(policy, trainer.optimizer, prompts_t, correct_t, in_a, rules,
                                                        branch_rng)
         if cfg["update"] == "sampled":
             idx = draw(trainer.rng, n, cfg)
@@ -513,14 +611,13 @@ def run_train(cfg):
             else:
                 raise ValueError(f"unknown update {cfg['update']}")
             if cfg["update"] in ("projected", "shortened"):
-                class_step(policy, trainer.optimizer, *batch, in_a, cfg)
+                class_step(policy, trainer.optimizer, *batch, in_a, rules)
             elif cfg["update"] == "supervised":
                 supervised_step(policy, trainer.optimizer, *batch)
             elif release_step is not None and step > release_step:
                 trainer.decreases += expected_step(policy, trainer.optimizer, *batch, released_cfg,
                                                    reference=trainer.reference, weight=only_b)
             else:
-                now = anchored_cfg if anchor_step is not None and step > anchor_step else cfg
                 trainer.decreases += expected_step(policy, trainer.optimizer, *batch, now, reference=trainer.reference)
         if step % cfg["log_every"] == 0 or step == cfg["steps"] or step in snap_at:
             log(step)

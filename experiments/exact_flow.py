@@ -11,6 +11,9 @@ solver in log time (u = log tau), so flow times of 1e10 and beyond are reached c
 computed in log space so that absorbed prompts (success near 1e-300) stay exact.
 
 usage (one task, as a function): flow(cfg, taus) -> dict with per-prompt log-success at each requested tau.
+
+cfg may set G = "inf" (the large-group limit of mean, rloo and grpo). The explicit and block feature tasks of
+experiments/run.py work as well (K = 2 included).
 """
 
 import numpy as np
@@ -30,20 +33,30 @@ def task_arrays(cfg):
     return np.asarray(train[0], dtype=float), np.asarray(train[1][:, 0]), full["K"], full
 
 
-def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10, method="LSODA"):
+def flow(cfg, taus, tau0=1e-6, rtol=1e-8, atol=1e-10, method="LSODA", stable_tail=False):
     """Integrate from a uniform start (W = 0) to each tau in `taus` (increasing). Returns per-prompt
-    log-success (n_taus x n) and the class labels."""
+    log-success (n_taus x n) and the class labels.
+
+    stable_tail=True computes 1 - pi_c in e_c - pi as the sum of the other answers' probabilities instead of
+    by subtraction. Once some prompt has 1 - p below about 1e-13 the subtraction makes the right-hand side
+    noisy and LSODA's steps collapse (a run to tau = 1e14 with solved prompts can then take minutes or not
+    finish); with stable_tail it takes well under a second. Values agree to solver tolerance where both
+    finish. The default (False) keeps earlier results bit for bit."""
     phi, c, K, full = task_arrays(cfg)
     n, d = phi.shape
     G, rule, passk = full["G"], full["rule"], full["passk"]
     onehot = np.eye(K)[c]
+    rows = np.arange(n)
 
     def rhs_tau(W):
         logpi = log_softmax(phi @ W.reshape(K, d).T, axis=1)
         pi = np.exp(logpi)
-        p = pi[np.arange(n), c]
+        p = pi[rows, c]
         w = advantage_gap(p, G, rule, passk=passk) * p
-        return ((w[:, None] * (onehot - pi)).T @ phi / n).ravel()
+        resid = onehot - pi
+        if stable_tail:
+            resid[rows, c] = (pi * (1 - onehot)).sum(axis=1)
+        return ((w[:, None] * resid).T @ phi / n).ravel()
 
     def rhs_u(u, W):                       # u = log tau, dW/du = tau dW/dtau
         return np.exp(u) * rhs_tau(W)
