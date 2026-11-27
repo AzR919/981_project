@@ -9,8 +9,9 @@ and `docs/Ankush.md`:
 
 | Folder | What | Label |
 |---|---|---|
-| `analysis/v3a` … `v3g`, `v3j` … `v3p` | Minority collapse: P1–P3, the mechanism (T11–T13), the threshold and odds law (T15), the levers (T16–T19), junk answers, warm start, the late phase, permanent or plateau (T25), the confirmatory battery (v3o), the review caveats (v3p) | Core follow-up (T26 in `v3n` and H in `v3p` are Extra) |
-| `analysis/theory/` | The odds law, the late-time and fall models | Core follow-up |
+| `analysis/v3a` … `v3g`, `v3j` … `v3p` | Minority collapse: P1–P3, the mechanism (T11–T13), the threshold and odds law (T15), the levers (T16–T19), junk answers, warm start, the late phase, permanent or plateau (T25), the confirmatory battery and its harm measures (v3o), the review caveats (v3p) | Core follow-up (T26 in `v3n` and H in `v3p` are Extra) |
+| `analysis/v3r` | Non-negative interactions at full size (T30), prevention with one knob changed (T31), pass@k over long times and on pass@1 (T32, T33) | Core follow-up |
+| `analysis/theory/` | The odds law, the late-time and fall models, the two-prompt minimal example | Core follow-up |
 | `analysis/v3h`, `v3i`, `v3q` | The transformer environment of Li, Pandey and Chen (T20, T21, A4, J) | Extra |
 | `analysis/llm/` | Small language models (C0–C10) | Extra |
 | `analysis/review/` | Pre-registrations, reviews and the checks behind them | Process record |
@@ -24,5 +25,5 @@ and `docs/Ankush.md`:
 **Running the code:**
 - From the repo root, scripts run as before, with `extra/` in front: `python extra/experiments/analyze_v3n.py`,
   `python extra/llm/train.py …`.
-- Tests: `pytest tests extra/tests`.
+- Tests: `python -m pytest tests extra/tests` (`-m` puts the repo root on the path, which `tests/test_policy.py` needs).
 - The raw results are linked from `docs/EXPERIMENTS.md` (Google Drive, access by request).
